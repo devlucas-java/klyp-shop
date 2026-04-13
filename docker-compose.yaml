@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+
+  app:
+    container_name: klyp-go-app
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      WEB_SERVER_PORT: 8080
+
+      DB_DRIVER: postgres
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: klyp_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+
+      JWT_SECRET: super-secret-key
+      JWT_EXPIRE_IN: 15
+      JWT_REFRESH_EXPIRE_IN: 1440
+
+    depends_on:
+      - dbk
+
+  db:
+    container_name: klyp-go-db
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: klyp_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
