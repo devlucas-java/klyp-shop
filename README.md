@@ -14,6 +14,7 @@ Klyp Shop is an e-commerce platform inspired by Amazon, where users can buy prod
 - GORM (ORM)
 - PostgreSQL
 - JWT Authentication
+- Bitcoin Payment
 - WebSocket (real-time chat)
 - Docker & Docker Compose
 - Swagger (API documentation)
