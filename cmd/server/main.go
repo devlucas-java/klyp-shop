@@ -4,14 +4,17 @@ import (
 	"net/http"
 
 	"github.com/devlucas-java/klyp-shop/configs"
+	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 )
 
 func main() {
 
-	cfg := configs.InitConfigDev()
-	_ = configs.InitDBDev()
+	log := logger.NewLogger(logger.WARN)
+
+	cfg := configs.InitConfigDev(log)
+	_ = configs.InitDBDev(log)
 
 	r := chi.NewRouter()
 
@@ -20,9 +23,8 @@ func main() {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 
-	err := http.ListenAndServe(":"+cfg.GetWebServerPort(), r)
-	if err != nil {
+	if err := http.ListenAndServe(":"+cfg.WebServerPort, r); err != nil {
+		log.Errorf("http listen err: %v", err)
 		panic(err)
 	}
-
 }
