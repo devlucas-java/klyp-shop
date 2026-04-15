@@ -59,7 +59,7 @@
 
 ## 🚀 Future
 
-- [ ] Payment integration 
-- [ ] Bitcoin Payment integration
+- [ ] BitcoinPayment integration 
+- [ ] Bitcoin BitcoinPayment integration
 - [ ] Notifications
 - [ ] Microservice for sellers

@@ -47,4 +47,4 @@ Request → Handler → Usecase → Domain → Repository → Database
 
 - Microservice for Sellers
 - Message Queue (RabbitMQ / Kafka)
-- Payment Gateway integration
+- BitcoinPayment Gateway integration

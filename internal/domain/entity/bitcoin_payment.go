@@ -2,7 +2,7 @@ package entity
 
 import "github.com/devlucas-java/klyp-shop/pkg/id"
 
-type Payment struct {
+type BitcoinPayment struct {
 	BaseModel
 
 	OrderID id.UUID
