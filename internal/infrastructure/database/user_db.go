@@ -38,7 +38,11 @@ func (r *UserDB) Updates(user *entity.User) (*entity.User, error) {
 func (r *UserDB) FindByID(id id.UUID) (*entity.User, error) {
 	var user entity.User
 
-	err := r.DB.First(&user, "id = ?", id).Error
+	err := r.DB.
+		Preload("Roles").
+		Preload("Roles.Authorities").
+		First(&user, "id = ?", id).Error
+
 	if err != nil {
 		return nil, err
 	}
@@ -50,6 +54,8 @@ func (r *UserDB) FindByEmailOrUsername(str string) (*entity.User, error) {
 	var user entity.User
 
 	err := r.DB.
+		Preload("Roles").
+		Preload("Roles.Authorities").
 		Where("email = ? OR username = ?", str, str).
 		First(&user).Error
 
