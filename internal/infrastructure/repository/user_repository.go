@@ -2,12 +2,13 @@ package repository
 
 import (
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	"github.com/google/uuid"
+	"github.com/devlucas-java/klyp-shop/pkg/id"
 )
 
 type UserRepository interface {
-	Save(user *entity.User) (*entity.User, error)
-	Updates(user *entity.User) (*entity.User, error)
-	FindByID(id uuid.UUID) (*entity.User, error)
+	Create(user *entity.User) (*entity.User, error)
+	Update(user *entity.User) (*entity.User, error)
+	FindByID(id id.UUID) (*entity.User, error)
 	FindByEmailOrUsername(str string) (*entity.User, error)
+	Delete(id id.UUID) error
 }

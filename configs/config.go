@@ -65,14 +65,12 @@ func InitDBDev(log *logger.Logger) *gorm.DB {
 
 	err = db.AutoMigrate(
 		&entity.Address{},
-		&entity.Authority{},
 		&entity.BitcoinPayment{},
 		&entity.Comment{},
 		&entity.Order{},
 		&entity.OrderItem{},
 		&entity.Product{},
 		&entity.Review{},
-		&entity.Role{},
 		&entity.Seller{},
 		&entity.User{},
 	)
@@ -126,14 +124,12 @@ func InitDBTest(log *logger.Logger) *gorm.DB {
 
 	err = db.AutoMigrate(
 		&entity.Address{},
-		&entity.Authority{},
 		&entity.BitcoinPayment{},
 		&entity.Comment{},
 		&entity.Order{},
 		&entity.OrderItem{},
 		&entity.Product{},
 		&entity.Review{},
-		&entity.Role{},
 		&entity.Seller{},
 		&entity.User{},
 	)

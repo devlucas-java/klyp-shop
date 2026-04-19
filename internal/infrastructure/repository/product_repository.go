@@ -6,9 +6,10 @@ import (
 )
 
 type ProductRepository interface {
-	Create(product *entity.Product) error
+	Create(product *entity.Product) (*entity.Product, error)
+	Update(product *entity.Product) (*entity.Product, error)
 	FindByID(id id.UUID) (*entity.Product, error)
-	FindAll() ([]entity.Product, error)
-	Update(product *entity.Product) error
+	FindBySellerID(sellerID id.UUID, page, size int) ([]*entity.Product, error)
+	Search(page, size int, order, search string, categories []string) ([]*entity.Product, error)
 	Delete(id id.UUID) error
 }

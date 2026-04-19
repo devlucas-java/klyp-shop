@@ -8,20 +8,26 @@ import (
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 )
 
-type reviewRepository struct {
+type ReviewDB struct {
 	db *gorm.DB
 }
 
-func NewReviewRepository(db *gorm.DB) repository.ReviewRepository {
-	return &reviewRepository{db: db}
+func NewReviewDB(db *gorm.DB) repository.ReviewRepository {
+	return &ReviewDB{db: db}
 }
 
-func (r *reviewRepository) Create(review *entity.Review) error {
-	return r.db.Create(review).Error
+func (r *ReviewDB) Create(review *entity.Review) (*entity.Review, error) {
+	err := r.db.Create(review).Error
+	return review, err
 }
 
-func (r *reviewRepository) FindByProduct(productID id.UUID) ([]entity.Review, error) {
-	var reviews []entity.Review
+func (r *ReviewDB) Update(review *entity.Review) (*entity.Review, error) {
+	err := r.db.Save(review).Error
+	return review, err
+}
+
+func (r *ReviewDB) FindByProductID(productID id.UUID) ([]*entity.Review, error) {
+	var reviews []*entity.Review
 
 	err := r.db.
 		Where("product_id = ?", productID).
@@ -30,6 +36,6 @@ func (r *reviewRepository) FindByProduct(productID id.UUID) ([]entity.Review, er
 	return reviews, err
 }
 
-func (r *reviewRepository) Delete(reviewID id.UUID) error {
+func (r *ReviewDB) Delete(reviewID id.UUID) error {
 	return r.db.Delete(&entity.Review{}, "id = ?", reviewID).Error
 }

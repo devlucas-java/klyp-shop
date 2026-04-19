@@ -1,26 +1,26 @@
 package database
 
 import (
-	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
-	"gorm.io/gorm"
-
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
+	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
+	"gorm.io/gorm"
 )
 
-type productRepository struct {
+type ProductDB struct {
 	db *gorm.DB
 }
 
-func NewProductRepository(db *gorm.DB) repository.ProductRepository {
-	return &productRepository{db: db}
+func NewProductDB(db *gorm.DB) repository.ProductRepository {
+	return &ProductDB{db: db}
 }
 
-func (r *productRepository) Create(product *entity.Product) error {
-	return r.db.Create(product).Error
+func (r *ProductDB) Create(product *entity.Product) (*entity.Product, error) {
+	err := r.db.Create(product).Error
+	return product, err
 }
 
-func (r *productRepository) FindByID(productID id.UUID) (*entity.Product, error) {
+func (r *ProductDB) FindByID(productID id.UUID) (*entity.Product, error) {
 	var product entity.Product
 
 	err := r.db.
@@ -31,20 +31,55 @@ func (r *productRepository) FindByID(productID id.UUID) (*entity.Product, error)
 	return &product, err
 }
 
-func (r *productRepository) FindAll() ([]entity.Product, error) {
-	var products []entity.Product
+func (r *ProductDB) Search(page, size int, order, search string, categories []string) ([]*entity.Product, error) {
+	var products []*entity.Product
+
+	offset := (page - 1) * size
+
+	if order != "asc" && order != "desc" {
+		order = "desc"
+	}
+
+	query := r.db.
+		Preload("Seller").
+		Limit(size).
+		Offset(offset).
+		Order("created_at " + order)
+
+	if search != "" {
+		like := "%" + search + "%"
+		query = query.Where("name LIKE ?", like)
+	}
+
+	if len(categories) > 0 {
+		query = query.Where("categories ?| array[?]", categories)
+	}
+
+	err := query.Find(&products).Error
+	return products, err
+}
+
+func (r *ProductDB) FindBySellerID(sellerID id.UUID, page, size int) ([]*entity.Product, error) {
+	var products []*entity.Product
+
+	offset := (page - 1) * size
 
 	err := r.db.
-		Preload("Seller").
+		Preload("Reviews").
+		Where("seller_id = ?", sellerID).
+		Limit(size).
+		Offset(offset).
+		Order("created_at desc").
 		Find(&products).Error
 
 	return products, err
 }
 
-func (r *productRepository) Update(product *entity.Product) error {
-	return r.db.Save(product).Error
+func (r *ProductDB) Update(product *entity.Product) (*entity.Product, error) {
+	err := r.db.Save(&product).Error
+	return product, err
 }
 
-func (r *productRepository) Delete(productID id.UUID) error {
+func (r *ProductDB) Delete(productID id.UUID) error {
 	return r.db.Delete(&entity.Product{}, "id = ?", productID).Error
 }

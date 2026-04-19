@@ -43,19 +43,21 @@ klyp-shop/
 │   └── api/
 │       └── main.go
 ├── internal/
-│   ├── domain/
-│   │   ├── entity/
-│   │   ├── repository/
-│   │   └── service/
-│   ├── usecase/
-│   ├── infrastructure/
-│   │   ├── database/
-│   │   ├── repository/
+│   ├── delivery/
 │   │   ├── http/
+│   │   │   ├── dto/
 │   │   │   ├── handler/
 │   │   │   ├── middleware/
 │   │   │   └── routes/
 │   │   ├── websocket/
+│   ├── domain/
+│   │   ├── entity/
+│   │   ├── repository/
+│   ├── application/
+│   │   └── service/
+│   ├── infrastructure/
+│   │   ├── database/
+│   │   ├── repository/
 │   │   └── security/
 │   └── configs/
 ├── pkg/

@@ -1,4 +1,4 @@
-package application
+package jwt
 
 import (
 	"errors"
@@ -18,13 +18,10 @@ func NewJWTService(secret string) *JWTService {
 
 func (s *JWTService) GenerateToken(user *entity.User) (string, error) {
 
-	roles, authorities := extractRoles(user.Roles)
-
 	_, token, err := s.tokenAuth.Encode(map[string]interface{}{
-		"user_id":     user.ID.String(),
-		"email":       user.Email,
-		"roles":       roles,
-		"authorities": authorities,
+		"user_id": user.ID.String(),
+		"email":   user.Email,
+		"roles":   user.Roles,
 	})
 	if err != nil {
 		return "", err
@@ -45,30 +42,4 @@ func (s *JWTService) Validate(tokenString string) (map[string]interface{}, error
 	claims := token.PrivateClaims()
 
 	return claims, nil
-}
-
-func extractRoles(roles []entity.Role) ([]string, []string) {
-
-	roleSet := make(map[string]bool)
-	authSet := make(map[string]bool)
-
-	for _, role := range roles {
-		roleSet[role.Name] = true
-
-		for _, auth := range role.Authorities {
-			authSet[auth.Name] = true
-		}
-	}
-
-	var roleList []string
-	for r := range roleSet {
-		roleList = append(roleList, r)
-	}
-
-	var authList []string
-	for a := range authSet {
-		authList = append(authList, a)
-	}
-
-	return roleList, authList
 }

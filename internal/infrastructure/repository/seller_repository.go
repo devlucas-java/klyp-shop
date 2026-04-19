@@ -6,8 +6,9 @@ import (
 )
 
 type SellerRepository interface {
-	Save(seller *entity.Seller) (*entity.Seller, error)
-	Updates(seller *entity.Seller) (*entity.Seller, error)
-	FindByID(ID id.UUID) (*entity.Seller, error)
+	Create(seller *entity.Seller) (*entity.Seller, error)
+	Update(seller *entity.Seller) (*entity.Seller, error)
+	FindByID(id id.UUID) (*entity.Seller, error)
 	Find(page, size int, order, search string) ([]*entity.Seller, error)
+	Delete(id id.UUID) error
 }
