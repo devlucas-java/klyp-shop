@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/devlucas-java/klyp-shop/configs"
+	"github.com/devlucas-java/klyp-shop/internal/infrastructure/security/jwt"
 	"github.com/devlucas-java/klyp-shop/internal/module"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/go-chi/chi"
@@ -24,8 +25,13 @@ func main() {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 
-	module := module.InitAuthModule(db, log, cfg.JwtSecret)
-	r.Mount("/api/v1/auth", module)
+	jwtService := jwt.NewJWTService(cfg.JwtSecret)
+
+	authModule := module.InitAuthModule(db, log, jwtService)
+	r.Mount("/api/v1/auth", authModule)
+
+	userModule := module.InitUserModule(db, log, jwtService)
+	r.Mount("/api/v1/user", userModule)
 
 	log.Infof("Server is running on port %s", cfg.WebServerPort)
 	if err := http.ListenAndServe(":"+cfg.WebServerPort, r); err != nil {

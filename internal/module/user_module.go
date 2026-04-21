@@ -12,17 +12,16 @@ import (
 	"gorm.io/gorm"
 )
 
-func InitAuthModule(db *gorm.DB, log *logger.Logger, jwtService *jwt.JWTService) chi.Router {
-	userRepo := database.NewUserDB(db, log)
+func InitUserModule(db *gorm.DB, log *logger.Logger, jwtService *jwt.JWTService) chi.Router {
+
+	userRepository := database.NewUserDB(db, log)
 	userMapper := mapper.NewUserMapper()
-
-	authService := service.NewAuthService(userRepo, jwtService, userMapper)
-
-	authHandler := handler.NewAuthHandler(authService, log)
-	authRouter := router.NewAuthRouter(authHandler, jwtService, log, userRepo)
+	userService := service.NewUserService(userRepository, log, userMapper)
+	userHandler := handler.NewUserHandler(userService, log)
+	UserRouter := router.NewUserRouter(jwtService, userHandler, log, userRepository)
 
 	r := chi.NewRouter()
-	authRouter.RegisterAuthRoutes(r)
+	UserRouter.RegisterUserRoutes(r)
 
 	return r
 }

@@ -6,8 +6,10 @@ import (
 
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/enums"
+	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/security/jwt"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
+	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/go-chi/jwtauth"
 )
 
@@ -15,7 +17,7 @@ type contextKey string
 
 const AuthKey contextKey = "auth_context"
 
-func AuthMiddleware(jwtService *jwt.JWTService) func(http.Handler) http.Handler {
+func AuthMiddleware(jwtService *jwt.JWTService, log *logger.Logger, userRepository repository.UserRepository) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -38,6 +40,18 @@ func AuthMiddleware(jwtService *jwt.JWTService) func(http.Handler) http.Handler 
 			}
 
 			email, _ := claims["email"].(string)
+
+			user, err := userRepository.FindByID(userID)
+			if err != nil {
+				log.Errorf("Error finding user by ID %s: %v", userID, err)
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				return
+			}
+			if user == nil {
+				log.Errorf("User not found by ID %s", userID)
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
 
 			var roles []enums.Role
 			if rolesClaim, ok := claims["roles"].([]interface{}); ok {

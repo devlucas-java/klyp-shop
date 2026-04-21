@@ -9,16 +9,16 @@ import (
 	"gorm.io/gorm"
 )
 
-type userRepository struct {
+type userDB struct {
 	db  *gorm.DB
 	log *logger.Logger
 }
 
-func NewUserRepository(db *gorm.DB, log *logger.Logger) repository.UserRepository {
-	return &userRepository{db: db, log: log}
+func NewUserDB(db *gorm.DB, log *logger.Logger) repository.UserRepository {
+	return &userDB{db: db, log: log}
 }
 
-func (r *userRepository) Create(user *entity.User) (*entity.User, error) {
+func (r *userDB) Create(user *entity.User) (*entity.User, error) {
 	r.log.Tracef("Creating new user in database: %s", user.ID)
 	if err := r.db.Create(user).Error; err != nil {
 		r.log.Errorf("Database error creating user: %v", err)
@@ -27,16 +27,16 @@ func (r *userRepository) Create(user *entity.User) (*entity.User, error) {
 	return user, nil
 }
 
-func (r *userRepository) Update(user *entity.User) (*entity.User, error) {
+func (r *userDB) Update(user *entity.User) (*entity.User, error) {
 	r.log.Tracef("Updating user in database: %s", user.ID)
-	if err := r.db.Save(user).Error; err != nil {
+	if err := r.db.Where("deleted_at IS NULL").Save(user).Error; err != nil {
 		r.log.Errorf("Database error updating user %s: %v", user.ID, err)
 		return nil, errors.Wrap("DB_UPDATE_ERROR", "failed to update user in database", 500, err)
 	}
 	return user, nil
 }
 
-func (r *userRepository) Delete(userID id.UUID) error {
+func (r *userDB) Delete(userID id.UUID) error {
 	r.log.Tracef("Deleting user from database: %s", userID)
 	err := r.db.Where("id = ?", userID).Delete(&entity.User{}).Error
 	if err != nil {
@@ -46,13 +46,13 @@ func (r *userRepository) Delete(userID id.UUID) error {
 	return nil
 }
 
-func (r *userRepository) FindByID(userID id.UUID) (*entity.User, error) {
+func (r *userDB) FindByID(userID id.UUID) (*entity.User, error) {
 	r.log.Tracef("Finding user by ID: %s", userID)
 	var user entity.User
-	err := r.db.First(&user, "id = ?", userID).Error
+	err := r.db.First(&user, "id = ? AND deleted_at IS NULL", userID).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.ErrUserNotFound
+			return nil, errors.ErrNotFound("User", err)
 		}
 		r.log.Errorf("Database error finding user by ID %s: %v", userID, err)
 		return nil, errors.Wrap("DB_FIND_ERROR", "failed to find user by ID", 500, err)
@@ -60,15 +60,15 @@ func (r *userRepository) FindByID(userID id.UUID) (*entity.User, error) {
 	return &user, nil
 }
 
-func (r *userRepository) FindByEmailOrUsername(str string) (*entity.User, error) {
+func (r *userDB) FindByEmailOrUsername(str string) (*entity.User, error) {
 	r.log.Tracef("Finding user by email or username: %s", str)
 	var user entity.User
 	err := r.db.
-		Where("email = ? OR username = ?", str, str).
+		Where("(email = ? OR username = ?) AND deleted_at IS NULL", str, str).
 		First(&user).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.ErrUserNotFound
+			return nil, errors.ErrNotFound("User", err)
 		}
 		r.log.Errorf("Database error finding user by email or username %s: %v", str, err)
 		return nil, errors.Wrap("DB_FIND_ERROR", "failed to find user by email or username", 500, err)

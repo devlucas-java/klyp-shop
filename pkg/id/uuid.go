@@ -1,6 +1,8 @@
 package id
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+)
 
 type UUID = uuid.UUID
 

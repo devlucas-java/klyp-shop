@@ -2,8 +2,8 @@
 
 ## 🧑 User
 
-- [ ] Register user
-- [ ] Login (JWT)
+- [ * ] Register user
+- [ * ] Login (JWT)
 - [ ] Become seller
 - [ ] Profile management
 
@@ -36,9 +36,9 @@
 
 ## 🔐 Auth
 
-- [ ] JWT login
+- [ * ] JWT login
 - [ ] Refresh token
-- [ ] Middleware auth
+- [ * ] Middleware auth
 
 ## 🗄 Database
 
@@ -53,9 +53,9 @@
 
 ## 🐳 DevOps
 
-- [ ] Dockerfile
-- [ ] Docker Compose
-- [ ] Environment configs
+- [ * ] Dockerfile
+- [ * ] Docker Compose
+- [ * ] Environment configs
 
 ## 🚀 Future
 

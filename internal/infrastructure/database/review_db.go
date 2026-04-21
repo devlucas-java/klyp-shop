@@ -3,9 +3,8 @@ package database
 import (
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
-	"gorm.io/gorm"
-
 	"github.com/devlucas-java/klyp-shop/pkg/id"
+	"gorm.io/gorm"
 )
 
 type ReviewDB struct {

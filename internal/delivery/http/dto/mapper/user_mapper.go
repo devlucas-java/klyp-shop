@@ -6,8 +6,16 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 )
 
-func UserToUserDTO(user *entity.User) *user_response.UserDTO {
+type UserMapper struct {
+}
+
+func NewUserMapper() *UserMapper {
+	return &UserMapper{}
+}
+
+func (m *UserMapper) UserToUserDTO(user *entity.User) *user_response.UserDTO {
 	return &user_response.UserDTO{
+		ID:       user.ID.String(),
 		Name:     user.Name,
 		Email:    user.Email,
 		Username: user.Username,
@@ -16,7 +24,7 @@ func UserToUserDTO(user *entity.User) *user_response.UserDTO {
 	}
 }
 
-func RegisterDTOToUser(dto *auth_request.RegisterDTO) *entity.User {
+func (m *UserMapper) RegisterDTOToUser(dto *auth_request.RegisterDTO) *entity.User {
 
 	return &entity.User{
 		Name:     dto.Name,

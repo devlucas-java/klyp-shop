@@ -16,24 +16,25 @@ import (
 type AuthService struct {
 	userRepository repository.UserRepository
 	jwtService     *jwt.JWTService
+	mapper         *mapper.UserMapper
 }
 
-func NewAuthService(userRepository repository.UserRepository, jwtService *jwt.JWTService) *AuthService {
+func NewAuthService(userRepository repository.UserRepository, jwtService *jwt.JWTService, mapper *mapper.UserMapper) *AuthService {
 	return &AuthService{
 		userRepository: userRepository,
 		jwtService:     jwtService,
+		mapper:         mapper,
 	}
 }
 
 func (a *AuthService) Login(login *auth_request.LoginDTO) (*auth_response.JWTDTO, error) {
 	user, err := a.userRepository.FindByEmailOrUsername(login.Login)
 	if err != nil {
-		return nil, errors.ErrInvalidCredentials
+		return nil, errors.ErrInvalidCredentials(err)
 	}
 
-	match, _ := password_encoder.Match(login.Password, user.Password)
-	if !match {
-		return nil, errors.ErrInvalidCredentials
+	if match, _ := password_encoder.Match(login.Password, user.Password); !match {
+		return nil, errors.ErrInvalidCredentials(err)
 	}
 
 	token, err := a.jwtService.GenerateToken(user)
@@ -41,15 +42,15 @@ func (a *AuthService) Login(login *auth_request.LoginDTO) (*auth_response.JWTDTO
 		return nil, err
 	}
 
-	return auth_response.NewJWTDTO(token, mapper.UserToUserDTO(user)), nil
+	return auth_response.NewJWTDTO(token, a.mapper.UserToUserDTO(user)), nil
 }
 
 func (a *AuthService) Register(dto *auth_request.RegisterDTO) (*auth_response.JWTDTO, error) {
-	user := mapper.RegisterDTOToUser(dto)
+	user := a.mapper.RegisterDTOToUser(dto)
 
 	pass, err := password_encoder.Encoder(dto.Password)
 	if err != nil {
-		return nil, err
+		return nil, errors.ErrInternal("Failed to encode password", err)
 	}
 
 	user.Password = pass
@@ -57,28 +58,23 @@ func (a *AuthService) Register(dto *auth_request.RegisterDTO) (*auth_response.JW
 
 	user, err = a.userRepository.Create(user)
 	if err != nil {
-		return nil, errors.Wrap(
-			errors.ErrUserAlreadyExists.Code,
-			errors.ErrUserAlreadyExists.Message,
-			errors.ErrUserAlreadyExists.Status,
-			err, // causa real fica no log, não vaza pro cliente
-		)
+		return nil, errors.ErrDatabase("Failed to create user", err)
+
 	}
 
 	token, _ := a.jwtService.GenerateToken(user)
-
-	return auth_response.NewJWTDTO(token, mapper.UserToUserDTO(user)), nil
+	return auth_response.NewJWTDTO(token, a.mapper.UserToUserDTO(user)), nil
 }
 
 func (a *AuthService) VerifyPassword(req *auth_request.VerifyPasswordRequest, user *entity.User) (*others_response.BooleanDTO, error) {
 	stored, err := a.userRepository.FindByID(user.ID)
 	if err != nil {
-		return nil, err
+		return nil, errors.ErrInternal("Failed to retrieve user", err)
 	}
 
 	match, err := password_encoder.Match(req.Password, stored.Password)
 	if err != nil {
-		return nil, err
+		return nil, errors.ErrInternal("Failed to verify password", err)
 	}
 
 	return &others_response.BooleanDTO{Result: match}, nil
@@ -96,7 +92,7 @@ func (a *AuthService) UpdatePassword(dto *auth_request.UpdatePasswordRequest, us
 	}
 
 	if !match {
-		return errors.ErrInvalidCredentials
+		return errors.ErrInvalidCredentials(err)
 	}
 
 	hash, err := password_encoder.Encoder(dto.NewPassword)

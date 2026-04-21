@@ -1,6 +1,8 @@
 package entity
 
-import "github.com/devlucas-java/klyp-shop/pkg/id"
+import (
+	"github.com/devlucas-java/klyp-shop/pkg/id"
+)
 
 type PaymentStatus string
 
