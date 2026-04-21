@@ -42,14 +42,9 @@ func AuthMiddleware(jwtService *jwt.JWTService, log *logger.Logger, userReposito
 			email, _ := claims["email"].(string)
 
 			user, err := userRepository.FindByID(userID)
-			if err != nil {
+			if err != nil || user == nil {
 				log.Errorf("Error finding user by ID %s: %v", userID, err)
-				http.Error(w, "Internal server error", http.StatusInternalServerError)
-				return
-			}
-			if user == nil {
-				log.Errorf("User not found by ID %s", userID)
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				http.Error(w, "Forbidden", http.StatusForbidden)
 				return
 			}
 
