@@ -35,7 +35,7 @@ func AuthMiddleware(jwtService *jwt.JWTService, log *logger.Logger, userReposito
 			}
 			userID, err := id.Parse(userIDStr)
 			if err != nil {
-				http.Error(w, "Invalid user ID in token", http.StatusUnauthorized)
+				http.Error(w, "Invalid duser ID in token", http.StatusUnauthorized)
 				return
 			}
 
@@ -43,7 +43,7 @@ func AuthMiddleware(jwtService *jwt.JWTService, log *logger.Logger, userReposito
 
 			user, err := userRepository.FindByID(userID)
 			if err != nil || user == nil {
-				log.Errorf("Error finding user by ID %s: %v", userID, err)
+				log.Errorf("Error finding duser by ID %s: %v", userID, err)
 				http.Error(w, "Forbidden", http.StatusForbidden)
 				return
 			}

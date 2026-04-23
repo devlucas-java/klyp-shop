@@ -1,8 +1,8 @@
-package user_response
+package duser
 
 import "github.com/devlucas-java/klyp-shop/internal/domain/enums"
 
-type UserDTO struct {
+type UserResponse struct {
 	ID       string       `json:"id"`
 	Name     string       `json:"name"`
 	Email    string       `json:"email"`

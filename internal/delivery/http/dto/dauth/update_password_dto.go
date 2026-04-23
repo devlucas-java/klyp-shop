@@ -1,4 +1,4 @@
-package auth_request
+package dauth
 
 type UpdatePasswordRequest struct {
 	CurrentPassword string `json:"current_password"`

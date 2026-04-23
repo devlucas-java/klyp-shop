@@ -1,4 +1,4 @@
-package user_request
+package duser
 
 type UpdateUserRequest struct {
 	Name     string `json:"name"`

@@ -1,9 +1,8 @@
 package service
 
 import (
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/duser"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/request/user_request"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/response/user_response"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/enums"
 	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
@@ -26,22 +25,22 @@ func NewUserService(userRepository repository.UserRepository, log *logger.Logger
 	}
 }
 
-func (s *UserService) GetMe(auth *entity.User) (*user_response.UserDTO, error) {
-	s.log.Infof("Getting user by ID %s", auth.ID)
+func (s *UserService) GetMe(auth *entity.User) (*duser.UserResponse, error) {
+	s.log.Infof("Getting duser by ID %s", auth.ID)
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
-		s.log.Errorf("Failed to find user by ID %s: %v", auth.ID, err)
+		s.log.Errorf("Failed to find duser by ID %s: %v", auth.ID, err)
 		return nil, errors.ErrNotFound("User", err)
 	}
 
 	return s.userMapper.UserToUserDTO(user), nil
 }
 
-func (s *UserService) UpdateMe(auth *entity.User, req *user_request.UpdateUserRequest) (*user_response.UserDTO, error) {
-	s.log.Infof("Updating user %s", auth.ID)
+func (s *UserService) UpdateMe(auth *entity.User, req *duser.UpdateUserRequest) (*duser.UserResponse, error) {
+	s.log.Infof("Updating duser %s", auth.ID)
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
-		s.log.Errorf("Failed to find user by ID %s: %v", auth.ID, err)
+		s.log.Errorf("Failed to find duser by ID %s: %v", auth.ID, err)
 		return nil, errors.ErrNotFound("User", err)
 	}
 
@@ -67,7 +66,7 @@ func (s *UserService) UpdateMe(auth *entity.User, req *user_request.UpdateUserRe
 
 	_, err = s.userRepository.Update(user)
 	if err != nil {
-		s.log.Errorf("Failed to update user %s: %v", auth.ID, err)
+		s.log.Errorf("Failed to update duser %s: %v", auth.ID, err)
 		return nil, errors.ErrNotFound("User", err)
 	}
 
@@ -75,16 +74,16 @@ func (s *UserService) UpdateMe(auth *entity.User, req *user_request.UpdateUserRe
 }
 
 func (s *UserService) DeleteMe(auth *entity.User) error {
-	s.log.Infof("Deleting user %s", auth.ID)
+	s.log.Infof("Deleting duser %s", auth.ID)
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
-		s.log.Errorf("Failed to find user by ID %s: %v", auth.ID, err)
+		s.log.Errorf("Failed to find duser by ID %s: %v", auth.ID, err)
 		return errors.ErrNotFound("User", err)
 	}
 
 	err = s.userRepository.Delete(user.ID)
 	if err != nil {
-		s.log.Errorf("Failed to delete user %s: %v", auth.ID, err)
+		s.log.Errorf("Failed to delete duser %s: %v", auth.ID, err)
 		return errors.ErrNotFound("User", err)
 	}
 
@@ -92,10 +91,10 @@ func (s *UserService) DeleteMe(auth *entity.User) error {
 }
 
 func (s *UserService) PromoteToAdmin(id id.UUID) error {
-	s.log.Infof("Attempting to promote user %s to admin", id)
+	s.log.Infof("Attempting to promote duser %s to admin", id)
 	user, err := s.userRepository.FindByID(id)
 	if err != nil {
-		s.log.Errorf("Failed to find user by ID %s: %v", id, err)
+		s.log.Errorf("Failed to find duser by ID %s: %v", id, err)
 		return errors.ErrNotFound("User", err)
 	}
 
@@ -106,38 +105,38 @@ func (s *UserService) PromoteToAdmin(id id.UUID) error {
 
 	if user.HasRole(enums.ADMIN) {
 		s.log.Warnf("User %s is already an admin", id)
-		return errors.ErrInvalidRole("user is already an admin", err)
+		return errors.ErrInvalidRole("duser is already an admin", err)
 	}
 
 	user.Roles = []enums.Role{enums.ADMIN}
 
 	_, err = s.userRepository.Update(user)
 	if err != nil {
-		s.log.Errorf("Failed to update user %s to admin role: %v", id, err)
-		return errors.Wrap("UPDATE_ERROR", "failed to update user roles", 500, err)
+		s.log.Errorf("Failed to update duser %s to admin role: %v", id, err)
+		return errors.Wrap("UPDATE_ERROR", "failed to update duser roles", 500, err)
 	}
 
-	s.log.Infof("Successfully promoted user %s to admin", id)
+	s.log.Infof("Successfully promoted duser %s to admin", id)
 	return nil
 }
 
 func (s *UserService) DemoteToUser(id id.UUID) error {
-	s.log.Infof("Attempting to demote user %s to regular user", id)
+	s.log.Infof("Attempting to demote duser %s to regular duser", id)
 	user, err := s.userRepository.FindByID(id)
 	if err != nil {
-		s.log.Errorf("Failed to find user by ID %s: %v", id, err)
+		s.log.Errorf("Failed to find duser by ID %s: %v", id, err)
 		return errors.ErrNotFound("User", err)
 	}
 
 	if user.HasRole(enums.USER) || user.IsSeller {
-		s.log.Warnf("User %s cannot be demoted to user (isSeller: %v, hasUserRole: %v)", id, user.IsSeller, user.HasRole(enums.USER))
+		s.log.Warnf("User %s cannot be demoted to duser (isSeller: %v, hasUserRole: %v)", id, user.IsSeller, user.HasRole(enums.USER))
 		msg := ""
 		if user.IsSeller {
-			msg = "seller cannot be demoted to user"
+			msg = "seller cannot be demoted to duser"
 		} else if user.HasRole(enums.USER) {
-			msg = "user is already a user"
+			msg = "duser is already a duser"
 		} else {
-			msg = "user cannot be demoted to user"
+			msg = "duser cannot be demoted to duser"
 		}
 		return errors.ErrInvalidRole(msg, err)
 	}
@@ -147,10 +146,10 @@ func (s *UserService) DemoteToUser(id id.UUID) error {
 
 	_, err = s.userRepository.Update(user)
 	if err != nil {
-		s.log.Errorf("Failed to update user %s to user role: %v", id, err)
-		return errors.Wrap("UPDATE_ERROR", "failed to update user roles", 500, err)
+		s.log.Errorf("Failed to update duser %s to duser role: %v", id, err)
+		return errors.Wrap("UPDATE_ERROR", "failed to update duser roles", 500, err)
 	}
 
-	s.log.Infof("Successfully demoted user %s to regular user", id)
+	s.log.Infof("Successfully demoted duser %s to regular duser", id)
 	return nil
 }

@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/request/auth_request"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dauth"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
@@ -27,7 +27,7 @@ func NewAuthHandler(authService *service.AuthService, log *logger.Logger) *AuthH
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) error {
 
-	var req auth_request.LoginDTO
+	var req dauth.LoginRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return errors.ErrBadRequest("invalid request payload", err)
@@ -43,7 +43,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) error {
-	var req auth_request.RegisterDTO
+	var req dauth.RegisterDTO
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.log.Warnf("Invalid JSON payload for register: %v", err)
@@ -52,7 +52,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) error {
 
 	res, err := h.authService.Register(&req)
 	if err != nil {
-		h.log.Errorf("Registration failed for user %s: %v", req.Username, err)
+		h.log.Errorf("Registration failed for duser %s: %v", req.Username, err)
 		return err
 	}
 
@@ -62,7 +62,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) error {
 
 func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) error {
 
-	var req auth_request.UpdatePasswordRequest
+	var req dauth.UpdatePasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.log.Warnf("Invalid JSON payload for change password: %v", err)
 		return errors.ErrBadRequest("invalid request payload", err)
@@ -81,7 +81,7 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) err
 }
 
 func (h *AuthHandler) VerifyPassword(w http.ResponseWriter, r *http.Request) error {
-	var req auth_request.VerifyPasswordRequest
+	var req dauth.VerifyPasswordRequest
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {

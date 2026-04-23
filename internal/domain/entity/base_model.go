@@ -11,7 +11,6 @@ type BaseModel struct {
 	ID        id.UUID `gorm:"type:uuid;primaryKey"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
 }
 
 func (b *BaseModel) BeforeCreate(tx *gorm.DB) error {

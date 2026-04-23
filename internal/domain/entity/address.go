@@ -15,8 +15,6 @@ type Address struct {
 	Country  string `gorm:"size:100;not null"`
 	Number   int32
 	Postcode string `gorm:"size:20;not null"`
-
-	IsDefault bool `gorm:"default:false"`
 }
 
 func NewAddress(userID id.UUID, street, city, state, country, postCode string, number int32) *Address {

@@ -8,22 +8,22 @@ import (
 )
 
 type BitcoinPaymentDB struct {
-	DB *gorm.DB
+	db *gorm.DB
 }
 
 func NewBitcoinPaymentDB(db *gorm.DB) repository.BitcoinPaymentRepository {
-	return &BitcoinPaymentDB{DB: db}
+	return &BitcoinPaymentDB{db: db}
 }
 
 func (b *BitcoinPaymentDB) Save(payment *entity.BitcoinPayment) (*entity.BitcoinPayment, error) {
-	if err := b.DB.Create(payment).Error; err != nil {
+	if err := b.db.Create(payment).Error; err != nil {
 		return nil, err
 	}
 	return payment, nil
 }
 
 func (b *BitcoinPaymentDB) Updates(payment *entity.BitcoinPayment) (*entity.BitcoinPayment, error) {
-	err := b.DB.
+	err := b.db.
 		Model(&entity.BitcoinPayment{}).
 		Where("id = ?", payment.ID).
 		Updates(payment).Error
@@ -35,7 +35,7 @@ func (b *BitcoinPaymentDB) Updates(payment *entity.BitcoinPayment) (*entity.Bitc
 
 func (b *BitcoinPaymentDB) FindByOrderID(orderID id.UUID) (*entity.BitcoinPayment, error) {
 	var payment entity.BitcoinPayment
-	err := b.DB.
+	err := b.db.
 		Where("order_id = ?", orderID).
 		First(&payment).Error
 	if err != nil {
@@ -46,7 +46,7 @@ func (b *BitcoinPaymentDB) FindByOrderID(orderID id.UUID) (*entity.BitcoinPaymen
 
 func (b *BitcoinPaymentDB) FindByTxHash(txHash string) (*entity.BitcoinPayment, error) {
 	var payment entity.BitcoinPayment
-	err := b.DB.
+	err := b.db.
 		Where("tx_hash = ?", txHash).
 		First(&payment).Error
 	if err != nil {

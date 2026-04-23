@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/request/user_request"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/duser"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
@@ -33,7 +33,7 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) error {
 
 	userDTO, err := h.userService.GetMe(auth)
 	if err != nil {
-		h.log.Errorf("Failed to get user by ID %s: %v", auth.ID, err)
+		h.log.Errorf("Failed to get duser by ID %s: %v", auth.ID, err)
 		return err
 	}
 	response.ResponseEntity(w, http.StatusOK, userDTO)
@@ -44,7 +44,7 @@ func (h *UserHandler) UpdateMe(w http.ResponseWriter, r *http.Request) error {
 
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
 
-	var dto user_request.UpdateUserRequest
+	var dto duser.UpdateUserRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
 		h.log.Errorf("Failed to read request: %v", err)
@@ -53,7 +53,7 @@ func (h *UserHandler) UpdateMe(w http.ResponseWriter, r *http.Request) error {
 
 	userDTO, err := h.userService.UpdateMe(auth, &dto)
 	if err != nil {
-		h.log.Errorf("Failed to update user profile %s: %v", auth.ID, err)
+		h.log.Errorf("Failed to update duser profile %s: %v", auth.ID, err)
 		return err
 	}
 	response.ResponseEntity(w, http.StatusOK, userDTO)
@@ -66,7 +66,7 @@ func (h *UserHandler) DeleteMe(w http.ResponseWriter, r *http.Request) error {
 
 	err := h.userService.DeleteMe(auth)
 	if err != nil {
-		h.log.Errorf("Failed to delete user by ID %s: %v", auth.ID, err)
+		h.log.Errorf("Failed to delete duser by ID %s: %v", auth.ID, err)
 		return err
 	}
 	response.ResponseEntity(w, http.StatusOK, nil)
@@ -79,14 +79,14 @@ func (h *UserHandler) PromoteUser(w http.ResponseWriter, r *http.Request) error 
 	uuid, err := id.Parse(idString)
 
 	if err != nil {
-		h.log.Errorf("Failed to parse user ID: %s: %v", idString, err)
+		h.log.Errorf("Failed to parse duser ID: %s: %v", idString, err)
 		return errors.ErrInvalidUUID(err)
 	}
 
 	err = h.userService.PromoteToAdmin(uuid)
 
 	if err != nil {
-		h.log.Errorf("Failed to promote user: %s to admin: %v", idString, err)
+		h.log.Errorf("Failed to promote duser: %s to admin: %v", idString, err)
 		return err
 	}
 	response.ResponseEntity(w, http.StatusOK, nil)
@@ -99,13 +99,13 @@ func (h *UserHandler) DemoteUser(w http.ResponseWriter, r *http.Request) error {
 	uuid, err := id.Parse(idString)
 
 	if err != nil {
-		h.log.Errorf("Failed to parse user ID: %s: %v", idString, err)
+		h.log.Errorf("Failed to parse duser ID: %s: %v", idString, err)
 		return errors.ErrInvalidUUID(err)
 	}
 
 	err = h.userService.DemoteToUser(uuid)
 	if err != nil {
-		h.log.Errorf("Failed to demote user: %s to admin: %v", idString, err)
+		h.log.Errorf("Failed to demote duser: %s to admin: %v", idString, err)
 		return err
 	}
 	response.ResponseEntity(w, http.StatusOK, nil)
