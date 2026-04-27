@@ -1,17 +1,21 @@
 package entity
 
 import (
+	"time"
+
 	"github.com/devlucas-java/klyp-shop/internal/domain/enums"
+	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/password_encoder"
 )
 
 type User struct {
-	BaseModel
-
-	Name     string `gorm:"size:120;not null"`
-	Email    string `gorm:"size:120;uniqueIndex;not null"`
-	Username string `gorm:"size:120;uniqueIndex;not null"`
-	Password string `gorm:"size:255;not null"`
+	ID        id.UUID `gorm:"type:uuid;primaryKey"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Name      string `gorm:"size:120;not null"`
+	Email     string `gorm:"size:120;uniqueIndex;not null"`
+	Username  string `gorm:"size:120;uniqueIndex;not null"`
+	Password  string `gorm:"size:255;not null"`
 
 	IsSeller bool `gorm:"default:false"`
 
@@ -25,12 +29,16 @@ func NewUser(name, email, username, pass string) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
+	now := time.Now()
 	return &User{
-		Name:     name,
-		Email:    email,
-		Username: username,
-		Password: hash,
-		Roles:    []enums.Role{enums.USER},
+		ID:        id.NewUUID(),
+		CreatedAt: now,
+		UpdatedAt: now,
+		Name:      name,
+		Email:     email,
+		Username:  username,
+		Password:  hash,
+		Roles:     []enums.Role{enums.USER},
 	}, nil
 }
 

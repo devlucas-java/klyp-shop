@@ -1,6 +1,8 @@
 package entity
 
 import (
+	"time"
+
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 )
 
@@ -15,7 +17,9 @@ const (
 )
 
 type Order struct {
-	BaseModel
+	ID        id.UUID `gorm:"type:uuid;primaryKey"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
 
 	UserID id.UUID `gorm:"index;not null"`
 	User   User
@@ -36,7 +40,11 @@ func NewOrder(userID, addressID id.UUID, items []OrderItem) *Order {
 		total += item.PriceBTC * float64(item.Quantity)
 	}
 
+	now := time.Now()
 	return &Order{
+		ID:        id.NewUUID(),
+		CreatedAt: now,
+		UpdatedAt: now,
 		UserID:    userID,
 		AddressID: addressID,
 		Status:    OrderStatusPending,

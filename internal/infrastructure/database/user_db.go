@@ -10,16 +10,16 @@ import (
 	"gorm.io/gorm"
 )
 
-type userDB struct {
+type UserDB struct {
 	db  *gorm.DB
 	log *logger.Logger
 }
 
 func NewUserDB(db *gorm.DB, log *logger.Logger) repository.UserRepository {
-	return &userDB{db: db, log: log}
+	return &UserDB{db: db, log: log}
 }
 
-func (r *userDB) Create(user *entity.User) (*entity.User, error) {
+func (r *UserDB) Create(user *entity.User) (*entity.User, error) {
 
 	if err := r.db.Create(user).Error; err != nil {
 		r.log.Errorf("Database error creating duser: %v", err)
@@ -29,7 +29,7 @@ func (r *userDB) Create(user *entity.User) (*entity.User, error) {
 	return user, nil
 }
 
-func (r *userDB) Update(user *entity.User) (*entity.User, error) {
+func (r *UserDB) Update(user *entity.User) (*entity.User, error) {
 
 	if err := r.db.Save(user).Error; err != nil {
 		r.log.Errorf("Database error updating duser %s: %v", user.ID, err)
@@ -39,7 +39,7 @@ func (r *userDB) Update(user *entity.User) (*entity.User, error) {
 	return user, nil
 }
 
-func (r *userDB) DeleteByID(userID id.UUID) error {
+func (r *UserDB) DeleteByID(userID id.UUID) error {
 
 	err := r.db.Where("id = ?", userID).Delete(&entity.User{}).Error
 
@@ -50,7 +50,7 @@ func (r *userDB) DeleteByID(userID id.UUID) error {
 	return nil
 }
 
-func (r *userDB) FindByID(userID id.UUID) (*entity.User, error) {
+func (r *UserDB) FindByID(userID id.UUID) (*entity.User, error) {
 
 	var user entity.User
 
@@ -62,7 +62,7 @@ func (r *userDB) FindByID(userID id.UUID) (*entity.User, error) {
 	return &user, nil
 }
 
-func (r *userDB) FindByEmailOrUsername(str string) (*entity.User, error) {
+func (r *UserDB) FindByEmailOrUsername(str string) (*entity.User, error) {
 
 	var user entity.User
 	err := r.db.

@@ -58,9 +58,7 @@ func AuthMiddleware(jwtService *jwt.JWTService, log *logger.Logger, userReposito
 			}
 
 			auth := &entity.User{
-				BaseModel: entity.BaseModel{
-					ID: userID,
-				},
+				ID:    userID,
 				Email: email,
 				Roles: roles,
 			}

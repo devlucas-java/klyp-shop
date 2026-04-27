@@ -1,11 +1,15 @@
 package entity
 
 import (
+	"time"
+
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 )
 
 type Seller struct {
-	BaseModel
+	ID        id.UUID `gorm:"type:uuid;primaryKey"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
 
 	UserID id.UUID `gorm:"uniqueIndex;not null"`
 	User   User
@@ -17,7 +21,11 @@ type Seller struct {
 }
 
 func NewSeller(userID id.UUID, displayName, bio string) *Seller {
+	now := time.Now()
 	return &Seller{
+		ID:          id.NewUUID(),
+		CreatedAt:   now,
+		UpdatedAt:   now,
 		UserID:      userID,
 		DisplayName: displayName,
 		Bio:         bio,

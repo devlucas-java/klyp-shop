@@ -1,11 +1,15 @@
 package entity
 
 import (
+	"time"
+
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 )
 
 type Address struct {
-	BaseModel
+	ID        id.UUID `gorm:"type:uuid;primaryKey"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
 
 	UserID id.UUID `gorm:"index;not null"`
 
@@ -18,13 +22,17 @@ type Address struct {
 }
 
 func NewAddress(userID id.UUID, street, city, state, country, postCode string, number int32) *Address {
+	now := time.Now()
 	return &Address{
-		UserID:   userID,
-		Street:   street,
-		City:     city,
-		State:    state,
-		Country:  country,
-		Number:   number,
-		Postcode: postCode,
+		ID:        id.NewUUID(),
+		CreatedAt: now,
+		UpdatedAt: now,
+		UserID:    userID,
+		Street:    street,
+		City:      city,
+		State:     state,
+		Country:   country,
+		Number:    number,
+		Postcode:  postCode,
 	}
 }

@@ -1,6 +1,8 @@
 package entity
 
 import (
+	"time"
+
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 )
 
@@ -13,7 +15,9 @@ const (
 )
 
 type BitcoinPayment struct {
-	BaseModel
+	ID        id.UUID `gorm:"type:uuid;primaryKey"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
 
 	OrderID id.UUID `gorm:"uniqueIndex;not null"`
 
@@ -24,7 +28,11 @@ type BitcoinPayment struct {
 }
 
 func NewBitcoinPayment(orderID id.UUID, walletAddress string, amountBTC float64) *BitcoinPayment {
+	now := time.Now()
 	return &BitcoinPayment{
+		ID:            id.NewUUID(),
+		CreatedAt:     now,
+		UpdatedAt:     now,
 		OrderID:       orderID,
 		WalletAddress: walletAddress,
 		AmountBTC:     amountBTC,
