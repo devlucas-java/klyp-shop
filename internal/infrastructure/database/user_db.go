@@ -31,7 +31,9 @@ func (r *UserDB) Create(user *entity.User) (*entity.User, error) {
 
 func (r *UserDB) Update(user *entity.User) (*entity.User, error) {
 
-	if err := r.db.Save(user).Error; err != nil {
+	if err := r.db.Model(user).Where("id = ?", user.ID).
+		Select("name", "email", "username", "password", "is_seller", "roles", "updated_at").
+		Updates(user).Error; err != nil {
 		r.log.Errorf("Database error updating duser %s: %v", user.ID, err)
 		return nil, fmt.Errorf("failed to update duser in database: %w", err)
 	}

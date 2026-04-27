@@ -1,168 +1,257 @@
 package service_test
 
-// import (
-// 	"testing"
+import (
+	"testing"
 
-// 	"github.com/devlucas-java/klyp-shop/internal/application/service"
-// 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/daddress"
-// 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
-// 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-// )
+	"github.com/devlucas-java/klyp-shop/internal/application/service"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/daddress"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
+	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
+	"github.com/devlucas-java/klyp-shop/internal/infrastructure/database"
+	"github.com/devlucas-java/klyp-shop/pkg/id"
+	"github.com/devlucas-java/klyp-shop/pkg/logger"
+	"github.com/stretchr/testify/assert"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+)
 
-// func createTestUser(t *testing.T) *entity.User {
-// 	user := &entity.User{
-// 		Name:     "test",
-// 		Email:    "test@test.com",
-// 		Username: "testuser",
-// 	}
+var dbAddrSvc *gorm.DB
+var addressService *service.AddressService
 
-// 	err := testDB.Create(user).Error
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
+func setupAddressService(t *testing.T) {
+	var err error
 
-// 	return user
-// }
+	dbAddrSvc, err = gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
 
-// func TestCreateAddress(t *testing.T) {
+	err = dbAddrSvc.AutoMigrate(&entity.User{}, &entity.Address{})
+	if err != nil {
+		t.Fatal(err)
+	}
 
-// 	user := createTestUser(t)
+	log := logger.NewLogger(logger.TRACE)
+	addrRepo := database.NewAddressDB(dbAddrSvc, log)
+	userRepo := database.NewUserDB(dbAddrSvc, log)
+	addrMapper := mapper.NewAddressMapper()
+	addressService = service.NewAddressService(addrRepo, log, addrMapper, userRepo)
+}
 
-// 	mapper := &mapper.AddressMapper{}
-// 	service := service.NewAddressService(addressRepo, log, mapper, userRepo)
+func seedAddressUser(t *testing.T) *entity.User {
+	user, err := entity.NewUser("Addr User", "addruser@test.com", "addruser", "password123")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := dbAddrSvc.Create(user).Error; err != nil {
+		t.Fatal(err)
+	}
+	return user
+}
 
-// 	req := &daddress.CreateAddressRequest{
-// 		Street:   "Main St",
-// 		City:     "City",
-// 		State:    "State",
-// 		Country:  "Country",
-// 		Postcode: "12345",
-// 		Number:   10,
-// 	}
+func TestAddressService_CreateAddress(t *testing.T) {
+	setupAddressService(t)
 
-// 	res, err := service.CreateAddress(user, req)
+	user := seedAddressUser(t)
 
-// 	if err != nil {
-// 		t.Fatalf("unexpected error: %v", err)
-// 	}
+	req := &daddress.CreateAddressRequest{
+		Street:   "Main St",
+		City:     "Springfield",
+		State:    "IL",
+		Country:  "US",
+		PostCode: "62701",
+		Number:   42,
+	}
 
-// 	if res == nil {
-// 		t.Fatal("expected response, got nil")
-// 	}
-// }
+	res, err := addressService.CreateAddress(user, req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
-// func TestCreateAddress_MaxLimit(t *testing.T) {
+	assert.Equal(t, req.Street, res.Street)
+	assert.Equal(t, req.City, res.City)
+	assert.Equal(t, req.PostCode, res.PostCode)
+	assert.Equal(t, req.Number, res.Number)
+}
 
-// 	user := createTestUser(t)
+func TestAddressService_CreateAddress_MaxLimit(t *testing.T) {
+	setupAddressService(t)
 
-// 	for i := 0; i < 3; i++ {
-// 		testDB.Create(&entity.Address{
-// 			UserID:   user.ID,
-// 			Street:   "Street",
-// 			City:     "City",
-// 			State:    "State",
-// 			Country:  "Country",
-// 			Postcode: "12345",
-// 			Number:   int32(i),
-// 		})
-// 	}
+	user := seedAddressUser(t)
 
-// 	mapper := &mapper.AddressMapper{}
-// 	service := service.NewAddressService(addressRepo, log, mapper, userRepo)
+	for i := 0; i < 3; i++ {
+		dbAddrSvc.Create(&entity.Address{
+			ID:       id.NewUUID(),
+			UserID:   user.ID,
+			Street:   "Street",
+			City:     "City",
+			State:    "State",
+			Country:  "Country",
+			Postcode: "12345",
+			Number:   int32(i + 1),
+		})
+	}
 
-// 	req := &daddress.CreateAddressRequest{
-// 		Street: "New",
-// 		City:   "City",
-// 	}
+	req := &daddress.CreateAddressRequest{
+		Street:   "Extra St",
+		City:     "City",
+		State:    "State",
+		Country:  "US",
+		PostCode: "00000",
+		Number:   1,
+	}
 
-// 	_, err := service.CreateAddress(user, req)
+	_, err := addressService.CreateAddress(user, req)
+	assert.Error(t, err)
+}
 
-// 	if err == nil {
-// 		t.Fatal("expected error but got nil")
-// 	}
-// }
+func TestAddressService_GetAddresses(t *testing.T) {
+	setupAddressService(t)
 
-// func TestGetAddresses(t *testing.T) {
+	user := seedAddressUser(t)
 
-// 	user := createTestUser(t)
+	dbAddrSvc.Create(&entity.Address{
+		ID:       id.NewUUID(),
+		UserID:   user.ID,
+		Street:   "Street 1",
+		City:     "City",
+		State:    "State",
+		Country:  "Country",
+		Postcode: "12345",
+	})
 
-// 	testDB.Create(&entity.Address{
-// 		UserID:   user.ID,
-// 		Street:   "Street 1",
-// 		City:     "City",
-// 		State:    "State",
-// 		Country:  "Country",
-// 		Postcode: "12345",
-// 	})
+	res, err := addressService.GetAddresses(user)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
-// 	mapper := &mapper.AddressMapper{}
-// 	service := service.NewAddressService(addressRepo, log, mapper, userRepo)
+	assert.Equal(t, 1, len(res))
+}
 
-// 	res, err := service.GetAddresses(user)
+func TestAddressService_GetAddresses_Empty(t *testing.T) {
+	setupAddressService(t)
 
-// 	if err != nil {
-// 		t.Fatalf("unexpected error: %v", err)
-// 	}
+	user := seedAddressUser(t)
 
-// 	if len(res) == 0 {
-// 		t.Fatal("expected addresses")
-// 	}
-// }
+	res, err := addressService.GetAddresses(user)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
-// func TestUpdateAddress(t *testing.T) {
+	assert.Equal(t, 0, len(res))
+}
 
-// 	user := createTestUser(t)
+func TestAddressService_UpdateAddress(t *testing.T) {
+	setupAddressService(t)
 
-// 	addr := &entity.Address{
-// 		UserID:   user.ID,
-// 		Street:   "Old Street",
-// 		City:     "City",
-// 		State:    "State",
-// 		Country:  "Country",
-// 		Postcode: "12345",
-// 	}
+	user := seedAddressUser(t)
 
-// 	testDB.Create(addr)
+	addr := &entity.Address{
+		ID:       id.NewUUID(),
+		UserID:   user.ID,
+		Street:   "Old Street",
+		City:     "Old City",
+		State:    "State",
+		Country:  "Country",
+		Postcode: "12345",
+	}
+	dbAddrSvc.Create(addr)
 
-// 	mapper := &mapper.AddressMapper{}
-// 	service := service.NewAddressService(addressRepo, log, mapper, userRepo)
+	req := &daddress.UpdateAddressRequest{
+		Street:   "New Street",
+		City:     "New City",
+		State:    "State",
+		Country:  "Country",
+		PostCode: "99999",
+		Number:   10,
+	}
 
-// 	req := &daddress.UpdateAddressRequest{
-// 		Street: "Updated Street",
-// 	}
+	res, err := addressService.UpdateAddress(user, req, addr.ID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
-// 	res, err := service.UpdateAddress(user, req, addr.ID)
+	assert.Equal(t, "New Street", res.Street)
+	assert.Equal(t, "New City", res.City)
+}
 
-// 	if err != nil {
-// 		t.Fatalf("unexpected error: %v", err)
-// 	}
+func TestAddressService_UpdateAddress_WrongOwner(t *testing.T) {
+	setupAddressService(t)
 
-// 	if res == nil {
-// 		t.Fatal("expected response")
-// 	}
-// }
+	owner := seedAddressUser(t)
 
-// func TestDeleteAddress(t *testing.T) {
+	// Create a second user
+	other, err := entity.NewUser("Other", "other@test.com", "otheruser", "pass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dbAddrSvc.Create(other)
 
-// 	user := createTestUser(t)
+	addr := &entity.Address{
+		ID:       id.NewUUID(),
+		UserID:   owner.ID,
+		Street:   "Owner Street",
+		City:     "City",
+		State:    "State",
+		Country:  "Country",
+		Postcode: "12345",
+	}
+	dbAddrSvc.Create(addr)
 
-// 	addr := &entity.Address{
-// 		UserID:   user.ID,
-// 		Street:   "Street",
-// 		City:     "City",
-// 		State:    "State",
-// 		Country:  "Country",
-// 		Postcode: "12345",
-// 	}
+	req := &daddress.UpdateAddressRequest{Street: "Hacked Street"}
 
-// 	testDB.Create(addr)
+	_, err = addressService.UpdateAddress(other, req, addr.ID)
+	assert.Error(t, err)
+}
 
-// 	mapper := &mapper.AddressMapper{}
-// 	service := service.NewAddressService(addressRepo, log, mapper, userRepo)
+func TestAddressService_DeleteAddress(t *testing.T) {
+	setupAddressService(t)
 
-// 	err := service.DeleteAddress(user, addr.ID)
+	user := seedAddressUser(t)
 
-// 	if err != nil {
-// 		t.Fatalf("unexpected error: %v", err)
-// 	}
-// }
+	addr := &entity.Address{
+		ID:       id.NewUUID(),
+		UserID:   user.ID,
+		Street:   "Delete Me",
+		City:     "City",
+		State:    "State",
+		Country:  "Country",
+		Postcode: "12345",
+	}
+	dbAddrSvc.Create(addr)
+
+	err := addressService.DeleteAddress(user, addr.ID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var count int64
+	dbAddrSvc.Model(&entity.Address{}).Where("id = ?", addr.ID).Count(&count)
+	assert.Equal(t, int64(0), count)
+}
+
+func TestAddressService_DeleteAddress_WrongOwner(t *testing.T) {
+	setupAddressService(t)
+
+	owner := seedAddressUser(t)
+
+	other, err := entity.NewUser("Other", "other3@test.com", "otheruser3", "pass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dbAddrSvc.Create(other)
+
+	addr := &entity.Address{
+		ID:       id.NewUUID(),
+		UserID:   owner.ID,
+		Street:   "Owner Street",
+		City:     "City",
+		State:    "State",
+		Country:  "Country",
+		Postcode: "12345",
+	}
+	dbAddrSvc.Create(addr)
+
+	err = addressService.DeleteAddress(other, addr.ID)
+	assert.Error(t, err)
+}
