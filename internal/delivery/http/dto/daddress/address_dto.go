@@ -1,10 +1,11 @@
 package daddress
 
 type AddressResponse struct {
-	Street   string
-	City     string
-	State    string
-	Country  string
-	PostCode string
-	Number   int32
+	ID       string `json:"id"`
+	Street   string `json:"street"`
+	City     string `json:"city"`
+	State    string `json:"state"`
+	Country  string `json:"country"`
+	PostCode string `json:"postCode"`
+	Number   int32  `json:"number"`
 }

@@ -11,5 +11,5 @@ type ProductRepository interface {
 	FindByID(id id.UUID) (*entity.Product, error)
 	FindBySellerID(sellerID id.UUID, page, size int) ([]*entity.Product, error)
 	Search(page, size int, order, search string, categories []string) ([]*entity.Product, error)
-	Delete(id id.UUID) error
+	DeleteByID(id id.UUID) error
 }

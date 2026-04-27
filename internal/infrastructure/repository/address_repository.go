@@ -10,5 +10,5 @@ type AddressRepository interface {
 	Update(address *entity.Address) (*entity.Address, error)
 	FindByID(id id.UUID) (*entity.Address, error)
 	FindByUser(userID id.UUID) ([]*entity.Address, error)
-	Delete(id id.UUID) error
+	DeleteByID(id id.UUID) error
 }

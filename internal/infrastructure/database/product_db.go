@@ -80,6 +80,6 @@ func (r *ProductDB) Update(product *entity.Product) (*entity.Product, error) {
 	return product, err
 }
 
-func (r *ProductDB) Delete(productID id.UUID) error {
+func (r *ProductDB) DeleteByID(productID id.UUID) error {
 	return r.db.Delete(&entity.Product{}, "id = ?", productID).Error
 }

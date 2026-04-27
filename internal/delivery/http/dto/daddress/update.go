@@ -1,10 +1,10 @@
 package daddress
 
 type UpdateAddressRequest struct {
-	Street   string
-	City     string
-	State    string
-	Country  string
-	PostCode string
-	Number   int32
+	Street   string `json:"street"`
+	City     string `json:"city"`
+	State    string `json:"state"`
+	Country  string `json:"country"`
+	PostCode string `json:"postCode"`
+	Number   int32  `json:"number"`
 }

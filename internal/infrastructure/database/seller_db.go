@@ -27,7 +27,7 @@ func (r *SellerDB) Update(seller *entity.Seller) (*entity.Seller, error) {
 	return seller, err
 }
 
-func (r *SellerDB) Delete(id id.UUID) error {
+func (r *SellerDB) DeleteByID(id id.UUID) error {
 	return r.db.Where("id = ? ", id).Delete(&entity.Seller{}).Error
 }
 

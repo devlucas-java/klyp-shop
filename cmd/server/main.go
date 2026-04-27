@@ -28,10 +28,13 @@ func main() {
 	jwtService := jwt.NewJWTService(cfg.JwtSecret)
 
 	authModule := module.InitAuthModule(db, log, jwtService)
-	r.Mount("/api/v1/dauth", authModule)
+	r.Mount("/api/v1/auth", authModule)
 
 	userModule := module.InitUserModule(db, log, jwtService)
-	r.Mount("/api/v1/duser", userModule)
+	r.Mount("/api/v1/user", userModule)
+
+	addressModule := module.InitAddressModule(db, log, jwtService)
+	r.Mount("/api/v1/address", addressModule)
 
 	log.Infof("Server is running on port %s", cfg.WebServerPort)
 	if err := http.ListenAndServe(":"+cfg.WebServerPort, r); err != nil {

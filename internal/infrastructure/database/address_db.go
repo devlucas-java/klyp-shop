@@ -71,7 +71,7 @@ func (a *AddressDB) FindByUser(userID id.UUID) ([]*entity.Address, error) {
 	return addresses, nil
 }
 
-func (a *AddressDB) Delete(id id.UUID) error {
+func (a *AddressDB) DeleteByID(id id.UUID) error {
 	err := a.db.Delete(&entity.Address{}, "id = ?", id).Error
 	if err != nil {
 		a.log.Errorf("db delete daddress error (id=%s): %v", id, err)

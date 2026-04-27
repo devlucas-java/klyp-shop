@@ -10,5 +10,5 @@ type UserRepository interface {
 	Update(user *entity.User) (*entity.User, error)
 	FindByID(id id.UUID) (*entity.User, error)
 	FindByEmailOrUsername(str string) (*entity.User, error)
-	Delete(id id.UUID) error
+	DeleteByID(id id.UUID) error
 }

@@ -15,6 +15,7 @@ func NewAddressMapper() *AddressMapper {
 func (m *AddressMapper) AddressToAddressResponse(addr *entity.Address) *daddress.AddressResponse {
 
 	return &daddress.AddressResponse{
+		ID:       addr.ID.String(),
 		Street:   addr.Street,
 		City:     addr.City,
 		State:    addr.State,
@@ -25,6 +26,18 @@ func (m *AddressMapper) AddressToAddressResponse(addr *entity.Address) *daddress
 }
 
 func (m *AddressMapper) CreateAddressRequestToAddress(dto *daddress.CreateAddressRequest) *entity.Address {
+
+	return &entity.Address{
+		Street:   dto.Street,
+		City:     dto.City,
+		State:    dto.State,
+		Country:  dto.Country,
+		Postcode: dto.PostCode,
+		Number:   dto.Number,
+	}
+}
+
+func (m *AddressMapper) UpdateAddressRequestToAddress(dto *daddress.UpdateAddressRequest) *entity.Address {
 
 	return &entity.Address{
 		Street:   dto.Street,

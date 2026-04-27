@@ -39,7 +39,7 @@ func (r *userDB) Update(user *entity.User) (*entity.User, error) {
 	return user, nil
 }
 
-func (r *userDB) Delete(userID id.UUID) error {
+func (r *userDB) DeleteByID(userID id.UUID) error {
 
 	err := r.db.Where("id = ?", userID).Delete(&entity.User{}).Error
 

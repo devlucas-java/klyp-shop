@@ -10,5 +10,5 @@ type SellerRepository interface {
 	Update(seller *entity.Seller) (*entity.Seller, error)
 	FindByID(id id.UUID) (*entity.Seller, error)
 	Find(page, size int, order, search string) ([]*entity.Seller, error)
-	Delete(id id.UUID) error
+	DeleteByID(id id.UUID) error
 }

@@ -81,7 +81,7 @@ func (s *UserService) DeleteMe(auth *entity.User) error {
 		return errors.ErrNotFound("User", err)
 	}
 
-	err = s.userRepository.Delete(user.ID)
+	err = s.userRepository.DeleteByID(user.ID)
 	if err != nil {
 		s.log.Errorf("Failed to delete duser %s: %v", auth.ID, err)
 		return errors.ErrNotFound("User", err)

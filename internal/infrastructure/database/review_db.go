@@ -35,6 +35,6 @@ func (r *ReviewDB) FindByProductID(productID id.UUID) ([]*entity.Review, error) 
 	return reviews, err
 }
 
-func (r *ReviewDB) Delete(reviewID id.UUID) error {
+func (r *ReviewDB) DeleteByID(reviewID id.UUID) error {
 	return r.db.Delete(&entity.Review{}, "id = ?", reviewID).Error
 }

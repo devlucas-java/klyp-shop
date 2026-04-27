@@ -5,6 +5,6 @@ type CreateAddressRequest struct {
 	City     string `json:"city" validate:"required"`
 	State    string `json:"state" validate:"required"`
 	Country  string `json:"country" validate:"required,iso3166_1_alpha2"`
-	PostCode string `json:"post_code" validate:"required"`
+	PostCode string `json:"postCode" validate:"required"`
 	Number   int32  `json:"number" validate:"required,gt=0"`
 }
