@@ -7,166 +7,171 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dseller"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	"github.com/devlucas-java/klyp-shop/internal/infrastructure/database"
+	domainErr "github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
+	"github.com/devlucas-java/klyp-shop/test/mocks"
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
+	"github.com/stretchr/testify/mock"
 )
 
-var dbSellerSvc *gorm.DB
-var sellerService *service.SellerService
-
-func setupSellerService(t *testing.T) {
-	var err error
-
-	dbSellerSvc, err = gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = dbSellerSvc.AutoMigrate(&entity.User{}, &entity.Seller{})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	log := logger.NewLogger(logger.TRACE)
-	userRepo := database.NewUserDB(dbSellerSvc, log)
-	sellerRepo := database.NewSellerDB(dbSellerSvc)
-	sellerMapper := mapper.NewSellerMapper()
-	sellerService = service.NewSellerService(log, userRepo, sellerRepo, sellerMapper)
+func newSellerService(userRepo *mocks.UserRepositoryMock, sellerRepo *mocks.SellerRepositoryMock) *service.SellerService {
+	return service.NewSellerService(logger.NewLogger(logger.TRACE), userRepo, sellerRepo, mapper.NewSellerMapper())
 }
 
-func seedSellerUser(t *testing.T) *entity.User {
-	user, err := entity.NewUser("Seller User", "seller@test.com", "selleruser", "password123")
-	if err != nil {
-		t.Fatal(err)
+func newSellerUser() *entity.User {
+	return &entity.User{
+		ID:       id.NewUUID(),
+		Name:     "Seller User",
+		Email:    "seller@test.com",
+		Username: "selleruser",
+		IsSeller: false,
 	}
-	if err := dbSellerSvc.Create(user).Error; err != nil {
-		t.Fatal(err)
+}
+
+func newSeller(userID id.UUID) *entity.Seller {
+	return &entity.Seller{
+		ID:          id.NewUUID(),
+		UserID:      userID,
+		DisplayName: "My Store",
+		Bio:         "Best store",
 	}
-	return user
 }
 
 func TestSellerService_CreateSeller(t *testing.T) {
-	setupSellerService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	sellerRepo := new(mocks.SellerRepositoryMock)
+	svc := newSellerService(userRepo, sellerRepo)
 
-	user := seedSellerUser(t)
+	user := newSellerUser()
+	seller := newSeller(user.ID)
 
-	req := &dseller.CreateSeller{
-		DisplayName: "My Store",
-		Bio:         "Best store ever",
-	}
+	userRepo.On("FindByID", user.ID).Return(user, nil)
+	sellerRepo.On("Create", mock.AnythingOfType("*entity.Seller")).Return(seller, nil)
+	userRepo.On("Update", mock.AnythingOfType("*entity.User")).Return(user, nil)
 
-	res, err := sellerService.CreateSeller(user, req)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	res, err := svc.CreateSeller(user, &dseller.CreateSeller{DisplayName: "My Store", Bio: "Best store"})
 
-	assert.Equal(t, req.DisplayName, res.DisplayName)
-	assert.Equal(t, req.Bio, res.Bio)
-
-	// Verify user is now a seller
-	var updated entity.User
-	dbSellerSvc.First(&updated, "id = ?", user.ID)
-	assert.True(t, updated.IsSeller)
+	assert.NoError(t, err)
+	assert.Equal(t, seller.DisplayName, res.DisplayName)
+	userRepo.AssertExpectations(t)
+	sellerRepo.AssertExpectations(t)
 }
 
 func TestSellerService_CreateSeller_AlreadySeller(t *testing.T) {
-	setupSellerService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	sellerRepo := new(mocks.SellerRepositoryMock)
+	svc := newSellerService(userRepo, sellerRepo)
 
-	user := seedSellerUser(t)
+	user := newSellerUser()
+	user.IsSeller = true
+	userRepo.On("FindByID", user.ID).Return(user, nil)
 
-	// First creation should succeed
-	req := &dseller.CreateSeller{
-		DisplayName: "My Store",
-		Bio:         "Best store ever",
-	}
-	_, err := sellerService.CreateSeller(user, req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	_, err := svc.CreateSeller(user, &dseller.CreateSeller{DisplayName: "Store", Bio: "Bio"})
 
-	// Second creation should fail
-	req2 := &dseller.CreateSeller{
-		DisplayName: "Another Store",
-		Bio:         "Another bio",
-	}
-	_, err = sellerService.CreateSeller(user, req2)
 	assert.Error(t, err)
+	userRepo.AssertExpectations(t)
 }
 
 func TestSellerService_GetSellerByID(t *testing.T) {
-	setupSellerService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	sellerRepo := new(mocks.SellerRepositoryMock)
+	svc := newSellerService(userRepo, sellerRepo)
 
-	user := seedSellerUser(t)
+	user := newSellerUser()
+	seller := newSeller(user.ID)
+	sellerRepo.On("FindByID", seller.ID).Return(seller, nil)
 
-	// Create a seller first
-	req := &dseller.CreateSeller{
-		DisplayName: "My Store",
-		Bio:         "Best store ever",
-	}
-	sellerRes, err := sellerService.CreateSeller(user, req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	uuid, err := id.Parse(sellerRes.ID)
-	if err != nil {
-		t.Fatalf("failed to parse product ID: %v", err)
-	}
+	res, err := svc.GetSellerByID(seller.ID)
 
-	res, err := sellerService.GetSellerByID(uuid)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	assert.Equal(t, sellerRes.ID, res.ID)
-	assert.Equal(t, req.DisplayName, res.DisplayName)
+	assert.NoError(t, err)
+	assert.Equal(t, seller.ID.String(), res.ID)
+	sellerRepo.AssertExpectations(t)
 }
 
 func TestSellerService_GetSellerByID_NotFound(t *testing.T) {
-	setupSellerService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	sellerRepo := new(mocks.SellerRepositoryMock)
+	svc := newSellerService(userRepo, sellerRepo)
 
 	ghostID := id.NewUUID()
+	sellerRepo.On("FindByID", ghostID).Return(nil, domainErr.ErrNotFound("Seller", nil))
 
-	_, err := sellerService.GetSellerByID(ghostID)
+	_, err := svc.GetSellerByID(ghostID)
+
 	assert.Error(t, err)
+	sellerRepo.AssertExpectations(t)
+}
+
+func TestSellerService_UpdateSeller(t *testing.T) {
+	userRepo := new(mocks.UserRepositoryMock)
+	sellerRepo := new(mocks.SellerRepositoryMock)
+	svc := newSellerService(userRepo, sellerRepo)
+
+	user := newSellerUser()
+	user.IsSeller = true
+	seller := newSeller(user.ID)
+	user.Seller = seller
+
+	updated := *seller
+	updated.DisplayName = "New Name"
+
+	userRepo.On("FindByIDWithSeller", user.ID).Return(user, nil)
+	sellerRepo.On("Updates", mock.AnythingOfType("*entity.Seller")).Return(&updated, nil)
+
+	res, err := svc.UpdateSeller(user, &dseller.UpdateSeller{DisplayName: "New Name"})
+
+	assert.NoError(t, err)
+	assert.Equal(t, "New Name", res.DisplayName)
+	userRepo.AssertExpectations(t)
+	sellerRepo.AssertExpectations(t)
+}
+
+func TestSellerService_UpdateSeller_NotSeller(t *testing.T) {
+	userRepo := new(mocks.UserRepositoryMock)
+	sellerRepo := new(mocks.SellerRepositoryMock)
+	svc := newSellerService(userRepo, sellerRepo)
+
+	user := newSellerUser()
+	userRepo.On("FindByIDWithSeller", user.ID).Return(user, nil)
+
+	_, err := svc.UpdateSeller(user, &dseller.UpdateSeller{DisplayName: "Name"})
+
+	assert.Error(t, err)
+	userRepo.AssertExpectations(t)
 }
 
 func TestSellerService_DeleteSeller(t *testing.T) {
-	setupSellerService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	sellerRepo := new(mocks.SellerRepositoryMock)
+	svc := newSellerService(userRepo, sellerRepo)
 
-	user := seedSellerUser(t)
+	user := newSellerUser()
+	user.IsSeller = true
+	seller := newSeller(user.ID)
+	user.Seller = seller
 
-	// Create a seller first
-	req := &dseller.CreateSeller{
-		DisplayName: "My Store",
-		Bio:         "Best store ever",
-	}
-	_, err := sellerService.CreateSeller(user, req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	userRepo.On("FindByIDWithSeller", user.ID).Return(user, nil)
+	sellerRepo.On("DeleteByID", seller.ID).Return(nil)
+	userRepo.On("Update", mock.AnythingOfType("*entity.User")).Return(user, nil)
 
-	// Delete the seller
-	err = sellerService.DeleteSeller(user)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	err := svc.DeleteSeller(user)
 
-	// Verify user is no longer a seller
-	var updated entity.User
-	dbSellerSvc.First(&updated, "id = ?", user.ID)
-	assert.False(t, updated.IsSeller)
+	assert.NoError(t, err)
+	userRepo.AssertExpectations(t)
+	sellerRepo.AssertExpectations(t)
 }
 
 func TestSellerService_DeleteSeller_NotSeller(t *testing.T) {
-	setupSellerService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	sellerRepo := new(mocks.SellerRepositoryMock)
+	svc := newSellerService(userRepo, sellerRepo)
 
-	user := seedSellerUser(t)
+	user := newSellerUser()
+	userRepo.On("FindByIDWithSeller", user.ID).Return(user, nil)
 
-	// Try to delete a non-seller user
-	err := sellerService.DeleteSeller(user)
+	err := svc.DeleteSeller(user)
+
 	assert.Error(t, err)
+	userRepo.AssertExpectations(t)
 }

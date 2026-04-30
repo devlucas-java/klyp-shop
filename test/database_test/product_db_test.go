@@ -131,13 +131,9 @@ func TestFindProductsBySellerID(t *testing.T) {
 	seller := createProductSeller(t)
 
 	for i := 0; i < 3; i++ {
-		dbProduct.Create(entity.NewProduct(
-			"Product",
-			"Desc",
-			0.01,
-			1,
-			[]string{},
-		))
+		p := entity.NewProduct("Product", "Desc", 0.01, 1, []string{})
+		p.SellerID = seller.ID
+		dbProduct.Create(p)
 	}
 
 	res, err := productRepo.FindBySellerID(seller.ID, 1, 10)

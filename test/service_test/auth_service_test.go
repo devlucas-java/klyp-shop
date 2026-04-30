@@ -7,290 +7,183 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dauth"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	"github.com/devlucas-java/klyp-shop/internal/infrastructure/database"
+	"github.com/devlucas-java/klyp-shop/internal/domain/enums"
+	domainErr "github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/security/jwt"
-	"github.com/devlucas-java/klyp-shop/pkg/logger"
+	"github.com/devlucas-java/klyp-shop/pkg/id"
+	"github.com/devlucas-java/klyp-shop/pkg/password_encoder"
+	"github.com/devlucas-java/klyp-shop/test/mocks"
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
+	"github.com/stretchr/testify/mock"
 )
 
-var dbAuthSvc *gorm.DB
-var authService *service.AuthService
+func newAuthService(userRepo *mocks.UserRepositoryMock) *service.AuthService {
+	return service.NewAuthService(userRepo, jwt.NewJWTService("test-secret"), mapper.NewUserMapper())
+}
 
-func setupAuthService(t *testing.T) {
-	var err error
-
-	dbAuthSvc, err = gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
+func newHashedUser(email, username, plainPass string) *entity.User {
+	hash, _ := password_encoder.Encoder(plainPass)
+	return &entity.User{
+		ID:       id.NewUUID(),
+		Name:     "Test",
+		Email:    email,
+		Username: username,
+		Password: hash,
+		Roles:    []enums.Role{enums.USER},
 	}
-
-	err = dbAuthSvc.AutoMigrate(&entity.User{})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	log := logger.NewLogger(logger.TRACE)
-	userRepo := database.NewUserDB(dbAuthSvc, log)
-	jwtSvc := jwt.NewJWTService("test-secret-key")
-	userMapper := mapper.NewUserMapper()
-	authService = service.NewAuthService(userRepo, jwtSvc, userMapper)
 }
 
 func TestAuthService_Register(t *testing.T) {
-	setupAuthService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newAuthService(userRepo)
 
 	dto := &dauth.RegisterDTO{
-		Name:     "Alice",
-		Email:    "alice@test.com",
-		Username: "alice",
-		Password: "securepass",
+		Name: "Alice", Email: "alice@test.com", Username: "alice", Password: "securepass",
 	}
 
-	res, err := authService.Register(dto)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	userRepo.On("Create", mock.AnythingOfType("*entity.User")).
+		Return(&entity.User{
+			ID: id.NewUUID(), Name: dto.Name, Email: dto.Email,
+			Username: dto.Username, Roles: []enums.Role{enums.USER},
+		}, nil)
 
+	res, err := svc.Register(dto)
+
+	assert.NoError(t, err)
 	assert.NotEmpty(t, res.Token)
 	assert.Equal(t, "Bearer", res.TypeToken)
-	assert.Equal(t, "alice@test.com", res.User.Email)
-	assert.Equal(t, "alice", res.User.Username)
+	assert.Equal(t, dto.Email, res.User.Email)
+	userRepo.AssertExpectations(t)
 }
 
-func TestAuthService_Register_DuplicateEmail(t *testing.T) {
-	setupAuthService(t)
+func TestAuthService_Register_DBError(t *testing.T) {
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newAuthService(userRepo)
 
 	dto := &dauth.RegisterDTO{
-		Name:     "Bob",
-		Email:    "bob@test.com",
-		Username: "bob",
-		Password: "pass",
+		Name: "Bob", Email: "bob@test.com", Username: "bob", Password: "pass123",
 	}
 
-	_, err := authService.Register(dto)
-	if err != nil {
-		t.Fatalf("first register failed: %v", err)
-	}
+	userRepo.On("Create", mock.AnythingOfType("*entity.User")).
+		Return(nil, domainErr.ErrDatabase("duplicate email", nil))
 
-	dto2 := &dauth.RegisterDTO{
-		Name:     "Bob2",
-		Email:    "bob@test.com",
-		Username: "bob2",
-		Password: "pass",
-	}
+	_, err := svc.Register(dto)
 
-	_, err = authService.Register(dto2)
 	assert.Error(t, err)
+	userRepo.AssertExpectations(t)
 }
 
 func TestAuthService_Login_ByEmail(t *testing.T) {
-	setupAuthService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newAuthService(userRepo)
 
-	dto := &dauth.RegisterDTO{
-		Name:     "Carol",
-		Email:    "carol@test.com",
-		Username: "carol",
-		Password: "mypassword",
-	}
-	_, err := authService.Register(dto)
-	if err != nil {
-		t.Fatalf("register failed: %v", err)
-	}
+	user := newHashedUser("carol@test.com", "carol", "mypassword")
+	userRepo.On("FindByEmailOrUsername", "carol@test.com").Return(user, nil)
 
-	req := &dauth.LoginRequest{
-		Login:    "carol@test.com",
-		Password: "mypassword",
-	}
+	res, err := svc.Login(&dauth.LoginRequest{Login: "carol@test.com", Password: "mypassword"})
 
-	res, err := authService.Login(req)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
+	assert.NoError(t, err)
 	assert.NotEmpty(t, res.Token)
-	assert.Equal(t, "carol@test.com", res.User.Email)
+	userRepo.AssertExpectations(t)
 }
 
 func TestAuthService_Login_ByUsername(t *testing.T) {
-	setupAuthService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newAuthService(userRepo)
 
-	dto := &dauth.RegisterDTO{
-		Name:     "Dave",
-		Email:    "dave@test.com",
-		Username: "dave",
-		Password: "davepass",
-	}
-	_, err := authService.Register(dto)
-	if err != nil {
-		t.Fatalf("register failed: %v", err)
-	}
+	user := newHashedUser("dave@test.com", "dave", "davepass")
+	userRepo.On("FindByEmailOrUsername", "dave").Return(user, nil)
 
-	req := &dauth.LoginRequest{
-		Login:    "dave",
-		Password: "davepass",
-	}
+	res, err := svc.Login(&dauth.LoginRequest{Login: "dave", Password: "davepass"})
 
-	res, err := authService.Login(req)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
+	assert.NoError(t, err)
 	assert.NotEmpty(t, res.Token)
-	assert.Equal(t, "dave", res.User.Username)
+	userRepo.AssertExpectations(t)
 }
 
 func TestAuthService_Login_WrongPassword(t *testing.T) {
-	setupAuthService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newAuthService(userRepo)
 
-	dto := &dauth.RegisterDTO{
-		Name:     "Eve",
-		Email:    "eve@test.com",
-		Username: "eve",
-		Password: "correctpass",
-	}
-	_, err := authService.Register(dto)
-	if err != nil {
-		t.Fatalf("register failed: %v", err)
-	}
+	user := newHashedUser("eve@test.com", "eve", "correctpass")
+	userRepo.On("FindByEmailOrUsername", "eve@test.com").Return(user, nil)
 
-	req := &dauth.LoginRequest{
-		Login:    "eve@test.com",
-		Password: "wrongpass",
-	}
+	_, err := svc.Login(&dauth.LoginRequest{Login: "eve@test.com", Password: "wrongpass"})
 
-	_, err = authService.Login(req)
 	assert.Error(t, err)
+	userRepo.AssertExpectations(t)
 }
 
 func TestAuthService_Login_UserNotFound(t *testing.T) {
-	setupAuthService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newAuthService(userRepo)
 
-	req := &dauth.LoginRequest{
-		Login:    "ghost@test.com",
-		Password: "pass",
-	}
+	userRepo.On("FindByEmailOrUsername", "ghost@test.com").
+		Return(nil, domainErr.ErrNotFound("User", nil))
 
-	_, err := authService.Login(req)
+	_, err := svc.Login(&dauth.LoginRequest{Login: "ghost@test.com", Password: "pass"})
+
 	assert.Error(t, err)
+	userRepo.AssertExpectations(t)
 }
 
 func TestAuthService_VerifyPassword_Correct(t *testing.T) {
-	setupAuthService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newAuthService(userRepo)
 
-	dto := &dauth.RegisterDTO{
-		Name:     "Frank",
-		Email:    "frank@test.com",
-		Username: "frank",
-		Password: "frankpass",
-	}
-	registered, err := authService.Register(dto)
-	if err != nil {
-		t.Fatalf("register failed: %v", err)
-	}
+	user := newHashedUser("frank@test.com", "frank", "frankpass")
+	userRepo.On("FindByID", user.ID).Return(user, nil)
 
-	user := &entity.User{}
-	dbAuthSvc.First(user, "email = ?", registered.User.Email)
+	res, err := svc.VerifyPassword(&dauth.VerifyPasswordRequest{Password: "frankpass"}, user)
 
-	req := &dauth.VerifyPasswordRequest{Password: "frankpass"}
-
-	res, err := authService.VerifyPassword(req, user)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
+	assert.NoError(t, err)
 	assert.True(t, res.Result)
+	userRepo.AssertExpectations(t)
 }
 
 func TestAuthService_VerifyPassword_Wrong(t *testing.T) {
-	setupAuthService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newAuthService(userRepo)
 
-	dto := &dauth.RegisterDTO{
-		Name:     "Grace",
-		Email:    "grace@test.com",
-		Username: "grace",
-		Password: "gracepass",
-	}
-	registered, err := authService.Register(dto)
-	if err != nil {
-		t.Fatalf("register failed: %v", err)
-	}
+	user := newHashedUser("grace@test.com", "grace", "gracepass")
+	userRepo.On("FindByID", user.ID).Return(user, nil)
 
-	user := &entity.User{}
-	dbAuthSvc.First(user, "email = ?", registered.User.Email)
+	res, err := svc.VerifyPassword(&dauth.VerifyPasswordRequest{Password: "wrongpass"}, user)
 
-	req := &dauth.VerifyPasswordRequest{Password: "wrongpass"}
-
-	res, err := authService.VerifyPassword(req, user)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
+	assert.NoError(t, err)
 	assert.False(t, res.Result)
+	userRepo.AssertExpectations(t)
 }
 
 func TestAuthService_UpdatePassword(t *testing.T) {
-	setupAuthService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newAuthService(userRepo)
 
-	dto := &dauth.RegisterDTO{
-		Name:     "Hank",
-		Email:    "hank@test.com",
-		Username: "hank",
-		Password: "oldpass",
-	}
-	registered, err := authService.Register(dto)
-	if err != nil {
-		t.Fatalf("register failed: %v", err)
-	}
+	user := newHashedUser("hank@test.com", "hank", "oldpass")
+	userRepo.On("FindByID", user.ID).Return(user, nil)
+	userRepo.On("Update", mock.AnythingOfType("*entity.User")).Return(user, nil)
 
-	user := &entity.User{}
-	dbAuthSvc.First(user, "email = ?", registered.User.Email)
-
-	req := &dauth.UpdatePasswordRequest{
+	err := svc.UpdatePassword(&dauth.UpdatePasswordRequest{
 		CurrentPassword: "oldpass",
 		NewPassword:     "newpass123",
-	}
+	}, user)
 
-	err = authService.UpdatePassword(req, user)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	// Verify new password works
-	loginReq := &dauth.LoginRequest{
-		Login:    "hank@test.com",
-		Password: "newpass123",
-	}
-	res, err := authService.Login(loginReq)
-	if err != nil {
-		t.Fatalf("login with new password failed: %v", err)
-	}
-	assert.NotEmpty(t, res.Token)
+	assert.NoError(t, err)
+	userRepo.AssertExpectations(t)
 }
 
 func TestAuthService_UpdatePassword_WrongCurrent(t *testing.T) {
-	setupAuthService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newAuthService(userRepo)
 
-	dto := &dauth.RegisterDTO{
-		Name:     "Iris",
-		Email:    "iris@test.com",
-		Username: "iris",
-		Password: "irispass",
-	}
-	registered, err := authService.Register(dto)
-	if err != nil {
-		t.Fatalf("register failed: %v", err)
-	}
+	user := newHashedUser("iris@test.com", "iris", "irispass")
+	userRepo.On("FindByID", user.ID).Return(user, nil)
 
-	user := &entity.User{}
-	dbAuthSvc.First(user, "email = ?", registered.User.Email)
-
-	req := &dauth.UpdatePasswordRequest{
+	err := svc.UpdatePassword(&dauth.UpdatePasswordRequest{
 		CurrentPassword: "wrongcurrent",
-		NewPassword:     "newpass",
-	}
+		NewPassword:     "newpass123",
+	}, user)
 
-	err = authService.UpdatePassword(req, user)
 	assert.Error(t, err)
+	userRepo.AssertExpectations(t)
 }

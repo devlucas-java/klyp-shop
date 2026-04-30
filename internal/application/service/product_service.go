@@ -31,11 +31,14 @@ func NewProductService(l *logger.Logger, pr repository.ProductRepository, ur rep
 }
 
 func (s *ProductService) CreateProduct(auth *entity.User, req *dproduct.CreateProduct) (*dproduct.ProductResponse, error) {
-
 	user, err := s.userReposiory.FindByIDWithSeller(auth.ID)
 	if err != nil {
 		s.log.Errorf("failed to find user by id: %v", err)
 		return nil, err
+	}
+
+	if !user.IsSeller || user.Seller == nil {
+		return nil, errors.ErrForbidden(fmt.Errorf("user is not a seller"))
 	}
 
 	product := s.productMapper.CreateProductToProduct(req)

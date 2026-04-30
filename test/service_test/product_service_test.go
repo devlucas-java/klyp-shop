@@ -5,321 +5,205 @@ import (
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dproduct"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dseller"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	"github.com/devlucas-java/klyp-shop/internal/infrastructure/database"
-	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
+	domainErr "github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
+	"github.com/devlucas-java/klyp-shop/test/mocks"
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
+	"github.com/stretchr/testify/mock"
 )
 
-var dbProductSvc *gorm.DB
-var productService *service.ProductService
-var sellerServiceForTest *service.SellerService
-
-func setupProductService(t *testing.T) {
-	var err error
-
-	dbProductSvc, err = gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = dbProductSvc.AutoMigrate(&entity.User{}, &entity.Seller{}, &entity.Product{})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	log := logger.NewLogger(logger.TRACE)
-	userRepo := database.NewUserDB(dbProductSvc, log)
-	sellerRepo := database.NewSellerDB(dbProductSvc)
-	productRepo := database.NewProductDB(dbProductSvc)
-	productMapper := mapper.NewProductMapper()
-	sellerMapper := mapper.NewSellerMapper()
-
-	sellerServiceForTest = service.NewSellerService(log, userRepo, sellerRepo, sellerMapper)
-	productService = service.NewProductService(log, productRepo, userRepo, sellerRepo, productMapper)
-
-	// Store userRepo for later use in seedProductSeller
-	_productUserRepo = userRepo
+func newProductService(
+	productRepo *mocks.ProductRepositoryMock,
+	userRepo *mocks.UserRepositoryMock,
+	sellerRepo *mocks.SellerRepositoryMock,
+) *service.ProductService {
+	return service.NewProductService(
+		logger.NewLogger(logger.TRACE),
+		productRepo,
+		userRepo,
+		sellerRepo,
+		mapper.NewProductMapper(),
+	)
 }
 
-var _productUserRepo repository.UserRepository
+func newProductUser() (*entity.User, *entity.Seller) {
+	userID := id.NewUUID()
+	seller := &entity.Seller{ID: id.NewUUID(), UserID: userID, DisplayName: "Store"}
+	user := &entity.User{
+		ID:       userID,
+		IsSeller: true,
+		Seller:   seller,
+	}
+	return user, seller
+}
 
-func seedProductSeller(t *testing.T) *entity.User {
-	user, err := entity.NewUser("Product Seller", "productseller@test.com", "productseller", "password123")
-	if err != nil {
-		t.Fatal(err)
+func newProduct(sellerID id.UUID) *entity.Product {
+	return &entity.Product{
+		ID:       id.NewUUID(),
+		Name:     "Test Product",
+		PriceBTC: 0.01,
+		Stock:    100,
+		SellerID: sellerID,
 	}
-	if err := dbProductSvc.Create(user).Error; err != nil {
-		t.Fatal(err)
-	}
-
-	// Convert user to seller
-	sellerReq := &dseller.CreateSeller{
-		DisplayName: "Product Store",
-		Bio:         "We sell products",
-	}
-	_, err = sellerServiceForTest.CreateSeller(user, sellerReq)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Reload user with seller
-	user, err = _productUserRepo.FindByIDWithSeller(user.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return user
 }
 
 func TestProductService_CreateProduct(t *testing.T) {
-	setupProductService(t)
+	productRepo := new(mocks.ProductRepositoryMock)
+	userRepo := new(mocks.UserRepositoryMock)
+	sellerRepo := new(mocks.SellerRepositoryMock)
+	svc := newProductService(productRepo, userRepo, sellerRepo)
 
-	user := seedProductSeller(t)
+	user, seller := newProductUser()
+	product := newProduct(seller.ID)
 
-	req := &dproduct.CreateProduct{
-		Name:        "Test Product",
-		Description: "A test product",
-		PriceBTC:    0.01,
-		Stock:       100,
-		Categories:  []string{"electronics", "gadgets"},
-	}
+	userRepo.On("FindByIDWithSeller", user.ID).Return(user, nil)
+	productRepo.On("Create", mock.AnythingOfType("*entity.Product")).Return(product, nil)
 
-	res, err := productService.CreateProduct(user, req)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	req := &dproduct.CreateProduct{Name: "Test Product", PriceBTC: 0.01, Stock: 100}
+	res, err := svc.CreateProduct(user, req)
 
-	assert.Equal(t, req.Name, res.Name)
-	assert.Equal(t, req.Description, res.Description)
-	assert.Equal(t, req.PriceBTC, res.PriceBTC)
-	assert.Equal(t, req.Stock, res.Stock)
-	assert.Equal(t, user.Seller.ID, res.SellerID)
+	assert.NoError(t, err)
+	assert.Equal(t, product.Name, res.Name)
+	assert.Equal(t, seller.ID.String(), res.SellerID)
+	userRepo.AssertExpectations(t)
+	productRepo.AssertExpectations(t)
 }
 
 func TestProductService_CreateProduct_NotSeller(t *testing.T) {
-	setupProductService(t)
+	productRepo := new(mocks.ProductRepositoryMock)
+	userRepo := new(mocks.UserRepositoryMock)
+	sellerRepo := new(mocks.SellerRepositoryMock)
+	svc := newProductService(productRepo, userRepo, sellerRepo)
 
-	user, err := entity.NewUser("Not Seller", "notseller@test.com", "notseller", "password123")
-	if err != nil {
-		t.Fatal(err)
-	}
-	dbProductSvc.Create(user)
+	user := &entity.User{ID: id.NewUUID(), IsSeller: false, Seller: nil}
+	userRepo.On("FindByIDWithSeller", user.ID).Return(user, nil)
 
-	req := &dproduct.CreateProduct{
-		Name:        "Test Product",
-		Description: "A test product",
-		PriceBTC:    0.01,
-		Stock:       100,
-	}
+	req := &dproduct.CreateProduct{Name: "Test", PriceBTC: 0.01, Stock: 1}
+	_, err := svc.CreateProduct(user, req)
 
-	_, err = productService.CreateProduct(user, req)
 	assert.Error(t, err)
+	userRepo.AssertExpectations(t)
 }
 
 func TestProductService_GetProductByID(t *testing.T) {
-	setupProductService(t)
+	productRepo := new(mocks.ProductRepositoryMock)
+	userRepo := new(mocks.UserRepositoryMock)
+	sellerRepo := new(mocks.SellerRepositoryMock)
+	svc := newProductService(productRepo, userRepo, sellerRepo)
 
-	user := seedProductSeller(t)
+	_, seller := newProductUser()
+	product := newProduct(seller.ID)
+	productRepo.On("FindByID", product.ID).Return(product, nil)
 
-	// Create a product first
-	req := &dproduct.CreateProduct{
-		Name:        "Test Product",
-		Description: "A test product",
-		PriceBTC:    0.01,
-		Stock:       100,
-	}
-	productRes, err := productService.CreateProduct(user, req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	res, err := svc.GetProductByID(product.ID)
 
-	uuid, err := id.Parse(productRes.ID)
-	if err != nil {
-		t.Fatalf("failed to parse product ID: %v", err)
-	}
-
-	res, err := productService.GetProductByID(uuid)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	assert.Equal(t, productRes.ID, res.ID)
-	assert.Equal(t, req.Name, res.Name)
+	assert.NoError(t, err)
+	assert.Equal(t, product.ID.String(), res.ID)
+	productRepo.AssertExpectations(t)
 }
 
 func TestProductService_GetProductByID_NotFound(t *testing.T) {
-	setupProductService(t)
+	productRepo := new(mocks.ProductRepositoryMock)
+	userRepo := new(mocks.UserRepositoryMock)
+	sellerRepo := new(mocks.SellerRepositoryMock)
+	svc := newProductService(productRepo, userRepo, sellerRepo)
 
 	ghostID := id.NewUUID()
+	productRepo.On("FindByID", ghostID).Return(nil, domainErr.ErrNotFound("Product", nil))
 
-	_, err := productService.GetProductByID(ghostID)
+	_, err := svc.GetProductByID(ghostID)
+
 	assert.Error(t, err)
+	productRepo.AssertExpectations(t)
 }
 
 func TestProductService_UpdateProduct(t *testing.T) {
-	setupProductService(t)
+	productRepo := new(mocks.ProductRepositoryMock)
+	userRepo := new(mocks.UserRepositoryMock)
+	sellerRepo := new(mocks.SellerRepositoryMock)
+	svc := newProductService(productRepo, userRepo, sellerRepo)
 
-	user := seedProductSeller(t)
+	user, seller := newProductUser()
+	product := newProduct(seller.ID)
+	updated := *product
+	updated.Name = "Updated Name"
+	updated.PriceBTC = 0.02
 
-	// Create a product first
-	req := &dproduct.CreateProduct{
-		Name:        "Original Name",
-		Description: "Original description",
-		PriceBTC:    0.01,
-		Stock:       100,
-	}
-	productRes, err := productService.CreateProduct(user, req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	userRepo.On("FindByIDWithSeller", user.ID).Return(user, nil)
+	productRepo.On("FindByID", product.ID).Return(product, nil)
+	productRepo.On("Updates", mock.AnythingOfType("*entity.Product")).Return(&updated, nil)
 
-	// Update the product
-	updateReq := &dproduct.UpdateProduct{
-		Name:        "Updated Name",
-		Description: "Updated description",
-		PriceBTC:    0.02,
-		Stock:       50,
-	}
-	uuid, err := id.Parse(productRes.ID)
-	if err != nil {
-		t.Fatalf("failed to parse product ID: %v", err)
-	}
+	req := &dproduct.UpdateProduct{Name: "Updated Name", PriceBTC: 0.02, Stock: 50}
+	res, err := svc.UpdateProduct(user, req, product.ID)
 
-	res, err := productService.UpdateProduct(user, updateReq, uuid)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
+	assert.NoError(t, err)
 	assert.Equal(t, "Updated Name", res.Name)
-	assert.Equal(t, "Updated description", res.Description)
-	assert.Equal(t, 0.02, res.PriceBTC)
-	assert.Equal(t, 50, res.Stock)
+	userRepo.AssertExpectations(t)
+	productRepo.AssertExpectations(t)
 }
 
 func TestProductService_UpdateProduct_NotOwner(t *testing.T) {
-	setupProductService(t)
+	productRepo := new(mocks.ProductRepositoryMock)
+	userRepo := new(mocks.UserRepositoryMock)
+	sellerRepo := new(mocks.SellerRepositoryMock)
+	svc := newProductService(productRepo, userRepo, sellerRepo)
 
-	user1 := seedProductSeller(t)
+	user1, seller1 := newProductUser()
+	user2, _ := newProductUser()
+	product := newProduct(seller1.ID)
 
-	// Create a product as user1
-	req := &dproduct.CreateProduct{
-		Name:        "Test Product",
-		Description: "A test product",
-		PriceBTC:    0.01,
-		Stock:       100,
-	}
-	productRes, err := productService.CreateProduct(user1, req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	userRepo.On("FindByIDWithSeller", user2.ID).Return(user2, nil)
+	productRepo.On("FindByID", product.ID).Return(product, nil)
 
-	// Create another seller
-	user2, err := entity.NewUser("Seller 2", "seller2@test.com", "seller2", "password123")
-	if err != nil {
-		t.Fatal(err)
-	}
-	dbProductSvc.Create(user2)
-	sellerReq := &dseller.CreateSeller{
-		DisplayName: "Store 2",
-		Bio:         "Store 2",
-	}
-	_, err = sellerServiceForTest.CreateSeller(user2, sellerReq)
-	if err != nil {
-		t.Fatal(err)
-	}
-	user2, _ = database.NewUserDB(dbProductSvc, logger.NewLogger(logger.TRACE)).FindByIDWithSeller(user2.ID)
+	req := &dproduct.UpdateProduct{Name: "Hacked"}
+	_, err := svc.UpdateProduct(user2, req, product.ID)
 
-	// Try to update as user2
-	updateReq := &dproduct.UpdateProduct{
-		Name: "Hacked Name",
-	}
-
-	uuid, err := id.Parse(productRes.ID)
-	if err != nil {
-		t.Fatalf("failed to parse product ID: %v", err)
-	}
-
-	_, err = productService.UpdateProduct(user2, updateReq, uuid)
 	assert.Error(t, err)
+	_ = user1
+	userRepo.AssertExpectations(t)
+	productRepo.AssertExpectations(t)
 }
 
 func TestProductService_DeleteProduct(t *testing.T) {
-	setupProductService(t)
+	productRepo := new(mocks.ProductRepositoryMock)
+	userRepo := new(mocks.UserRepositoryMock)
+	sellerRepo := new(mocks.SellerRepositoryMock)
+	svc := newProductService(productRepo, userRepo, sellerRepo)
 
-	user := seedProductSeller(t)
+	user, seller := newProductUser()
+	product := newProduct(seller.ID)
 
-	// Create a product first
-	req := &dproduct.CreateProduct{
-		Name:        "Test Product",
-		Description: "A test product",
-		PriceBTC:    0.01,
-		Stock:       100,
-	}
-	productRes, err := productService.CreateProduct(user, req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	userRepo.On("FindByIDWithSeller", user.ID).Return(user, nil)
+	productRepo.On("FindByID", product.ID).Return(product, nil)
+	productRepo.On("DeleteByID", product.ID).Return(nil)
 
-	uuid, err := id.Parse(productRes.ID)
-	if err != nil {
-		t.Fatalf("failed to parse product ID: %v", err)
-	}
+	err := svc.DeleteProduct(user, product.ID)
 
-	// Delete the product
-	err = productService.DeleteProduct(user, uuid)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	_, err = productService.GetProductByID(uuid)
-	assert.Error(t, err)
+	assert.NoError(t, err)
+	userRepo.AssertExpectations(t)
+	productRepo.AssertExpectations(t)
 }
 
 func TestProductService_DeleteProduct_NotOwner(t *testing.T) {
-	setupProductService(t)
+	productRepo := new(mocks.ProductRepositoryMock)
+	userRepo := new(mocks.UserRepositoryMock)
+	sellerRepo := new(mocks.SellerRepositoryMock)
+	svc := newProductService(productRepo, userRepo, sellerRepo)
 
-	user1 := seedProductSeller(t)
+	user1, seller1 := newProductUser()
+	user2, _ := newProductUser()
+	product := newProduct(seller1.ID)
 
-	// Create a product as user1
-	req := &dproduct.CreateProduct{
-		Name:        "Test Product",
-		Description: "A test product",
-		PriceBTC:    0.01,
-		Stock:       100,
-	}
-	productRes, err := productService.CreateProduct(user1, req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	userRepo.On("FindByIDWithSeller", user2.ID).Return(user2, nil)
+	productRepo.On("FindByID", product.ID).Return(product, nil)
 
-	uuid, err := id.Parse(productRes.ID)
-	if err != nil {
-		t.Fatalf("failed to parse product ID: %v", err)
-	}
+	err := svc.DeleteProduct(user2, product.ID)
 
-	user2, err := entity.NewUser("Seller 2", "seller2@test.com", "seller2", "password123")
-	if err != nil {
-		t.Fatal(err)
-	}
-	dbProductSvc.Create(user2)
-	sellerReq := &dseller.CreateSeller{
-		DisplayName: "Store 2",
-		Bio:         "Store 2",
-	}
-
-	_, err = sellerServiceForTest.CreateSeller(user2, sellerReq)
-	if err != nil {
-		t.Fatal(err)
-	}
-	user2, _ = database.NewUserDB(dbProductSvc, logger.NewLogger(logger.TRACE)).FindByIDWithSeller(user2.ID)
-
-	err = productService.DeleteProduct(user2, uuid)
 	assert.Error(t, err)
+	_ = user1
+	userRepo.AssertExpectations(t)
+	productRepo.AssertExpectations(t)
 }

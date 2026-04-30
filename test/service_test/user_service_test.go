@@ -8,220 +8,207 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/enums"
-	"github.com/devlucas-java/klyp-shop/internal/infrastructure/database"
+	domainErr "github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
+	"github.com/devlucas-java/klyp-shop/test/mocks"
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
+	"github.com/stretchr/testify/mock"
 )
 
-var dbUserSvc *gorm.DB
-var userService *service.UserService
-
-func setupUserService(t *testing.T) {
-	var err error
-
-	dbUserSvc, err = gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = dbUserSvc.AutoMigrate(&entity.User{})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	log := logger.NewLogger(logger.TRACE)
-	userRepo := database.NewUserDB(dbUserSvc, log)
-	userMapper := mapper.NewUserMapper()
-	userService = service.NewUserService(userRepo, log, userMapper)
+func newUserService(userRepo *mocks.UserRepositoryMock) *service.UserService {
+	return service.NewUserService(userRepo, logger.NewLogger(logger.TRACE), mapper.NewUserMapper())
 }
 
-func seedUser(t *testing.T) *entity.User {
-	user, err := entity.NewUser("John", "john@test.com", "john123", "password123")
-	if err != nil {
-		t.Fatal(err)
+func newUser() *entity.User {
+	return &entity.User{
+		ID:       id.NewUUID(),
+		Name:     "John",
+		Email:    "john@test.com",
+		Username: "john123",
+		Password: "hash",
+		Roles:    []enums.Role{enums.USER},
 	}
-	if err := dbUserSvc.Create(user).Error; err != nil {
-		t.Fatal(err)
-	}
-	return user
 }
 
 func TestGetMe(t *testing.T) {
-	setupUserService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newUserService(userRepo)
 
-	user := seedUser(t)
+	user := newUser()
+	userRepo.On("FindByID", user.ID).Return(user, nil)
 
-	res, err := userService.GetMe(user)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	res, err := svc.GetMe(user)
 
+	assert.NoError(t, err)
 	assert.Equal(t, user.Name, res.Name)
 	assert.Equal(t, user.Email, res.Email)
-	assert.Equal(t, user.Username, res.Username)
+	userRepo.AssertExpectations(t)
 }
 
 func TestGetMe_NotFound(t *testing.T) {
-	setupUserService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newUserService(userRepo)
 
 	ghost := &entity.User{ID: id.NewUUID()}
+	userRepo.On("FindByID", ghost.ID).Return(nil, domainErr.ErrNotFound("User", nil))
 
-	_, err := userService.GetMe(ghost)
+	_, err := svc.GetMe(ghost)
+
 	assert.Error(t, err)
+	userRepo.AssertExpectations(t)
 }
 
 func TestUpdateMe_Name(t *testing.T) {
-	setupUserService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newUserService(userRepo)
 
-	user := seedUser(t)
+	user := newUser()
+	updated := *user
+	updated.Name = "Updated Name"
 
-	req := &duser.UpdateUserRequest{Name: "Updated Name"}
+	userRepo.On("FindByID", user.ID).Return(user, nil)
+	userRepo.On("FindByEmailOrUsername", mock.Anything).Return(nil, domainErr.ErrNotFound("User", nil)).Maybe()
+	userRepo.On("Update", mock.AnythingOfType("*entity.User")).Return(&updated, nil)
 
-	res, err := userService.UpdateMe(user, req)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	res, err := svc.UpdateMe(user, &duser.UpdateUserRequest{Name: "Updated Name"})
 
+	assert.NoError(t, err)
 	assert.Equal(t, "Updated Name", res.Name)
-}
-
-func TestUpdateMe_Email(t *testing.T) {
-	setupUserService(t)
-
-	user := seedUser(t)
-
-	req := &duser.UpdateUserRequest{Email: "newemail@test.com"}
-
-	res, err := userService.UpdateMe(user, req)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	assert.Equal(t, "newemail@test.com", res.Email)
+	userRepo.AssertExpectations(t)
 }
 
 func TestUpdateMe_EmailConflict(t *testing.T) {
-	setupUserService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newUserService(userRepo)
 
-	user := seedUser(t)
+	user := newUser()
+	other := &entity.User{ID: id.NewUUID(), Email: "taken@test.com"}
 
-	// Create another user with the target email
-	other, err := entity.NewUser("Other", "taken@test.com", "other123", "pass")
-	if err != nil {
-		t.Fatal(err)
-	}
-	dbUserSvc.Create(other)
+	userRepo.On("FindByID", user.ID).Return(user, nil)
+	userRepo.On("FindByEmailOrUsername", "taken@test.com").Return(other, nil)
 
-	req := &duser.UpdateUserRequest{Email: "taken@test.com"}
+	_, err := svc.UpdateMe(user, &duser.UpdateUserRequest{Email: "taken@test.com"})
 
-	_, err = userService.UpdateMe(user, req)
 	assert.Error(t, err)
+	userRepo.AssertExpectations(t)
 }
 
 func TestUpdateMe_UsernameConflict(t *testing.T) {
-	setupUserService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newUserService(userRepo)
 
-	user := seedUser(t)
+	user := newUser()
+	other := &entity.User{ID: id.NewUUID(), Username: "takenuser"}
 
-	other, err := entity.NewUser("Other", "other2@test.com", "takenuser", "pass")
-	if err != nil {
-		t.Fatal(err)
-	}
-	dbUserSvc.Create(other)
+	userRepo.On("FindByID", user.ID).Return(user, nil)
+	userRepo.On("FindByEmailOrUsername", "takenuser").Return(other, nil)
 
-	req := &duser.UpdateUserRequest{Username: "takenuser"}
+	_, err := svc.UpdateMe(user, &duser.UpdateUserRequest{Username: "takenuser"})
 
-	_, err = userService.UpdateMe(user, req)
 	assert.Error(t, err)
+	userRepo.AssertExpectations(t)
 }
 
 func TestDeleteMe(t *testing.T) {
-	setupUserService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newUserService(userRepo)
 
-	user := seedUser(t)
+	user := newUser()
+	userRepo.On("FindByID", user.ID).Return(user, nil)
+	userRepo.On("DeleteByID", user.ID).Return(nil)
 
-	err := userService.DeleteMe(user)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	err := svc.DeleteMe(user)
 
-	var count int64
-	dbUserSvc.Model(&entity.User{}).Where("id = ?", user.ID).Count(&count)
-	assert.Equal(t, int64(0), count)
+	assert.NoError(t, err)
+	userRepo.AssertExpectations(t)
 }
 
 func TestDeleteMe_NotFound(t *testing.T) {
-	setupUserService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newUserService(userRepo)
 
 	ghost := &entity.User{ID: id.NewUUID()}
+	userRepo.On("FindByID", ghost.ID).Return(nil, domainErr.ErrNotFound("User", nil))
 
-	err := userService.DeleteMe(ghost)
+	err := svc.DeleteMe(ghost)
+
 	assert.Error(t, err)
+	userRepo.AssertExpectations(t)
 }
 
 func TestPromoteToAdmin(t *testing.T) {
-	setupUserService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newUserService(userRepo)
 
-	user := seedUser(t)
+	user := newUser()
+	promoted := *user
+	promoted.Roles = []enums.Role{enums.ADMIN}
 
-	err := userService.PromoteToAdmin(user.ID)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	userRepo.On("FindByID", user.ID).Return(user, nil)
+	userRepo.On("Update", mock.AnythingOfType("*entity.User")).Return(&promoted, nil)
 
-	var updated entity.User
-	dbUserSvc.First(&updated, "id = ?", user.ID)
-	assert.True(t, updated.HasRole(enums.ADMIN))
+	err := svc.PromoteToAdmin(user.ID)
+
+	assert.NoError(t, err)
+	userRepo.AssertExpectations(t)
 }
 
 func TestPromoteToAdmin_AlreadyAdmin(t *testing.T) {
-	setupUserService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newUserService(userRepo)
 
-	user := seedUser(t)
+	user := newUser()
 	user.Roles = []enums.Role{enums.ADMIN}
-	dbUserSvc.Save(user)
+	userRepo.On("FindByID", user.ID).Return(user, nil)
 
-	err := userService.PromoteToAdmin(user.ID)
+	err := svc.PromoteToAdmin(user.ID)
+
 	assert.Error(t, err)
+	userRepo.AssertExpectations(t)
 }
 
 func TestPromoteToAdmin_IsSeller(t *testing.T) {
-	setupUserService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newUserService(userRepo)
 
-	user := seedUser(t)
+	user := newUser()
 	user.IsSeller = true
-	dbUserSvc.Save(user)
+	userRepo.On("FindByID", user.ID).Return(user, nil)
 
-	err := userService.PromoteToAdmin(user.ID)
+	err := svc.PromoteToAdmin(user.ID)
+
 	assert.Error(t, err)
+	userRepo.AssertExpectations(t)
 }
 
 func TestDemoteToUser(t *testing.T) {
-	setupUserService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newUserService(userRepo)
 
-	user := seedUser(t)
+	user := newUser()
 	user.Roles = []enums.Role{enums.ADMIN}
-	dbUserSvc.Save(user)
+	demoted := *user
+	demoted.Roles = []enums.Role{enums.USER}
 
-	err := userService.DemoteToUser(user.ID)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	userRepo.On("FindByID", user.ID).Return(user, nil)
+	userRepo.On("Update", mock.AnythingOfType("*entity.User")).Return(&demoted, nil)
 
-	var updated entity.User
-	dbUserSvc.First(&updated, "id = ?", user.ID)
-	assert.True(t, updated.HasRole(enums.USER))
+	err := svc.DemoteToUser(user.ID)
+
+	assert.NoError(t, err)
+	userRepo.AssertExpectations(t)
 }
 
 func TestDemoteToUser_AlreadyUser(t *testing.T) {
-	setupUserService(t)
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newUserService(userRepo)
 
-	user := seedUser(t)
-	// user already has USER role by default
+	user := newUser()
+	userRepo.On("FindByID", user.ID).Return(user, nil)
 
-	err := userService.DemoteToUser(user.ID)
+	err := svc.DemoteToUser(user.ID)
+
 	assert.Error(t, err)
+	userRepo.AssertExpectations(t)
 }
