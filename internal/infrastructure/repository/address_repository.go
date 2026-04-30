@@ -7,7 +7,9 @@ import (
 
 type AddressRepository interface {
 	Create(address *entity.Address) (*entity.Address, error)
+	Save(address *entity.Address) (*entity.Address, error)
 	Update(address *entity.Address) (*entity.Address, error)
+	Updates(address *entity.Address) (*entity.Address, error)
 	FindByID(id id.UUID) (*entity.Address, error)
 	FindByUser(userID id.UUID) ([]*entity.Address, error)
 	DeleteByID(id id.UUID) error

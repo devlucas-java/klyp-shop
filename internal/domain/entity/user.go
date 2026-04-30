@@ -19,6 +19,8 @@ type User struct {
 
 	IsSeller bool `gorm:"default:false"`
 
+	Seller *Seller `gorm:"constraint:OnUpdate:CASCADE"`
+
 	Addresses []Address
 	Orders    []Order
 	Roles     []enums.Role `gorm:"type:json;serializer:json"`

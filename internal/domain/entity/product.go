@@ -19,7 +19,6 @@ type Product struct {
 	Stock int `gorm:"default:0"`
 
 	SellerID id.UUID `gorm:"index;not null"`
-	Seller   Seller
 
 	Reviews    []Review
 	Categories []string `gorm:"serializer:json"`
@@ -30,7 +29,6 @@ func NewProduct(
 	description string,
 	priceBTC float64,
 	stock int,
-	sellerID id.UUID,
 	categories []string,
 ) *Product {
 	now := time.Now()
@@ -42,7 +40,6 @@ func NewProduct(
 		Description: description,
 		PriceBTC:    priceBTC,
 		Stock:       stock,
-		SellerID:    sellerID,
 		Categories:  categories,
 	}
 }

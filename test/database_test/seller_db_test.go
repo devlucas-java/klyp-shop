@@ -96,7 +96,7 @@ func TestUpdateSeller(t *testing.T) {
 	seller.DisplayName = "New Name"
 	seller.Bio = "New Bio"
 
-	res, err := sellerRepo.Update(seller)
+	res, err := sellerRepo.Updates(seller)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

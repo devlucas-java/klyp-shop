@@ -13,7 +13,7 @@ type OrderItem struct {
 
 	OrderID   id.UUID `gorm:"index;not null"`
 	ProductID id.UUID `gorm:"index;not null"`
-	Product   Product
+	Product   Product `gorm:"foreignKey:ProductID"`
 
 	Quantity int     `gorm:"not null"`
 	PriceBTC float64 `gorm:"not null"`

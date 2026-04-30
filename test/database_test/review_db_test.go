@@ -43,7 +43,7 @@ func createReviewProduct(t *testing.T) (*entity.User, *entity.Product) {
 	seller := entity.NewSeller(user.ID, "Review Shop", "Bio")
 	dbReview.Create(seller)
 
-	product := entity.NewProduct("Reviewed Product", "Desc", 0.01, 5, seller.ID, []string{})
+	product := entity.NewProduct("Reviewed Product", "Desc", 0.01, 5, []string{})
 	dbReview.Create(product)
 
 	return user, product

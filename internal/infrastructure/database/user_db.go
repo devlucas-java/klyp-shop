@@ -1,9 +1,11 @@
 package database
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
+	domainErr "github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
@@ -20,60 +22,78 @@ func NewUserDB(db *gorm.DB, log *logger.Logger) repository.UserRepository {
 }
 
 func (r *UserDB) Create(user *entity.User) (*entity.User, error) {
-
 	if err := r.db.Create(user).Error; err != nil {
-		r.log.Errorf("Database error creating duser: %v", err)
-		return nil, fmt.Errorf("failed to create duser in database: %w", err)
+		r.log.Errorf("UserDB.Create: %v", err)
+		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
+	return user, nil
+}
 
+func (r *UserDB) Save(user *entity.User) (*entity.User, error) {
+	if err := r.db.Model(user).Where("id = ?", user.ID).
+		Select("name", "email", "username", "password", "is_seller", "roles", "updated_at").
+		Save(user).Error; err != nil {
+		r.log.Errorf("UserDB.Save %s: %v", user.ID, err)
+		return nil, fmt.Errorf("failed to save user: %w", err)
+	}
+	return user, nil
+}
+
+func (r *UserDB) Updates(user *entity.User) (*entity.User, error) {
+	if err := r.db.Model(user).Where("id = ?", user.ID).Updates(user).Error; err != nil {
+		r.log.Errorf("UserDB.Updates %s: %v", user.ID, err)
+		return nil, fmt.Errorf("failed to update user: %w", err)
+	}
 	return user, nil
 }
 
 func (r *UserDB) Update(user *entity.User) (*entity.User, error) {
-
-	if err := r.db.Model(user).Where("id = ?", user.ID).
-		Select("name", "email", "username", "password", "is_seller", "roles", "updated_at").
-		Updates(user).Error; err != nil {
-		r.log.Errorf("Database error updating duser %s: %v", user.ID, err)
-		return nil, fmt.Errorf("failed to update duser in database: %w", err)
-	}
-
-	return user, nil
+	return r.Save(user)
 }
 
 func (r *UserDB) DeleteByID(userID id.UUID) error {
-
-	err := r.db.Where("id = ?", userID).Delete(&entity.User{}).Error
-
-	if err != nil {
-		r.log.Errorf("Database error deleting duser %s: %v", userID, err)
-		return fmt.Errorf("failed to delete duser from database: %w", err)
+	if err := r.db.Where("id = ?", userID).Delete(&entity.User{}).Error; err != nil {
+		r.log.Errorf("UserDB.DeleteByID %s: %v", userID, err)
+		return fmt.Errorf("failed to delete user: %w", err)
 	}
 	return nil
 }
 
 func (r *UserDB) FindByID(userID id.UUID) (*entity.User, error) {
-
 	var user entity.User
-
 	err := r.db.First(&user, "id = ?", userID).Error
 	if err != nil {
-		r.log.Errorf("Database error finding duser by ID %s: %v", userID, err)
-		return nil, fmt.Errorf("failed to find duser by ID: %w", err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domainErr.ErrNotFound("User", err)
+		}
+		r.log.Errorf("UserDB.FindByID %s: %v", userID, err)
+		return nil, fmt.Errorf("failed to find user: %w", err)
+	}
+	return &user, nil
+}
+
+func (r *UserDB) FindByIDWithSeller(userID id.UUID) (*entity.User, error) {
+	var user entity.User
+	err := r.db.Preload("Seller").First(&user, "id = ?", userID).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domainErr.ErrNotFound("User", err)
+		}
+		r.log.Errorf("UserDB.FindByIDWithSeller %s: %v", userID, err)
+		return nil, fmt.Errorf("failed to find user: %w", err)
 	}
 	return &user, nil
 }
 
 func (r *UserDB) FindByEmailOrUsername(str string) (*entity.User, error) {
-
 	var user entity.User
-	err := r.db.
-		Where("email = ? OR username = ?", str, str).
-		First(&user).Error
-
+	err := r.db.Where("email = ? OR username = ?", str, str).First(&user).Error
 	if err != nil {
-		r.log.Errorf("Database error finding duser by email or username %s: %v", str, err)
-		return nil, fmt.Errorf("failed to find duser by email or username: %w", err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domainErr.ErrNotFound("User", err)
+		}
+		r.log.Errorf("UserDB.FindByEmailOrUsername %s: %v", str, err)
+		return nil, fmt.Errorf("failed to find user: %w", err)
 	}
 	return &user, nil
 }

@@ -48,9 +48,9 @@ func createProductSeller(t *testing.T) *entity.Seller {
 func TestCreateProduct(t *testing.T) {
 	setupProductDB(t)
 
-	seller := createProductSeller(t)
+	_ = createProductSeller(t)
 
-	product := entity.NewProduct("Laptop", "A great laptop", 0.05, 10, seller.ID, []string{"electronics"})
+	product := entity.NewProduct("Laptop", "A great laptop", 0.05, 10, []string{"electronics"})
 
 	res, err := productRepo.Create(product)
 	if err != nil {
@@ -66,9 +66,9 @@ func TestCreateProduct(t *testing.T) {
 func TestFindProductByID(t *testing.T) {
 	setupProductDB(t)
 
-	seller := createProductSeller(t)
+	_ = createProductSeller(t)
 
-	product := entity.NewProduct("Phone", "A phone", 0.02, 5, seller.ID, []string{"electronics"})
+	product := entity.NewProduct("Phone", "A phone", 0.02, 5, []string{"electronics"})
 	dbProduct.Create(product)
 
 	found, err := productRepo.FindByID(product.ID)
@@ -90,15 +90,15 @@ func TestFindProductByID_NotFound(t *testing.T) {
 func TestUpdateProduct(t *testing.T) {
 	setupProductDB(t)
 
-	seller := createProductSeller(t)
+	_ = createProductSeller(t)
 
-	product := entity.NewProduct("Old Product", "Desc", 0.01, 3, seller.ID, []string{"misc"})
+	product := entity.NewProduct("Old Product", "Desc", 0.01, 3, []string{"misc"})
 	dbProduct.Create(product)
 
 	product.Name = "Updated Product"
 	product.Stock = 99
 
-	res, err := productRepo.Update(product)
+	res, err := productRepo.Updates(product)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -110,9 +110,9 @@ func TestUpdateProduct(t *testing.T) {
 func TestDeleteProduct(t *testing.T) {
 	setupProductDB(t)
 
-	seller := createProductSeller(t)
+	_ = createProductSeller(t)
 
-	product := entity.NewProduct("To Delete", "Desc", 0.01, 1, seller.ID, []string{})
+	product := entity.NewProduct("To Delete", "Desc", 0.01, 1, []string{})
 	dbProduct.Create(product)
 
 	err := productRepo.DeleteByID(product.ID)
@@ -136,7 +136,6 @@ func TestFindProductsBySellerID(t *testing.T) {
 			"Desc",
 			0.01,
 			1,
-			seller.ID,
 			[]string{},
 		))
 	}

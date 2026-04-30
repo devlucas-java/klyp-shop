@@ -7,7 +7,8 @@ import (
 
 type ProductRepository interface {
 	Create(product *entity.Product) (*entity.Product, error)
-	Update(product *entity.Product) (*entity.Product, error)
+	Save(product *entity.Product) (*entity.Product, error)
+	Updates(product *entity.Product) (*entity.Product, error)
 	FindByID(id id.UUID) (*entity.Product, error)
 	FindBySellerID(sellerID id.UUID, page, size int) ([]*entity.Product, error)
 	Search(page, size int, order, search string, categories []string) ([]*entity.Product, error)

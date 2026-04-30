@@ -7,7 +7,8 @@ import (
 
 type ReviewRepository interface {
 	Create(review *entity.Review) (*entity.Review, error)
-	Update(review *entity.Review) (*entity.Review, error)
+	Save(review *entity.Review) (*entity.Review, error)
+	Updates(review *entity.Review) (*entity.Review, error)
 	FindByProductID(productID id.UUID) ([]*entity.Review, error)
-	DeleteByID(review id.UUID) error
+	DeleteByID(id id.UUID) error
 }
