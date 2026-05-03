@@ -6,6 +6,7 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/database"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
+	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -13,6 +14,7 @@ import (
 
 var dbReview *gorm.DB
 var reviewRepo *database.ReviewDB
+var logReview *logger.Logger
 
 func setupReviewDB(t *testing.T) {
 	var err error
@@ -27,7 +29,8 @@ func setupReviewDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	reviewRepo = database.NewReviewDB(dbReview).(*database.ReviewDB)
+	logReview = logger.NewLogger(logger.TRACE)
+	reviewRepo = database.NewReviewDB(dbReview, logReview).(*database.ReviewDB)
 }
 
 func createReviewProduct(t *testing.T) (*entity.User, *entity.Product) {

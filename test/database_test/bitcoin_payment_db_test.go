@@ -6,6 +6,7 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/database"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
+	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -13,6 +14,7 @@ import (
 
 var dbBitcoin *gorm.DB
 var bitcoinRepo *database.BitcoinPaymentDB
+var logBitcoin *logger.Logger
 
 func setupBitcoinDB(t *testing.T) {
 	var err error
@@ -35,7 +37,8 @@ func setupBitcoinDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	bitcoinRepo = database.NewBitcoinPaymentDB(dbBitcoin).(*database.BitcoinPaymentDB)
+	logBitcoin = logger.NewLogger(logger.TRACE)
+	bitcoinRepo = database.NewBitcoinPaymentDB(dbBitcoin, logBitcoin).(*database.BitcoinPaymentDB)
 }
 
 func createOrderForPayment(t *testing.T) *entity.Order {
