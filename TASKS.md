@@ -4,22 +4,22 @@
 
 - [ * ] Register user
 - [ * ] Login (JWT)
-- [ ] Become seller
+- [ * ] Become seller
 - [ ] Profile management
 
 ## 🏪 Seller
 
-- [ ] Create seller account
+- [ * ] Create seller account
 - [ ] Seller dashboard
 - [ ] Sales analytics
-- [ ] Manage products
+- [ * ] Manage products
 
 ## 📦 Products
 
-- [ ] Create product
-- [ ] Update product
-- [ ] Delete product
-- [ ] List products
+- [ * ] Create product
+- [ * ] Update product
+- [ * ] Delete product
+- [ * ] List products
 - [ ] Product details
 
 ## ⭐ Reviews
@@ -43,7 +43,7 @@
 ## 🗄 Database
 
 - [ ] PostgreSQL setup
-- [ ] Migrations
+- [ * ] Migrations
 - [ ] Seed data
 
 ## 📄 Docs
@@ -62,4 +62,3 @@
 - [ ] BitcoinPayment integration 
 - [ ] Bitcoin BitcoinPayment integration
 - [ ] Notifications
-- [ ] Microservice for sellers
