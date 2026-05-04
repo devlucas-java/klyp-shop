@@ -122,3 +122,57 @@ func (s *ProductService) GetProductByID(id id.UUID) (*dproduct.ProductResponse, 
 
 	return s.productMapper.ProductToProductResponse(product), nil
 }
+
+// ListProducts retorna una lista paginada de productos
+func (s *ProductService) ListProducts(page, size int) ([]*dproduct.ProductResponse, error) {
+	s.log.Infof("Listing products with pagination: page=%d, size=%d", page, size)
+
+	products, err := s.productRepository.Search(page, size, "name", "", []string{})
+	if err != nil {
+		s.log.Errorf("failed to list products: %v", err)
+		return nil, err
+	}
+
+	responses := make([]*dproduct.ProductResponse, len(products))
+	for i, product := range products {
+		responses[i] = s.productMapper.ProductToProductResponse(product)
+	}
+
+	return responses, nil
+}
+
+// GetProductsBySeller retorna los productos de un vendedor específico
+func (s *ProductService) GetProductsBySeller(sellerID id.UUID, page, size int) ([]*dproduct.ProductResponse, error) {
+	s.log.Infof("Getting products for seller %s: page=%d, size=%d", sellerID, page, size)
+
+	products, err := s.productRepository.FindBySellerID(sellerID, page, size)
+	if err != nil {
+		s.log.Errorf("failed to get products for seller: %v", err)
+		return nil, err
+	}
+
+	responses := make([]*dproduct.ProductResponse, len(products))
+	for i, product := range products {
+		responses[i] = s.productMapper.ProductToProductResponse(product)
+	}
+
+	return responses, nil
+}
+
+// SearchProducts busca productos por criterios
+func (s *ProductService) SearchProducts(page, size int, search string, categories []string) ([]*dproduct.ProductResponse, error) {
+	s.log.Infof("Searching products: page=%d, size=%d, search=%s, categories=%v", page, size, search, categories)
+
+	products, err := s.productRepository.Search(page, size, "name", search, categories)
+	if err != nil {
+		s.log.Errorf("failed to search products: %v", err)
+		return nil, err
+	}
+
+	responses := make([]*dproduct.ProductResponse, len(products))
+	for i, product := range products {
+		responses[i] = s.productMapper.ProductToProductResponse(product)
+	}
+
+	return responses, nil
+}

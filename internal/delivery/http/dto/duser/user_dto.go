@@ -1,12 +1,16 @@
 package duser
 
-import "github.com/devlucas-java/klyp-shop/internal/domain/enums"
+import (
+	"github.com/devlucas-java/klyp-shop/internal/domain/enums"
+)
 
 type UserResponse struct {
-	ID       string       `json:"id"`
-	Name     string       `json:"name"`
-	Email    string       `json:"email"`
-	Username string       `json:"username"`
-	IsSeller bool         `json:"is_seller"`
-	Roles    []enums.Role `json:"roles"`
+	ID        string       `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	Name      string       `json:"name" example:"John Doe"`
+	Email     string       `json:"email" example:"john@example.com"`
+	Username  string       `json:"username" example:"johndoe"`
+	IsSeller  bool         `json:"is_seller" example:"false"`
+	Roles     []enums.Role `json:"roles" example:"["USER"]"`
+	CreatedAt string       `json:"created_at,omitempty"`
+	UpdatedAt string       `json:"updated_at,omitempty"`
 }

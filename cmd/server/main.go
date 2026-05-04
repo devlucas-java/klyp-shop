@@ -42,6 +42,12 @@ func main() {
 	productModule := module.InitProductModule(db, log, jwtService)
 	r.Mount("/api/v1/product", productModule)
 
+	orderModule := module.InitOrderModule(db, log, jwtService)
+	r.Mount("/api/v1/order", orderModule)
+
+	shoppingCartModule := module.InitShoppingCartModule(db, log, jwtService)
+	r.Mount("/api/v1/cart", shoppingCartModule)
+
 	log.Infof("Server is running on port %s", cfg.WebServerPort)
 	if err := http.ListenAndServe(":"+cfg.WebServerPort, r); err != nil {
 		log.Errorf("http listen err: %v", err)

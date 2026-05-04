@@ -15,15 +15,15 @@ const (
 )
 
 type BitcoinPayment struct {
-	ID        id.UUID `gorm:"type:uuid;primaryKey"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        id.UUID   `gorm:"type:uuid;primaryKey"`
+	CreatedAt time.Time `gorm:"autoCreateTime"`
+	UpdatedAt time.Time `gorm:"autoUpdateTime"`
 
 	OrderID id.UUID `gorm:"uniqueIndex;not null"`
 
 	WalletAddress string        `gorm:"not null"`
 	TxHash        string        `gorm:"index"`
-	AmountBTC     float64       `gorm:"not null"`
+	AmountBTC     float64       `gorm:"type:decimal(18,8);not null"`
 	Status        PaymentStatus `gorm:"default:'pending'"`
 }
 
