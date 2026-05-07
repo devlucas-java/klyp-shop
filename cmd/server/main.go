@@ -12,14 +12,12 @@ import (
 )
 
 func main() {
-
 	log := logger.NewLogger(logger.DEBUG)
 
 	cfg := configs.InitConfigDev(log)
 	db := configs.InitDBDev(log)
 
 	r := chi.NewRouter()
-
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -27,26 +25,27 @@ func main() {
 
 	jwtService := jwt.NewJWTService(cfg.JwtSecret)
 
-	authModule := module.InitAuthModule(db, log, jwtService)
-	r.Mount("/api/v1/auth", authModule)
+	r.Mount("/api/v1/auth", module.InitAuthModule(db, log, jwtService))
+	r.Mount("/api/v1/user", module.InitUserModule(db, log, jwtService))
+	r.Mount("/api/v1/address", module.InitAddressModule(db, log, jwtService))
+	r.Mount("/api/v1/seller", module.InitSellerModule(db, log, jwtService))
+	r.Mount("/api/v1/product", module.InitProductModule(db, log, jwtService))
+	r.Mount("/api/v1/order", module.InitOrderModule(db, log, jwtService))
+	r.Mount("/api/v1/cart", module.InitShoppingCartModule(db, log, jwtService))
+	r.Mount("/api/v1/dashboard", module.InitDashboardModule(db, log, jwtService))
 
-	userModule := module.InitUserModule(db, log, jwtService)
-	r.Mount("/api/v1/user", userModule)
+	r.Mount("/api/v1/payment", module.InitPaymentModule(
+		db, log, jwtService,
+		cfg.GetBTCPayBaseURL(),
+		cfg.GetBTCPayStoreID(),
+		cfg.GetBTCPayAPIKey(),
+		cfg.GetBTCPayWebhookSecret(),
+	))
 
-	addressModule := module.InitAddressModule(db, log, jwtService)
-	r.Mount("/api/v1/address", addressModule)
+	chatModule, _ := module.InitChatModule(db, log, jwtService)
+	r.Mount("/api/v1/chat", chatModule)
 
-	sellerModule := module.InitSellerModule(db, log, jwtService)
-	r.Mount("/api/v1/seller", sellerModule)
-
-	productModule := module.InitProductModule(db, log, jwtService)
-	r.Mount("/api/v1/product", productModule)
-
-	orderModule := module.InitOrderModule(db, log, jwtService)
-	r.Mount("/api/v1/order", orderModule)
-
-	shoppingCartModule := module.InitShoppingCartModule(db, log, jwtService)
-	r.Mount("/api/v1/cart", shoppingCartModule)
+	r.Mount("/api/v1/featured", module.InitFeaturedProductModule(db, log, jwtService))
 
 	log.Infof("Server is running on port %s", cfg.WebServerPort)
 	if err := http.ListenAndServe(":"+cfg.WebServerPort, r); err != nil {

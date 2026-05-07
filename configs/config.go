@@ -26,6 +26,11 @@ type conf struct {
 	JwtExpireIn        int    `mapstructure:"JWT_EXPIRE_IN"`
 	JwtRefreshExpireIn int    `mapstructure:"JWT_REFRESH_EXPIRE_IN"`
 	JwtAccessToken     *jwtauth.JWTAuth
+
+	BTCPayBaseURL       string `mapstructure:"BTCPAY_BASE_URL"`
+	BTCPayStoreID       string `mapstructure:"BTCPAY_STORE_ID"`
+	BTCPayAPIKey        string `mapstructure:"BTCPAY_API_KEY"`
+	BTCPayWebhookSecret string `mapstructure:"BTCPAY_WEBHOOK_SECRET"`
 }
 
 var cfg *conf
@@ -38,16 +43,20 @@ func NewConfig() *conf {
 func InitConfigDev(log *logger.Logger) *conf {
 
 	cfg = &conf{
-		log:                log,
-		WebServerPort:      "8080",
-		DbName:             "klyp_test",
-		DbPort:             "5432",
-		DbUser:             "postgres",
-		DbPassword:         "postgres",
-		DbHost:             "localhost",
-		JwtSecret:          "test-secret",
-		JwtExpireIn:        15,
-		JwtRefreshExpireIn: 1440,
+		log:                 log,
+		WebServerPort:       "8080",
+		DbName:              "klyp_test",
+		DbPort:              "5432",
+		DbUser:              "postgres",
+		DbPassword:          "postgres",
+		DbHost:              "localhost",
+		JwtSecret:           "test-secret",
+		JwtExpireIn:         15,
+		JwtRefreshExpireIn:  1440,
+		BTCPayBaseURL:       "http://localhost:14142",
+		BTCPayStoreID:       "",
+		BTCPayAPIKey:        "",
+		BTCPayWebhookSecret: "",
 	}
 
 	cfg.JwtAccessToken = jwtauth.New("HS256", []byte(cfg.JwtSecret), nil)
@@ -66,12 +75,15 @@ func InitDBDev(log *logger.Logger) *gorm.DB {
 	err = db.AutoMigrate(
 		&entity.Address{},
 		&entity.BitcoinPayment{},
+		&entity.ChatMessage{},
 		&entity.Comment{},
 		&entity.Order{},
 		&entity.OrderItem{},
 		&entity.Product{},
 		&entity.Review{},
 		&entity.Seller{},
+		&entity.ShoppingCart{},
+		&entity.ShoppingCartItem{},
 		&entity.User{},
 	)
 	if err != nil {
@@ -156,4 +168,20 @@ func (c *conf) GetJWTExpire() int {
 
 func (c *conf) GetTokenAuth() *jwtauth.JWTAuth {
 	return c.JwtAccessToken
+}
+
+func (c *conf) GetBTCPayBaseURL() string {
+	return c.BTCPayBaseURL
+}
+
+func (c *conf) GetBTCPayStoreID() string {
+	return c.BTCPayStoreID
+}
+
+func (c *conf) GetBTCPayAPIKey() string {
+	return c.BTCPayAPIKey
+}
+
+func (c *conf) GetBTCPayWebhookSecret() string {
+	return c.BTCPayWebhookSecret
 }

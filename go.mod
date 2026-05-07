@@ -3,6 +3,7 @@ module github.com/devlucas-java/klyp-shop
 go 1.26.2
 
 require (
+	github.com/coder/websocket v1.8.14
 	github.com/go-chi/chi v1.5.1
 	github.com/go-chi/jwtauth v1.2.0
 	github.com/google/uuid v1.6.0

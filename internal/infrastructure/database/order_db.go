@@ -73,9 +73,128 @@ func (o *OrderDB) FindByUser(userID id.UUID) ([]*entity.Order, error) {
 
 func (o *OrderDB) FindAll() ([]*entity.Order, error) {
 	var orders []*entity.Order
-	if err := o.db.Preload("Items").Preload("User").Preload("Address").Preload("BitcoinPayment").Find(&orders).Error; err != nil {
+	if err := o.db.
+		Preload("Items").
+		Preload("User").
+		Preload("Address").
+		Preload("BitcoinPayment").
+		Find(&orders).Error; err != nil {
 		o.log.Errorf("OrderDB.FindAll: %v", err)
 		return nil, fmt.Errorf("failed to find orders: %w", err)
+	}
+	return orders, nil
+}
+
+func (o *OrderDB) FindAllWithDetails() ([]*entity.Order, error) {
+	var orders []*entity.Order
+	if err := o.db.
+		Preload("Items.Product.Seller").
+		Preload("User").
+		Preload("Address").
+		Preload("BitcoinPayment").
+		Order("created_at desc").
+		Find(&orders).Error; err != nil {
+		o.log.Errorf("OrderDB.FindAllWithDetails: %v", err)
+		return nil, fmt.Errorf("failed to find orders with details: %w", err)
+	}
+	return orders, nil
+}
+
+func (o *OrderDB) FindAllPaginated(page, size int, status string) ([]*entity.Order, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if size < 1 || size > 100 {
+		size = 20
+	}
+
+	var total int64
+	countQ := o.db.Model(&entity.Order{})
+	if status != "" {
+		countQ = countQ.Where("status = ?", status)
+	}
+	if err := countQ.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("OrderDB.FindAllPaginated count: %w", err)
+	}
+
+	var orders []*entity.Order
+	q := o.db.
+		Preload("Items.Product.Seller").
+		Preload("User").
+		Preload("Address").
+		Preload("BitcoinPayment").
+		Order("created_at desc").
+		Limit(size).
+		Offset((page - 1) * size)
+	if status != "" {
+		q = q.Where("status = ?", status)
+	}
+	if err := q.Find(&orders).Error; err != nil {
+		o.log.Errorf("OrderDB.FindAllPaginated: %v", err)
+		return nil, 0, fmt.Errorf("failed to find paginated orders: %w", err)
+	}
+	return orders, total, nil
+}
+
+func (o *OrderDB) FindBySellerIDPaginated(sellerID id.UUID, page, size int, status string) ([]*entity.Order, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if size < 1 || size > 100 {
+		size = 20
+	}
+
+	baseQ := o.db.
+		Joins("JOIN order_items ON order_items.order_id = orders.id").
+		Joins("JOIN products ON products.id = order_items.product_id").
+		Where("products.seller_id = ?", sellerID)
+	if status != "" {
+		baseQ = baseQ.Where("orders.status = ?", status)
+	}
+
+	var total int64
+	if err := baseQ.Model(&entity.Order{}).Distinct("orders.id").Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("OrderDB.FindBySellerIDPaginated count: %w", err)
+	}
+
+	var orders []*entity.Order
+	q := o.db.
+		Preload("Items.Product").
+		Preload("User").
+		Preload("Address").
+		Preload("BitcoinPayment").
+		Joins("JOIN order_items oi2 ON oi2.order_id = orders.id").
+		Joins("JOIN products p2 ON p2.id = oi2.product_id").
+		Where("p2.seller_id = ?", sellerID).
+		Group("orders.id").
+		Order("orders.created_at desc").
+		Limit(size).
+		Offset((page - 1) * size)
+	if status != "" {
+		q = q.Where("orders.status = ?", status)
+	}
+	if err := q.Find(&orders).Error; err != nil {
+		o.log.Errorf("OrderDB.FindBySellerIDPaginated %s: %v", sellerID, err)
+		return nil, 0, fmt.Errorf("failed to find paginated seller orders: %w", err)
+	}
+	return orders, total, nil
+}
+
+func (o *OrderDB) FindBySellerID(sellerID id.UUID) ([]*entity.Order, error) {
+	var orders []*entity.Order
+	if err := o.db.
+		Preload("Items.Product").
+		Preload("User").
+		Preload("Address").
+		Preload("BitcoinPayment").
+		Joins("JOIN order_items ON order_items.order_id = orders.id").
+		Joins("JOIN products ON products.id = order_items.product_id").
+		Where("products.seller_id = ?", sellerID).
+		Group("orders.id").
+		Order("orders.created_at desc").
+		Find(&orders).Error; err != nil {
+		o.log.Errorf("OrderDB.FindBySellerID %s: %v", sellerID, err)
+		return nil, fmt.Errorf("failed to find orders by seller: %w", err)
 	}
 	return orders, nil
 }

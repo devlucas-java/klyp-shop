@@ -66,6 +66,38 @@ func (m *OrderRepositoryMock) FindAll() ([]*entity.Order, error) {
 	return args.Get(0).([]*entity.Order), args.Error(1)
 }
 
+func (m *OrderRepositoryMock) FindAllWithDetails() ([]*entity.Order, error) {
+	args := m.Called()
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*entity.Order), args.Error(1)
+}
+
+func (m *OrderRepositoryMock) FindAllPaginated(page, size int, status string) ([]*entity.Order, int64, error) {
+	args := m.Called(page, size, status)
+	if args.Get(0) == nil {
+		return nil, args.Get(1).(int64), args.Error(2)
+	}
+	return args.Get(0).([]*entity.Order), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *OrderRepositoryMock) FindBySellerID(sellerID id.UUID) ([]*entity.Order, error) {
+	args := m.Called(sellerID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*entity.Order), args.Error(1)
+}
+
+func (m *OrderRepositoryMock) FindBySellerIDPaginated(sellerID id.UUID, page, size int, status string) ([]*entity.Order, int64, error) {
+	args := m.Called(sellerID, page, size, status)
+	if args.Get(0) == nil {
+		return nil, args.Get(1).(int64), args.Error(2)
+	}
+	return args.Get(0).([]*entity.Order), args.Get(1).(int64), args.Error(2)
+}
+
 func (m *OrderRepositoryMock) DeleteByID(id id.UUID) error {
 	args := m.Called(id)
 	return args.Error(0)

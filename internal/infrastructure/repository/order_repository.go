@@ -13,5 +13,9 @@ type OrderRepository interface {
 	FindByID(id id.UUID) (*entity.Order, error)
 	FindByUser(userID id.UUID) ([]*entity.Order, error)
 	FindAll() ([]*entity.Order, error)
+	FindAllWithDetails() ([]*entity.Order, error)
+	FindAllPaginated(page, size int, status string) ([]*entity.Order, int64, error)
+	FindBySellerID(sellerID id.UUID) ([]*entity.Order, error)
+	FindBySellerIDPaginated(sellerID id.UUID, page, size int, status string) ([]*entity.Order, int64, error)
 	DeleteByID(id id.UUID) error
 }
