@@ -74,3 +74,24 @@ klyp-shop/
 └── TASKS.md
 
 ````
+
+# .env demostration
+
+WEB_SERVER_PORT=8080
+
+DB_DRIVER=postgres
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=klyp_db
+DB_USER=postgres
+DB_PASSWORD=postgres
+
+JWT_SECRET=super-secret-key-very-secure-123456
+JWT_EXPIRE_IN=15
+JWT_REFRESH_EXPIRE_IN=1440
+
+# BTCPay Server — fill after creating store in BTCPay dashboard
+BTCPAY_BASE_URL=http://localhost:14142
+BTCPAY_STORE_ID=
+BTCPAY_API_KEY=
+BTCPAY_WEBHOOK_SECRET=

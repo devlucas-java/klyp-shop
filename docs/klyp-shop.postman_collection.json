@@ -1,0 +1,609 @@
+{
+  "info": {
+    "name": "Klyp Shop API",
+    "description": "Complete API collection for Klyp Shop — Bitcoin e-commerce platform.\n\n**Setup:**\n1. Set `baseUrl` variable to `http://localhost:8080`\n2. After login or register, copy the `token` from the response and set the `token` variable\n3. All protected endpoints use `Bearer {{token}}` automatically",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "token",   "value": "",                      "type": "string" },
+    { "key": "userId",  "value": "",                      "type": "string" },
+    { "key": "sellerId","value": "",                      "type": "string" },
+    { "key": "productId","value": "",                     "type": "string" },
+    { "key": "orderId", "value": "",                      "type": "string" },
+    { "key": "addressId","value": "",                     "type": "string" },
+    { "key": "cartItemId","value": "",                    "type": "string" },
+    { "key": "peerUserId","value": "",                    "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.token) { pm.collectionVariables.set('token', res.token); }",
+                  "if (res.user_response && res.user_response.id) { pm.collectionVariables.set('userId', res.user_response.id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"username\": \"johndoe\",\n  \"password\": \"secret123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","register"] }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.token) { pm.collectionVariables.set('token', res.token); }",
+                  "if (res.user_response && res.user_response.id) { pm.collectionVariables.set('userId', res.user_response.id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"john@example.com\",\n  \"password\": \"secret123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","login"] }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"secret123\",\n  \"new_password\": \"newSecret456\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/password", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","password"] }
+          }
+        },
+        {
+          "name": "Verify Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"secret123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/password", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","password"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "Get Me",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/user/me", "host": ["{{baseUrl}}"], "path": ["api","v1","user","me"] }
+          }
+        },
+        {
+          "name": "Update Me",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Updated\",\n  \"email\": \"john.updated@example.com\",\n  \"username\": \"johnupdated\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/user/me", "host": ["{{baseUrl}}"], "path": ["api","v1","user","me"] }
+          }
+        },
+        {
+          "name": "Delete Me",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/user/me", "host": ["{{baseUrl}}"], "path": ["api","v1","user","me"] }
+          }
+        },
+        {
+          "name": "Promote User to Admin (ADMIN only)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/v1/user/promote/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","user","promote","{{userId}}"] }
+          }
+        },
+        {
+          "name": "Demote User (ADMIN only)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/v1/user/demote/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","user","demote","{{userId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Address",
+      "item": [
+        {
+          "name": "Get Addresses",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/address/", "host": ["{{baseUrl}}"], "path": ["api","v1","address",""] }
+          }
+        },
+        {
+          "name": "Create Address",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.id) { pm.collectionVariables.set('addressId', res.id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"street\": \"Main Street\",\n  \"city\": \"New York\",\n  \"state\": \"NY\",\n  \"country\": \"United States\",\n  \"postCode\": \"10001\",\n  \"number\": 42\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/address/", "host": ["{{baseUrl}}"], "path": ["api","v1","address",""] }
+          }
+        },
+        {
+          "name": "Update Address",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"street\": \"Updated Street\",\n  \"city\": \"Brooklyn\",\n  \"state\": \"NY\",\n  \"country\": \"United States\",\n  \"postCode\": \"11201\",\n  \"number\": 99\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/address/{{addressId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","address","{{addressId}}"] }
+          }
+        },
+        {
+          "name": "Delete Address",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/address/{{addressId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","address","{{addressId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Seller",
+      "item": [
+        {
+          "name": "Create Seller Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.id) { pm.collectionVariables.set('sellerId', res.id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"display_name\": \"My Bitcoin Store\",\n  \"bio\": \"We sell the best products for BTC\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/seller/seller", "host": ["{{baseUrl}}"], "path": ["api","v1","seller","seller"] }
+          }
+        },
+        {
+          "name": "Update Seller Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"display_name\": \"My Updated Store\",\n  \"bio\": \"Updated bio for my store\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/seller/seller", "host": ["{{baseUrl}}"], "path": ["api","v1","seller","seller"] }
+          }
+        },
+        {
+          "name": "Delete Seller Profile",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/seller/seller", "host": ["{{baseUrl}}"], "path": ["api","v1","seller","seller"] }
+          }
+        },
+        {
+          "name": "Get Seller by ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/seller/seller/{{sellerId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","seller","seller","{{sellerId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Product",
+      "item": [
+        {
+          "name": "Create Product",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.id) { pm.collectionVariables.set('productId', res.id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bitcoin Hardware Wallet\",\n  \"description\": \"Secure cold storage for your Bitcoin\",\n  \"price_btc\": 0.005,\n  \"stock\": 50,\n  \"categories\": [\"electronics\", \"security\"]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/product/product", "host": ["{{baseUrl}}"], "path": ["api","v1","product","product"] }
+          }
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/product/product/{{productId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","product","product","{{productId}}"] }
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bitcoin Hardware Wallet v2\",\n  \"description\": \"Updated description\",\n  \"price_btc\": 0.006,\n  \"stock\": 30,\n  \"categories\": [\"electronics\"]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/product/product/{{productId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","product","product","{{productId}}"] }
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/product/product/{{productId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","product","product","{{productId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Featured Products (Top 10)",
+      "item": [
+        {
+          "name": "Get My Featured Products (Seller)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/featured/me", "host": ["{{baseUrl}}"], "path": ["api","v1","featured","me"] }
+          }
+        },
+        {
+          "name": "Get Featured by Seller ID (Public)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/featured/seller/{{sellerId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","featured","seller","{{sellerId}}"] }
+          }
+        },
+        {
+          "name": "Add Product to Top 10",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": \"{{productId}}\",\n  \"position\": 1\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/featured/", "host": ["{{baseUrl}}"], "path": ["api","v1","featured",""] }
+          }
+        },
+        {
+          "name": "Update Featured Product Position",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"position\": 3\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/featured/{{productId}}/position", "host": ["{{baseUrl}}"], "path": ["api","v1","featured","{{productId}}","position"] }
+          }
+        },
+        {
+          "name": "Remove Product from Top 10",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/featured/{{productId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","featured","{{productId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Shopping Cart",
+      "item": [
+        {
+          "name": "Get Cart",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/cart/", "host": ["{{baseUrl}}"], "path": ["api","v1","cart",""] }
+          }
+        },
+        {
+          "name": "Clear Cart",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/cart/", "host": ["{{baseUrl}}"], "path": ["api","v1","cart",""] }
+          }
+        },
+        {
+          "name": "Add Item to Cart",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.items && res.items.length > 0) { pm.collectionVariables.set('cartItemId', res.items[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": \"{{productId}}\",\n  \"quantity\": 2\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/cart/items", "host": ["{{baseUrl}}"], "path": ["api","v1","cart","items"] }
+          }
+        },
+        {
+          "name": "Update Cart Item Quantity",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 5\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/cart/items/{{cartItemId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","cart","items","{{cartItemId}}"] }
+          }
+        },
+        {
+          "name": "Remove Cart Item",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/cart/items/{{cartItemId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","cart","items","{{cartItemId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Order",
+      "item": [
+        {
+          "name": "Create Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.id) { pm.collectionVariables.set('orderId', res.id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address_id\": \"{{addressId}}\",\n  \"items\": [\n    {\n      \"product_id\": \"{{productId}}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/order/", "host": ["{{baseUrl}}"], "path": ["api","v1","order",""] }
+          }
+        },
+        {
+          "name": "List My Orders",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/order/", "host": ["{{baseUrl}}"], "path": ["api","v1","order",""] }
+          }
+        },
+        {
+          "name": "Get Order by ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/order/{{orderId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","order","{{orderId}}"] }
+          }
+        },
+        {
+          "name": "Cancel Order",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/order/{{orderId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","order","{{orderId}}"] }
+          }
+        },
+        {
+          "name": "Get Order Items",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/order/{{orderId}}/items", "host": ["{{baseUrl}}"], "path": ["api","v1","order","{{orderId}}","items"] }
+          }
+        },
+        {
+          "name": "Get Single Order Item",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/order/{{orderId}}/items/:itemId", "host": ["{{baseUrl}}"], "path": ["api","v1","order","{{orderId}}","items",":itemId"], "variable": [{ "key": "itemId", "value": "" }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment",
+      "item": [
+        {
+          "name": "Create Invoice (BTCPay)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/v1/payment/orders/{{orderId}}/invoice", "host": ["{{baseUrl}}"], "path": ["api","v1","payment","orders","{{orderId}}","invoice"] }
+          }
+        },
+        {
+          "name": "Get Payment Status",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/payment/orders/{{orderId}}/status", "host": ["{{baseUrl}}"], "path": ["api","v1","payment","orders","{{orderId}}","status"] }
+          }
+        },
+        {
+          "name": "BTCPay Webhook (Internal)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "BTCPay-Sig", "value": "sha256=your_signature_here" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deliveryId\": \"abc123\",\n  \"webhookId\": \"wh1\",\n  \"type\": \"InvoiceSettled\",\n  \"timestamp\": 1700000000,\n  \"storeId\": \"store1\",\n  \"invoiceId\": \"inv_abc\",\n  \"metadata\": {\n    \"orderId\": \"{{orderId}}\"\n  }\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/payment/webhook", "host": ["{{baseUrl}}"], "path": ["api","v1","payment","webhook"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Seller Dashboard",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/dashboard/seller?page=1&size=20&status=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","v1","dashboard","seller"],
+              "query": [
+                { "key": "page",   "value": "1" },
+                { "key": "size",   "value": "20" },
+                { "key": "status", "value": "", "description": "Optional: pending | paid | shipped | delivered | cancelled" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Dashboard (ADMIN only)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/dashboard/admin?page=1&size=20&status=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","v1","dashboard","admin"],
+              "query": [
+                { "key": "page",   "value": "1" },
+                { "key": "size",   "value": "20" },
+                { "key": "status", "value": "", "description": "Optional: pending | paid | shipped | delivered | cancelled" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "item": [
+        {
+          "name": "Send Message (REST)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"receiver_id\": \"{{peerUserId}}\",\n  \"content\": \"Hello! I have a question about your product.\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/chat/messages", "host": ["{{baseUrl}}"], "path": ["api","v1","chat","messages"] }
+          }
+        },
+        {
+          "name": "Get Conversation",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/chat/messages/{{peerUserId}}?limit=50&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","v1","chat","messages","{{peerUserId}}"],
+              "query": [
+                { "key": "limit",  "value": "50" },
+                { "key": "offset", "value": "0" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "WebSocket Chat",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Upgrade",       "value": "websocket" },
+              { "key": "Connection",    "value": "Upgrade" }
+            ],
+            "url": { "raw": "ws://localhost:8080/api/v1/chat/ws", "host": ["ws://localhost:8080"], "path": ["api","v1","chat","ws"] },
+            "description": "WebSocket connection. Use a WebSocket client.\n\n**Cogo nnect:** `ws://localhost:8080/api/v1/chat/ws` with header `Authorization: Bearer {{token}}`\n\n**Send message (JSON):**\n```json\n{\n  \"receiver_id\": \"{{peerUserId}}\",\n  \"content\": \"Hello via WebSocket!\"\n}\n```\n\n**Receive message (JSON):**\n```json\n{\n  \"type\": \"message\",\n  \"payload\": {\n    \"id\": \"...\",\n    \"sender_id\": \"...\",\n    \"receiver_id\": \"...\",\n    \"content\": \"...\",\n    \"read\": false,\n    \"created_at\": \"...\"\n  }\n}\n```"
+          }
+        }
+      ]
+    }
+  ]
+}
