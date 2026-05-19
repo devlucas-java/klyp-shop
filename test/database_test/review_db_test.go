@@ -8,6 +8,7 @@ import (
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -17,23 +18,21 @@ var reviewRepo *database.ReviewDB
 var logReview *logger.Logger
 
 func setupReviewDB(t *testing.T) {
+	t.Helper()
 	var err error
 
 	dbReview, err = gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	err = dbReview.AutoMigrate(&entity.User{}, &entity.Seller{}, &entity.Product{}, &entity.Review{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	logReview = logger.NewLogger(logger.TRACE)
 	reviewRepo = database.NewReviewDB(dbReview, logReview).(*database.ReviewDB)
 }
 
 func createReviewProduct(t *testing.T) (*entity.User, *entity.Product) {
+	t.Helper()
 	user := &entity.User{
 		ID:       id.NewUUID(),
 		Name:     "reviewer",
@@ -41,13 +40,15 @@ func createReviewProduct(t *testing.T) (*entity.User, *entity.Product) {
 		Username: "reviewer",
 		Password: "hash",
 	}
-	dbReview.Create(user)
+	require.NoError(t, dbReview.Create(user).Error)
 
 	seller := entity.NewSeller(user.ID, "Review Shop", "Bio")
-	dbReview.Create(seller)
+	require.NoError(t, dbReview.Create(seller).Error)
 
-	product := entity.NewProduct("Reviewed Product", "Desc", 0.01, 5, []string{})
-	dbReview.Create(product)
+	product, err := entity.NewProduct("Reviewed Product", "Desc", 0.01, 5, []string{})
+	require.NoError(t, err)
+	product.SellerID = seller.ID
+	require.NoError(t, dbReview.Create(product).Error)
 
 	return user, product
 }
@@ -60,9 +61,7 @@ func TestCreateReview(t *testing.T) {
 	review := entity.NewReview(user.ID, product.ID, 5, "Excellent!")
 
 	res, err := reviewRepo.Create(review)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	assert.Equal(t, review.Rating, res.Rating)
 	assert.Equal(t, review.Comment, res.Comment)
@@ -76,15 +75,13 @@ func TestUpdateReview(t *testing.T) {
 	user, product := createReviewProduct(t)
 
 	review := entity.NewReview(user.ID, product.ID, 3, "Average")
-	dbReview.Create(review)
+	require.NoError(t, dbReview.Create(review).Error)
 
 	review.Rating = 4
 	review.Comment = "Pretty good"
 
 	res, err := reviewRepo.Update(review)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	assert.Equal(t, 4, res.Rating)
 	assert.Equal(t, "Pretty good", res.Comment)
@@ -95,13 +92,11 @@ func TestFindReviewsByProductID(t *testing.T) {
 
 	user, product := createReviewProduct(t)
 
-	dbReview.Create(entity.NewReview(user.ID, product.ID, 5, "Great"))
-	dbReview.Create(entity.NewReview(user.ID, product.ID, 4, "Good"))
+	require.NoError(t, dbReview.Create(entity.NewReview(user.ID, product.ID, 5, "Great")).Error)
+	require.NoError(t, dbReview.Create(entity.NewReview(user.ID, product.ID, 4, "Good")).Error)
 
 	res, err := reviewRepo.FindByProductID(product.ID)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	assert.Equal(t, 2, len(res))
 }
@@ -110,9 +105,7 @@ func TestFindReviewsByProductID_Empty(t *testing.T) {
 	setupReviewDB(t)
 
 	res, err := reviewRepo.FindByProductID(id.NewUUID())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	assert.Equal(t, 0, len(res))
 }
@@ -123,12 +116,10 @@ func TestDeleteReview(t *testing.T) {
 	user, product := createReviewProduct(t)
 
 	review := entity.NewReview(user.ID, product.ID, 2, "Not great")
-	dbReview.Create(review)
+	require.NoError(t, dbReview.Create(review).Error)
 
 	err := reviewRepo.DeleteByID(review.ID)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	var count int64
 	dbReview.Model(&entity.Review{}).Where("id = ?", review.ID).Count(&count)

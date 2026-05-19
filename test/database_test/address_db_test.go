@@ -8,6 +8,7 @@ import (
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -16,38 +17,35 @@ var dbAddress *gorm.DB
 var addressRepo *database.AddressDB
 var logAddress *logger.Logger
 
-func setupAddressDB() {
+func setupAddressDB(t *testing.T) {
+	t.Helper()
 	var err error
 
 	dbAddress, err = gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err)
 
 	err = dbAddress.AutoMigrate(&entity.User{}, &entity.Address{})
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err)
 
 	logAddress = logger.NewLogger(logger.TRACE)
 	addressRepo = database.NewAddressDB(dbAddress, logAddress).(*database.AddressDB)
 }
 
-func createUser() *entity.User {
+func createAddressUser(t *testing.T) *entity.User {
+	t.Helper()
 	user := &entity.User{
 		ID:    id.NewUUID(),
 		Name:  "test",
 		Email: "test@test.com",
 	}
-
-	dbAddress.Create(user)
+	require.NoError(t, dbAddress.Create(user).Error)
 	return user
 }
 
 func TestCreateAddress(t *testing.T) {
-	setupAddressDB()
+	setupAddressDB(t)
 
-	user := createUser()
+	user := createAddressUser(t)
 
 	addr := &entity.Address{
 		UserID:   user.ID,
@@ -59,9 +57,7 @@ func TestCreateAddress(t *testing.T) {
 	}
 
 	res, err := addressRepo.Create(addr)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	assert.Equal(t, addr.Street, res.Street)
 	assert.Equal(t, addr.City, res.City)
@@ -72,34 +68,28 @@ func TestCreateAddress(t *testing.T) {
 }
 
 func TestGetAddress(t *testing.T) {
-	setupAddressDB()
+	setupAddressDB(t)
 
-	user := createUser()
+	user := createAddressUser(t)
 
-	dbAddress.Create(&entity.Address{
+	require.NoError(t, dbAddress.Create(&entity.Address{
 		UserID:   user.ID,
 		Street:   "Street 1",
 		City:     "City",
 		State:    "State",
 		Country:  "Country",
 		Postcode: "12345",
-	})
+	}).Error)
 
 	res, err := addressRepo.FindByUser(user.ID)
-
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if len(res) == 0 {
-		t.Fatal("expected addresses")
-	}
+	require.NoError(t, err)
+	assert.NotEmpty(t, res)
 }
 
 func TestUpdateAddress(t *testing.T) {
-	setupAddressDB()
+	setupAddressDB(t)
 
-	user := createUser()
+	user := createAddressUser(t)
 
 	addr := &entity.Address{
 		ID:       id.NewUUID(),
@@ -110,25 +100,19 @@ func TestUpdateAddress(t *testing.T) {
 		Country:  "Country",
 		Postcode: "12345",
 	}
-
-	dbAddress.Create(addr)
+	require.NoError(t, dbAddress.Create(addr).Error)
 
 	addr.Street = "New Street"
 
 	res, err := addressRepo.Update(addr)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if res.Street != "New Street" {
-		t.Fatal("update failed")
-	}
+	require.NoError(t, err)
+	assert.Equal(t, "New Street", res.Street)
 }
 
 func TestDeleteAddress(t *testing.T) {
-	setupAddressDB()
+	setupAddressDB(t)
 
-	user := createUser()
+	user := createAddressUser(t)
 
 	addr := &entity.Address{
 		UserID:   user.ID,
@@ -138,18 +122,12 @@ func TestDeleteAddress(t *testing.T) {
 		Country:  "Country",
 		Postcode: "12345",
 	}
-
-	dbAddress.Create(addr)
+	require.NoError(t, dbAddress.Create(addr).Error)
 
 	err := addressRepo.DeleteByID(addr.ID)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	var count int64
 	dbAddress.Model(&entity.Address{}).Where("id = ?", addr.ID).Count(&count)
-
-	if count != 0 {
-		t.Fatal("expected address to be deleted")
-	}
+	assert.Equal(t, int64(0), count)
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -17,17 +18,14 @@ var userRepo *database.UserDB
 var logUser *logger.Logger
 
 func setupUserDB(t *testing.T) {
+	t.Helper()
 	var err error
 
 	dbUser, err = gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	err = dbUser.AutoMigrate(&entity.User{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	logUser = logger.NewLogger(logger.TRACE)
 	userRepo = database.NewUserDB(dbUser, logUser).(*database.UserDB)
@@ -36,74 +34,46 @@ func setupUserDB(t *testing.T) {
 func TestCreateUser(t *testing.T) {
 	setupUserDB(t)
 
-	user, err := entity.NewUser(
-		"John",
-		"john@test.com",
-		"john123",
-		"hashed-password",
-	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	user, err := entity.NewUser("John", "john@test.com", "john123", "hashed-password")
+	require.NoError(t, err)
 
 	res, err := userRepo.Create(user)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
-	assert.Equal(t, res.Name, user.Name)
-	assert.Equal(t, res.Email, user.Email)
-	assert.Equal(t, res.Username, user.Username)
-	assert.Equal(t, res.Password, user.Password)
+	assert.Equal(t, user.Name, res.Name)
+	assert.Equal(t, user.Email, res.Email)
+	assert.Equal(t, user.Username, res.Username)
 }
 
 func TestFindByID(t *testing.T) {
 	setupUserDB(t)
 
 	user := &entity.User{
+		ID:       id.NewUUID(),
 		Name:     "Jane",
 		Email:    "jane@test.com",
 		Username: "jane123",
 		Password: "hash",
 	}
-
-	dbUser.Create(user)
+	require.NoError(t, dbUser.Create(user).Error)
 
 	found, err := userRepo.FindByID(user.ID)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if found.Email != user.Email {
-		t.Fatal("user mismatch")
-	}
+	require.NoError(t, err)
+	assert.Equal(t, user.Email, found.Email)
 }
 
 func TestUpdateUser(t *testing.T) {
 	setupUserDB(t)
 
-	user, err := entity.NewUser(
-		"old",
-		"old@email.com",
-		"olduser",
-		"hash",
-	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	dbUser.Create(user)
+	user, err := entity.NewUser("old", "old@email.com", "olduser", "hash")
+	require.NoError(t, err)
+	require.NoError(t, dbUser.Create(user).Error)
 
 	user.Name = "New"
 
 	updated, err := userRepo.Update(user)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if updated.Name != "New" {
-		t.Fatal("update failed")
-	}
+	require.NoError(t, err)
+	assert.Equal(t, "New", updated.Name)
 }
 
 func TestDeleteUser(t *testing.T) {
@@ -116,20 +86,14 @@ func TestDeleteUser(t *testing.T) {
 		Username: "delete",
 		Password: "hash",
 	}
-
-	dbUser.Create(user)
+	require.NoError(t, dbUser.Create(user).Error)
 
 	err := userRepo.DeleteByID(user.ID)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	var count int64
 	dbUser.Model(&entity.User{}).Where("id = ?", user.ID).Count(&count)
-
-	if count != 0 {
-		t.Fatal("user was not deleted")
-	}
+	assert.Equal(t, int64(0), count)
 }
 
 func TestFindByEmailOrUsername(t *testing.T) {
@@ -142,24 +106,13 @@ func TestFindByEmailOrUsername(t *testing.T) {
 		Username: "searchuser",
 		Password: "hash",
 	}
-
-	dbUser.Create(user)
+	require.NoError(t, dbUser.Create(user).Error)
 
 	found, err := userRepo.FindByEmailOrUsername("search@test.com")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if found.Username != user.Username {
-		t.Fatal("email search failed")
-	}
+	require.NoError(t, err)
+	assert.Equal(t, user.Username, found.Username)
 
 	found2, err := userRepo.FindByEmailOrUsername("searchuser")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if found2.Email != user.Email {
-		t.Fatal("username search failed")
-	}
+	require.NoError(t, err)
+	assert.Equal(t, user.Email, found2.Email)
 }

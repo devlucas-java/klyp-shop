@@ -7,6 +7,7 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/database"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -15,22 +16,20 @@ var dbProduct *gorm.DB
 var productRepo *database.ProductDB
 
 func setupProductDB(t *testing.T) {
+	t.Helper()
 	var err error
 
 	dbProduct, err = gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	err = dbProduct.AutoMigrate(&entity.User{}, &entity.Seller{}, &entity.Product{}, &entity.Review{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	productRepo = database.NewProductDB(dbProduct).(*database.ProductDB)
 }
 
 func createProductSeller(t *testing.T) *entity.Seller {
+	t.Helper()
 	user := &entity.User{
 		ID:       id.NewUUID(),
 		Name:     "prod-user",
@@ -38,24 +37,29 @@ func createProductSeller(t *testing.T) *entity.Seller {
 		Username: "produser",
 		Password: "hash",
 	}
-	dbProduct.Create(user)
+	require.NoError(t, dbProduct.Create(user).Error)
 
 	seller := entity.NewSeller(user.ID, "Prod Shop", "Bio")
-	dbProduct.Create(seller)
+	require.NoError(t, dbProduct.Create(seller).Error)
 	return seller
+}
+
+func newTestProduct(t *testing.T, name, desc string, price float64, stock int, cats []string) *entity.Product {
+	t.Helper()
+	p, err := entity.NewProduct(name, desc, price, stock, cats)
+	require.NoError(t, err)
+	return p
 }
 
 func TestCreateProduct(t *testing.T) {
 	setupProductDB(t)
+	seller := createProductSeller(t)
 
-	_ = createProductSeller(t)
-
-	product := entity.NewProduct("Laptop", "A great laptop", 0.05, 10, []string{"electronics"})
+	product := newTestProduct(t, "Laptop", "A great laptop", 0.05, 10, []string{"electronics"})
+	product.SellerID = seller.ID
 
 	res, err := productRepo.Create(product)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	assert.Equal(t, product.Name, res.Name)
 	assert.Equal(t, product.PriceBTC, res.PriceBTC)
@@ -65,16 +69,14 @@ func TestCreateProduct(t *testing.T) {
 
 func TestFindProductByID(t *testing.T) {
 	setupProductDB(t)
+	seller := createProductSeller(t)
 
-	_ = createProductSeller(t)
-
-	product := entity.NewProduct("Phone", "A phone", 0.02, 5, []string{"electronics"})
-	dbProduct.Create(product)
+	product := newTestProduct(t, "Phone", "A phone", 0.02, 5, []string{"electronics"})
+	product.SellerID = seller.ID
+	require.NoError(t, dbProduct.Create(product).Error)
 
 	found, err := productRepo.FindByID(product.ID)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	assert.Equal(t, product.ID, found.ID)
 	assert.Equal(t, product.Name, found.Name)
@@ -89,19 +91,17 @@ func TestFindProductByID_NotFound(t *testing.T) {
 
 func TestUpdateProduct(t *testing.T) {
 	setupProductDB(t)
+	seller := createProductSeller(t)
 
-	_ = createProductSeller(t)
-
-	product := entity.NewProduct("Old Product", "Desc", 0.01, 3, []string{"misc"})
-	dbProduct.Create(product)
+	product := newTestProduct(t, "Old Product", "Desc", 0.01, 3, []string{"misc"})
+	product.SellerID = seller.ID
+	require.NoError(t, dbProduct.Create(product).Error)
 
 	product.Name = "Updated Product"
 	product.Stock = 99
 
 	res, err := productRepo.Updates(product)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	assert.Equal(t, "Updated Product", res.Name)
 	assert.Equal(t, 99, res.Stock)
@@ -109,16 +109,14 @@ func TestUpdateProduct(t *testing.T) {
 
 func TestDeleteProduct(t *testing.T) {
 	setupProductDB(t)
+	seller := createProductSeller(t)
 
-	_ = createProductSeller(t)
-
-	product := entity.NewProduct("To Delete", "Desc", 0.01, 1, []string{})
-	dbProduct.Create(product)
+	product := newTestProduct(t, "To Delete", "Desc", 0.01, 1, []string{})
+	product.SellerID = seller.ID
+	require.NoError(t, dbProduct.Create(product).Error)
 
 	err := productRepo.DeleteByID(product.ID)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	var count int64
 	dbProduct.Model(&entity.Product{}).Where("id = ?", product.ID).Count(&count)
@@ -127,19 +125,16 @@ func TestDeleteProduct(t *testing.T) {
 
 func TestFindProductsBySellerID(t *testing.T) {
 	setupProductDB(t)
-
 	seller := createProductSeller(t)
 
 	for i := 0; i < 3; i++ {
-		p := entity.NewProduct("Product", "Desc", 0.01, 1, []string{})
+		p := newTestProduct(t, "Product", "Desc", 0.01, 1, []string{})
 		p.SellerID = seller.ID
-		dbProduct.Create(p)
+		require.NoError(t, dbProduct.Create(p).Error)
 	}
 
 	res, err := productRepo.FindBySellerID(seller.ID, 1, 10)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	assert.Equal(t, 3, len(res))
 }
