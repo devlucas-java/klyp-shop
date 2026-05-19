@@ -5,6 +5,7 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
+	"github.com/devlucas-java/klyp-shop/internal/domain/policy"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
@@ -12,105 +13,116 @@ import (
 
 type AddressService struct {
 	addressRepository repository.AddressRepository
+	userRepository    repository.UserRepository
 	log               *logger.Logger
 	mapper            *mapper.AddressMapper
-	userRepository    repository.UserRepository
+	addressPolicy     *policy.AddressPolicy
 }
 
-func NewAddressService(addressRepository repository.AddressRepository, log *logger.Logger, mapper *mapper.AddressMapper, userRepository repository.UserRepository) *AddressService {
-	return &AddressService{addressRepository: addressRepository, log: log, mapper: mapper, userRepository: userRepository}
+func NewAddressService(
+	addressRepository repository.AddressRepository,
+	log *logger.Logger,
+	mapper *mapper.AddressMapper,
+	userRepository repository.UserRepository,
+) *AddressService {
+	return &AddressService{
+		addressRepository: addressRepository,
+		userRepository:    userRepository,
+		log:               log,
+		mapper:            mapper,
+		addressPolicy:     policy.NewAddressPolicy(),
+	}
 }
 
 func (s *AddressService) CreateAddress(auth *entity.User, req *daddress.CreateAddressRequest) (*daddress.AddressResponse, error) {
-
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
+		return nil, errors.ErrNotFound("User", err)
+	}
+
+	existing, err := s.addressRepository.FindByUser(user.ID)
+	if err != nil {
+		return nil, errors.ErrDatabase("failed to fetch addresses", err)
+	}
+
+	if err := s.addressPolicy.CanCreate(existing); err != nil {
 		return nil, err
 	}
 
 	address := s.mapper.CreateAddressRequestToAddress(req)
 	address.UserID = user.ID
 
-	addrs, err := s.addressRepository.FindByUser(user.ID)
+	saved, err := s.addressRepository.Create(address)
 	if err != nil {
-		return nil, err
+		return nil, errors.ErrDatabase("failed to create address", err)
 	}
 
-	if len(addrs) >= 3 {
-		return nil, errors.ErrUnprocessable("maximum number of address (3) reached", err)
-	}
-	_, err = s.addressRepository.Create(address)
-	if err != nil {
-		return nil, err
-	}
-
-	return s.mapper.AddressToAddressResponse(address), nil
+	return s.mapper.AddressToAddressResponse(saved), nil
 }
 
 func (s *AddressService) GetAddresses(auth *entity.User) ([]*daddress.AddressResponse, error) {
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
-		return nil, err
+		return nil, errors.ErrNotFound("User", err)
 	}
 
 	addrs, err := s.addressRepository.FindByUser(user.ID)
 	if err != nil {
-		return nil, err
+		return nil, errors.ErrDatabase("failed to fetch addresses", err)
 	}
 
-	var response []*daddress.AddressResponse
-	for _, addr := range addrs {
-		response = append(response, s.mapper.AddressToAddressResponse(addr))
+	responses := make([]*daddress.AddressResponse, len(addrs))
+	for i, addr := range addrs {
+		responses[i] = s.mapper.AddressToAddressResponse(addr)
 	}
 
-	return response, nil
+	return responses, nil
 }
 
-func (s *AddressService) UpdateAddress(auth *entity.User, req *daddress.UpdateAddressRequest, id id.UUID) (*daddress.AddressResponse, error) {
+func (s *AddressService) UpdateAddress(auth *entity.User, req *daddress.UpdateAddressRequest, addrID id.UUID) (*daddress.AddressResponse, error) {
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
-		return nil, err
+		return nil, errors.ErrNotFound("User", err)
 	}
 
-	addr, err := s.addressRepository.FindByID(id)
+	addr, err := s.addressRepository.FindByID(addrID)
 	if err != nil {
+		return nil, errors.ErrNotFound("Address", err)
+	}
+
+	if err := s.addressPolicy.CanModify(addr, user.ID); err != nil {
 		return nil, err
 	}
 
-	if addr.UserID != user.ID {
-		return nil, errors.ErrUnprocessable("you can not update this address", nil)
-	}
+	updated := s.mapper.UpdateAddressRequestToAddress(req)
+	updated.ID = addrID
+	updated.UserID = user.ID
 
-	addr = s.mapper.UpdateAddressRequestToAddress(req)
-	addr.UserID = user.ID
-	addr.ID = id
-
-	addr, err = s.addressRepository.Update(addr)
+	saved, err := s.addressRepository.Update(updated)
 	if err != nil {
-		return nil, err
+		return nil, errors.ErrDatabase("failed to update address", err)
 	}
 
-	return s.mapper.AddressToAddressResponse(addr), nil
+	return s.mapper.AddressToAddressResponse(saved), nil
 }
 
-func (s *AddressService) DeleteAddress(auth *entity.User, req id.UUID) error {
+func (s *AddressService) DeleteAddress(auth *entity.User, addrID id.UUID) error {
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
-		return err
+		return errors.ErrNotFound("User", err)
 	}
 
-	addr, err := s.addressRepository.FindByID(req)
+	addr, err := s.addressRepository.FindByID(addrID)
 	if err != nil {
+		return errors.ErrNotFound("Address", err)
+	}
+
+	if err := s.addressPolicy.CanModify(addr, user.ID); err != nil {
 		return err
 	}
 
-	if addr.UserID != user.ID {
-		return errors.ErrUnprocessable("you can not delete this address", nil)
-	}
-
-	err = s.addressRepository.DeleteByID(addr.ID)
-	if err != nil {
-		return err
+	if err := s.addressRepository.DeleteByID(addr.ID); err != nil {
+		return errors.ErrDatabase("failed to delete address", err)
 	}
 
 	return nil

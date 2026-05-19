@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"errors"
+
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	domainErr "github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"

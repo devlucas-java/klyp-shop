@@ -4,6 +4,7 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dchat"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
+	"github.com/devlucas-java/klyp-shop/internal/domain/policy"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
@@ -13,6 +14,7 @@ type ChatService struct {
 	log            *logger.Logger
 	chatRepository repository.ChatRepository
 	userRepository repository.UserRepository
+	chatPolicy     *policy.ChatPolicy
 }
 
 func NewChatService(
@@ -24,6 +26,7 @@ func NewChatService(
 		log:            log,
 		chatRepository: chatRepository,
 		userRepository: userRepository,
+		chatPolicy:     policy.NewChatPolicy(),
 	}
 }
 
@@ -38,11 +41,12 @@ func (s *ChatService) SendMessage(sender *entity.User, req *dchat.SendMessageReq
 		return nil, errors.ErrNotFound("User", err)
 	}
 
-	if err := sender.CanChatWith(receiver); err != nil {
+	if err := s.chatPolicy.CanChat(sender, receiver); err != nil {
 		return nil, err
 	}
 
 	msg := entity.NewChatMessage(sender.ID, receiverID, req.Content)
+
 	saved, err := s.chatRepository.Save(msg)
 	if err != nil {
 		return nil, errors.ErrDatabase("failed to save message", err)
@@ -57,7 +61,7 @@ func (s *ChatService) GetConversation(auth *entity.User, peerID id.UUID, limit, 
 		return nil, errors.ErrNotFound("User", err)
 	}
 
-	if err := auth.CanChatWith(peer); err != nil {
+	if err := s.chatPolicy.CanChat(auth, peer); err != nil {
 		return nil, err
 	}
 

@@ -1,12 +1,11 @@
 package service
 
 import (
-	"fmt"
-
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dorder"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
+	"github.com/devlucas-java/klyp-shop/internal/domain/policy"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
@@ -19,6 +18,7 @@ type OrderService struct {
 	addressRepository repository.AddressRepository
 	productRepository repository.ProductRepository
 	orderMapper       *mapper.OrderMapper
+	orderPolicy       *policy.OrderPolicy
 }
 
 func NewOrderService(
@@ -36,6 +36,7 @@ func NewOrderService(
 		addressRepository: addressRepository,
 		productRepository: productRepository,
 		orderMapper:       orderMapper,
+		orderPolicy:       policy.NewOrderPolicy(),
 	}
 }
 
@@ -44,7 +45,6 @@ func (s *OrderService) CreateOrder(auth *entity.User, req *dorder.CreateOrderReq
 
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
-		s.log.Errorf("Failed to find user %s: %v", auth.ID, err)
 		return nil, errors.ErrNotFound("User", err)
 	}
 
@@ -55,13 +55,11 @@ func (s *OrderService) CreateOrder(auth *entity.User, req *dorder.CreateOrderReq
 
 	address, err := s.addressRepository.FindByID(addressID)
 	if err != nil {
-		s.log.Errorf("Failed to find address %s: %v", addressID, err)
 		return nil, errors.ErrNotFound("Address", err)
 	}
 
-	if address.UserID != user.ID {
-		s.log.Warnf("Address %s does not belong to user %s", addressID, user.ID)
-		return nil, errors.ErrForbidden(fmt.Errorf("address does not belong to user"))
+	if err := s.orderPolicy.AddressBelongsToUser(address, user.ID); err != nil {
+		return nil, err
 	}
 
 	if len(req.Items) == 0 {
@@ -77,7 +75,6 @@ func (s *OrderService) CreateOrder(auth *entity.User, req *dorder.CreateOrderReq
 
 		product, err := s.productRepository.FindByID(productID)
 		if err != nil {
-			s.log.Errorf("Failed to find product %s: %v", productID, err)
 			return nil, errors.ErrNotFound("Product", err)
 		}
 
@@ -91,27 +88,22 @@ func (s *OrderService) CreateOrder(auth *entity.User, req *dorder.CreateOrderReq
 	order := entity.NewOrder(user.ID, addressID, items)
 	order.SetOrderIDForItems()
 
-	createdOrder, err := s.orderRepository.Create(order)
+	created, err := s.orderRepository.Create(order)
 	if err != nil {
-		s.log.Errorf("Failed to create order for user %s: %v", auth.ID, err)
-		return nil, err
+		return nil, errors.ErrDatabase("failed to create order", err)
 	}
 
-	s.log.Infof("Order created successfully for user %s", auth.ID)
-	return s.orderMapper.OrderToResponse(createdOrder), nil
+	s.log.Infof("Order %s created for user %s", created.ID, auth.ID)
+	return s.orderMapper.OrderToResponse(created), nil
 }
 
 func (s *OrderService) GetOrder(auth *entity.User, orderID id.UUID) (*dorder.OrderResponse, error) {
-	s.log.Infof("Getting order %s for user %s", orderID, auth.ID)
-
 	order, err := s.orderRepository.FindByID(orderID)
 	if err != nil {
-		s.log.Errorf("Failed to find order %s: %v", orderID, err)
 		return nil, errors.ErrNotFound("Order", err)
 	}
 
-	if err := order.EnsureOwnedBy(auth.ID); err != nil {
-		s.log.Warnf("Order %s does not belong to user %s", orderID, auth.ID)
+	if err := s.orderPolicy.CanView(order, auth.ID); err != nil {
 		return nil, err
 	}
 
@@ -119,41 +111,32 @@ func (s *OrderService) GetOrder(auth *entity.User, orderID id.UUID) (*dorder.Ord
 }
 
 func (s *OrderService) ListUserOrders(auth *entity.User) ([]*dorder.OrderResponse, error) {
-	s.log.Infof("Listing orders for user %s", auth.ID)
-
 	orders, err := s.orderRepository.FindByUser(auth.ID)
 	if err != nil {
-		s.log.Errorf("Failed to list orders for user %s: %v", auth.ID, err)
-		return nil, err
+		return nil, errors.ErrDatabase("failed to list orders", err)
 	}
 
 	return s.orderMapper.OrdersToResponses(orders), nil
 }
 
 func (s *OrderService) CancelOrder(auth *entity.User, orderID id.UUID) error {
-	s.log.Infof("Cancelling order %s for user %s", orderID, auth.ID)
-
 	order, err := s.orderRepository.FindByID(orderID)
 	if err != nil {
-		s.log.Errorf("Failed to find order %s: %v", orderID, err)
 		return errors.ErrNotFound("Order", err)
 	}
 
-	if err := order.EnsureOwnedBy(auth.ID); err != nil {
-		s.log.Warnf("Order %s does not belong to user %s", orderID, auth.ID)
+	if err := s.orderPolicy.CanCancel(order, auth.ID); err != nil {
 		return err
 	}
 
 	if err := order.CancelPending(); err != nil {
-		s.log.Warnf("Cannot cancel order %s in status %s", orderID, order.Status)
-		return err
-	}
-	_, err = s.orderRepository.Updates(order)
-	if err != nil {
-		s.log.Errorf("Failed to cancel order %s: %v", orderID, err)
 		return err
 	}
 
-	s.log.Infof("Order %s cancelled successfully", orderID)
+	if _, err := s.orderRepository.Updates(order); err != nil {
+		return errors.ErrDatabase("failed to cancel order", err)
+	}
+
+	s.log.Infof("Order %s cancelled by user %s", orderID, auth.ID)
 	return nil
 }

@@ -5,8 +5,7 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 )
 
-type ProductMaper struct {
-}
+type ProductMaper struct{}
 
 func NewProductMapper() *ProductMaper {
 	return &ProductMaper{}
@@ -22,12 +21,4 @@ func (p *ProductMaper) ProductToProductResponse(product *entity.Product) *dprodu
 		SellerID:    product.SellerID.String(),
 		Categories:  product.Categories,
 	}
-}
-
-func (p *ProductMaper) CreateProductToProduct(dto *dproduct.CreateProduct) *entity.Product {
-	return entity.NewProduct(dto.Name, dto.Description, dto.PriceBTC, dto.Stock, dto.Categories)
-}
-
-func (p *ProductMaper) UpdateProductToProduct(dto *dproduct.UpdateProduct) *entity.Product {
-	return entity.NewProduct(dto.Name, dto.Description, dto.PriceBTC, dto.Stock, dto.Categories)
 }

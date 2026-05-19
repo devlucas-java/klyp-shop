@@ -16,7 +16,7 @@ services:
     container_name: klyp-yugabytedb
     image: yugabytedb/yugabyte:2.25.2.0-b359
     restart: always
-    command: >
+    command:
       bin/yugabyted start
       --background=false
       --daemon=false

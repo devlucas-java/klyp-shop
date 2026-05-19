@@ -5,6 +5,7 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
+	"github.com/devlucas-java/klyp-shop/internal/domain/policy"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
@@ -14,21 +15,28 @@ type UserService struct {
 	userRepository repository.UserRepository
 	log            *logger.Logger
 	userMapper     *mapper.UserMapper
+	userPolicy     *policy.UserPolicy
 }
 
-func NewUserService(userRepository repository.UserRepository, log *logger.Logger, userMapper *mapper.UserMapper) *UserService {
+func NewUserService(
+	userRepository repository.UserRepository,
+	log *logger.Logger,
+	userMapper *mapper.UserMapper,
+) *UserService {
 	return &UserService{
 		userRepository: userRepository,
 		log:            log,
 		userMapper:     userMapper,
+		userPolicy:     policy.NewUserPolicy(),
 	}
 }
 
 func (s *UserService) GetMe(auth *entity.User) (*duser.UserResponse, error) {
-	s.log.Infof("Getting duser by ID %s", auth.ID)
+	s.log.Infof("Getting user by ID %s", auth.ID)
+
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
-		s.log.Errorf("Failed to find duser by ID %s: %v", auth.ID, err)
+		s.log.Errorf("Failed to find user by ID %s: %v", auth.ID, err)
 		return nil, errors.ErrNotFound("User", err)
 	}
 
@@ -36,101 +44,104 @@ func (s *UserService) GetMe(auth *entity.User) (*duser.UserResponse, error) {
 }
 
 func (s *UserService) UpdateMe(auth *entity.User, req *duser.UpdateUserRequest) (*duser.UserResponse, error) {
-	s.log.Infof("Updating duser %s", auth.ID)
+	s.log.Infof("Updating user %s", auth.ID)
+
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
-		s.log.Errorf("Failed to find duser by ID %s: %v", auth.ID, err)
+		s.log.Errorf("Failed to find user by ID %s: %v", auth.ID, err)
 		return nil, errors.ErrNotFound("User", err)
-	}
-
-	if req.Name != "" && req.Name != user.Name {
-		user.Name = req.Name
 	}
 
 	if req.Email != "" && req.Email != user.Email {
-		userWithEmail, _ := s.userRepository.FindByEmailOrUsername(req.Email)
-		if userWithEmail != nil {
-			return nil, errors.ErrConflict("User", nil)
+		existing, _ := s.userRepository.FindByEmailOrUsername(req.Email)
+		if existing != nil {
+			return nil, errors.ErrConflict("Email", nil)
 		}
-		user.Email = req.Email
+		user.ChangeEmail(req.Email)
 	}
 
 	if req.Username != "" && req.Username != user.Username {
-		userWithUsername, _ := s.userRepository.FindByEmailOrUsername(req.Username)
-		if userWithUsername != nil {
-			return nil, errors.ErrConflict("User", nil)
+		existing, _ := s.userRepository.FindByEmailOrUsername(req.Username)
+		if existing != nil {
+			return nil, errors.ErrConflict("Username", nil)
 		}
-		user.Username = req.Username
+		user.ChangeUsername(req.Username)
 	}
+
+	user.ChangeName(req.Name)
 
 	_, err = s.userRepository.Update(user)
 	if err != nil {
-		s.log.Errorf("Failed to update duser %s: %v", auth.ID, err)
-		return nil, errors.ErrNotFound("User", err)
+		s.log.Errorf("Failed to update user %s: %v", auth.ID, err)
+		return nil, errors.ErrDatabase("failed to update user", err)
 	}
 
 	return s.userMapper.UserToUserDTO(user), nil
 }
 
 func (s *UserService) DeleteMe(auth *entity.User) error {
-	s.log.Infof("Deleting duser %s", auth.ID)
+	s.log.Infof("Deleting user %s", auth.ID)
+
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
-		s.log.Errorf("Failed to find duser by ID %s: %v", auth.ID, err)
+		s.log.Errorf("Failed to find user by ID %s: %v", auth.ID, err)
 		return errors.ErrNotFound("User", err)
 	}
 
-	err = s.userRepository.DeleteByID(user.ID)
-	if err != nil {
-		s.log.Errorf("Failed to delete duser %s: %v", auth.ID, err)
-		return errors.ErrNotFound("User", err)
+	if err := s.userRepository.DeleteByID(user.ID); err != nil {
+		s.log.Errorf("Failed to delete user %s: %v", auth.ID, err)
+		return errors.ErrDatabase("failed to delete user", err)
 	}
 
 	return nil
 }
 
-func (s *UserService) PromoteToAdmin(id id.UUID) error {
-	s.log.Infof("Attempting to promote duser %s to admin", id)
-	user, err := s.userRepository.FindByID(id)
+func (s *UserService) PromoteToAdmin(userID id.UUID) error {
+	s.log.Infof("Promoting user %s to admin", userID)
+
+	user, err := s.userRepository.FindByID(userID)
 	if err != nil {
-		s.log.Errorf("Failed to find duser by ID %s: %v", id, err)
+		s.log.Errorf("Failed to find user by ID %s: %v", userID, err)
 		return errors.ErrNotFound("User", err)
 	}
 
-	if err := user.PromoteToAdmin(); err != nil {
-		s.log.Errorf("Failed to promote duser %s to admin: %v", id, err)
+	if err := s.userPolicy.CanPromoteToAdmin(user); err != nil {
+		s.log.Warnf("Cannot promote user %s to admin: %v", userID, err)
 		return err
 	}
 
-	_, err = s.userRepository.Update(user)
-	if err != nil {
-		s.log.Errorf("Failed to update duser %s to admin role: %v", id, err)
-		return errors.Wrap("UPDATE_ERROR", "failed to update duser roles", 500, err)
+	user.PromoteToAdmin()
+
+	if _, err := s.userRepository.Update(user); err != nil {
+		s.log.Errorf("Failed to update user %s roles: %v", userID, err)
+		return errors.ErrDatabase("failed to update user roles", err)
 	}
 
-	s.log.Infof("Successfully promoted duser %s to admin", id)
+	s.log.Infof("User %s promoted to admin", userID)
 	return nil
 }
 
-func (s *UserService) DemoteToUser(id id.UUID) error {
-	s.log.Infof("Attempting to demote duser %s to regular duser", id)
-	user, err := s.userRepository.FindByID(id)
+func (s *UserService) DemoteToUser(userID id.UUID) error {
+	s.log.Infof("Demoting user %s to regular user", userID)
+
+	user, err := s.userRepository.FindByID(userID)
 	if err != nil {
-		s.log.Errorf("Failed to find duser by ID %s: %v", id, err)
+		s.log.Errorf("Failed to find user by ID %s: %v", userID, err)
 		return errors.ErrNotFound("User", err)
 	}
 
-	if err := user.DemoteToUser(); err != nil {
-		s.log.Errorf("Failed to demote duser %s to regular duser: %v", id, err)
+	if err := s.userPolicy.CanDemoteToUser(user); err != nil {
+		s.log.Warnf("Cannot demote user %s: %v", userID, err)
 		return err
 	}
 
-	_, err = s.userRepository.Update(user)
-	if err != nil {
-		s.log.Errorf("Failed to update duser %s to regular duser role: %v", id, err)
-		return errors.Wrap("UPDATE_ERROR", "failed to update duser roles", 500, err)
+	user.DemoteToUser()
+
+	if _, err := s.userRepository.Update(user); err != nil {
+		s.log.Errorf("Failed to update user %s roles: %v", userID, err)
+		return errors.ErrDatabase("failed to update user roles", err)
 	}
 
-	s.log.Infof("Successfully demoted duser %s to regular duser", id)
+	s.log.Infof("User %s demoted to regular user", userID)
 	return nil
 }
