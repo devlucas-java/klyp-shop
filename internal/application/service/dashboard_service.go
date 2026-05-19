@@ -36,8 +36,8 @@ func (s *DashboardService) GetSellerDashboard(auth *entity.User, page, size int,
 	if err != nil {
 		return nil, errors.ErrNotFound("User", err)
 	}
-	if !user.IsSeller || user.Seller == nil {
-		return nil, errors.ErrForbidden(nil)
+	if err := user.EnsureSeller(); err != nil {
+		return nil, err
 	}
 
 	sellerID := user.Seller.ID

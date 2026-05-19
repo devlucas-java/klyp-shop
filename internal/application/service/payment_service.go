@@ -46,12 +46,8 @@ func (s *PaymentService) CreateInvoice(auth *entity.User, orderID id.UUID) (*dpa
 		return nil, errors.ErrNotFound("Order", err)
 	}
 
-	if order.UserID != auth.ID {
-		return nil, errors.ErrForbidden(fmt.Errorf("order does not belong to user"))
-	}
-
-	if order.Status != entity.OrderStatusPending {
-		return nil, errors.ErrConflict("Order", fmt.Errorf("order is not in pending status"))
+	if err := order.CanBePaidBy(auth.ID); err != nil {
+		return nil, err
 	}
 
 	existing, _ := s.paymentRepository.FindByOrderID(orderID)
@@ -96,8 +92,8 @@ func (s *PaymentService) GetPaymentStatus(auth *entity.User, orderID id.UUID) (*
 		return nil, errors.ErrNotFound("Order", err)
 	}
 
-	if order.UserID != auth.ID {
-		return nil, errors.ErrForbidden(fmt.Errorf("order does not belong to user"))
+	if err := order.EnsureOwnedBy(auth.ID); err != nil {
+		return nil, err
 	}
 
 	payment, err := s.paymentRepository.FindByOrderID(orderID)

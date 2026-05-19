@@ -4,7 +4,6 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/duser"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	"github.com/devlucas-java/klyp-shop/internal/domain/enums"
 	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
@@ -98,17 +97,10 @@ func (s *UserService) PromoteToAdmin(id id.UUID) error {
 		return errors.ErrNotFound("User", err)
 	}
 
-	if user.IsSeller {
-		s.log.Warnf("Cannot promote seller %s to admin", id)
-		return errors.ErrInvalidRole("seller cannot be promoted to admin", err)
+	if err := user.PromoteToAdmin(); err != nil {
+		s.log.Errorf("Failed to promote duser %s to admin: %v", id, err)
+		return err
 	}
-
-	if user.HasRole(enums.ADMIN) {
-		s.log.Warnf("User %s is already an admin", id)
-		return errors.ErrInvalidRole("duser is already an admin", err)
-	}
-
-	user.Roles = []enums.Role{enums.ADMIN}
 
 	_, err = s.userRepository.Update(user)
 	if err != nil {
@@ -128,25 +120,14 @@ func (s *UserService) DemoteToUser(id id.UUID) error {
 		return errors.ErrNotFound("User", err)
 	}
 
-	if user.HasRole(enums.USER) || user.IsSeller {
-		s.log.Warnf("User %s cannot be demoted to duser (isSeller: %v, hasUserRole: %v)", id, user.IsSeller, user.HasRole(enums.USER))
-		msg := ""
-		if user.IsSeller {
-			msg = "seller cannot be demoted to duser"
-		} else if user.HasRole(enums.USER) {
-			msg = "duser is already a duser"
-		} else {
-			msg = "duser cannot be demoted to duser"
-		}
-		return errors.ErrInvalidRole(msg, err)
+	if err := user.DemoteToUser(); err != nil {
+		s.log.Errorf("Failed to demote duser %s to regular duser: %v", id, err)
+		return err
 	}
-
-	user.IsSeller = false
-	user.Roles = []enums.Role{enums.USER}
 
 	_, err = s.userRepository.Update(user)
 	if err != nil {
-		s.log.Errorf("Failed to update duser %s to duser role: %v", id, err)
+		s.log.Errorf("Failed to update duser %s to regular duser role: %v", id, err)
 		return errors.Wrap("UPDATE_ERROR", "failed to update duser roles", 500, err)
 	}
 

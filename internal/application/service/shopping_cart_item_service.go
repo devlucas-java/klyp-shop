@@ -1,8 +1,6 @@
 package service
 
 import (
-	"time"
-
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dcart"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
@@ -57,17 +55,17 @@ func (s *ShoppingCartItemService) AddItem(auth *entity.User, req *dcart.AddShopp
 
 	isNewCart := cart == nil
 	if isNewCart {
-		cart = &entity.ShoppingCart{
-			ID:        id.NewUUID(),
-			UserID:    auth.ID,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-			Items:     []*entity.ShoppingCartItem{},
-		}
+		cart = entity.NewShoppingCart(auth.ID)
 	}
 
-	cart.Items = append(cart.Items, entity.NewShoppingCartItem(cart.ID, product.ID, req.Quantity, product.PriceBTC))
-	updateCartTotals(cart)
+	item, err := entity.NewShoppingCartItem(cart.ID, product.ID, req.Quantity, product.PriceBTC)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := cart.AddItem(item); err != nil {
+		return nil, err
+	}
 
 	if isNewCart {
 		cart, err = s.cartRepository.Create(cart)
@@ -96,21 +94,9 @@ func (s *ShoppingCartItemService) UpdateItem(auth *entity.User, itemID id.UUID, 
 		return nil, errors.ErrNotFound("ShoppingCart", nil)
 	}
 
-	var itemToUpdate *entity.ShoppingCartItem
-	for _, item := range cart.Items {
-		if item.ID == itemID {
-			itemToUpdate = item
-			break
-		}
+	if err := cart.UpdateItemQuantity(itemID, req.Quantity); err != nil {
+		return nil, err
 	}
-	if itemToUpdate == nil {
-		return nil, errors.ErrNotFound("ShoppingCartItem", nil)
-	}
-
-	itemToUpdate.Quantity = req.Quantity
-	itemToUpdate.UpdatedAt = time.Now()
-	cart.UpdatedAt = time.Now()
-	updateCartTotals(cart)
 
 	cart, err = s.cartRepository.Save(cart)
 	if err != nil {
@@ -131,21 +117,9 @@ func (s *ShoppingCartItemService) RemoveItem(auth *entity.User, itemID id.UUID) 
 		return errors.ErrNotFound("ShoppingCart", nil)
 	}
 
-	updatedItems := make([]*entity.ShoppingCartItem, 0, len(cart.Items))
-	removed := false
-	for _, item := range cart.Items {
-		if item.ID == itemID {
-			removed = true
-			continue
-		}
-		updatedItems = append(updatedItems, item)
+	if err := cart.RemoveItem(itemID); err != nil {
+		return err
 	}
-	if !removed {
-		return errors.ErrNotFound("ShoppingCartItem", nil)
-	}
-
-	cart.Items = updatedItems
-	updateCartTotals(cart)
 
 	if len(cart.Items) == 0 {
 		return s.cartRepository.DeleteByID(cart.ID)

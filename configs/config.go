@@ -8,7 +8,6 @@ import (
 	"github.com/go-chi/jwtauth"
 	"github.com/spf13/viper"
 	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -39,93 +38,58 @@ func NewConfig() *conf {
 	return cfg
 }
 
-// FOR DEVELOPMENT
-func InitConfigDev(log *logger.Logger) *conf {
-
-	cfg = &conf{
-		log:                 log,
-		WebServerPort:       "8080",
-		DbName:              "klyp_test",
-		DbPort:              "5432",
-		DbUser:              "postgres",
-		DbPassword:          "postgres",
-		DbHost:              "localhost",
-		JwtSecret:           "test-secret",
-		JwtExpireIn:         15,
-		JwtRefreshExpireIn:  1440,
-		BTCPayBaseURL:       "http://localhost:14142",
-		BTCPayStoreID:       "",
-		BTCPayAPIKey:        "",
-		BTCPayWebhookSecret: "",
-	}
-
-	cfg.JwtAccessToken = jwtauth.New("HS256", []byte(cfg.JwtSecret), nil)
-
-	log.Info("config initialized successfully")
-	return cfg
-}
-func InitDBDev(log *logger.Logger) *gorm.DB {
-
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		log.Error("failed to connect database:", err)
-		panic(err)
-	}
-
-	err = db.AutoMigrate(
-		&entity.Address{},
-		&entity.BitcoinPayment{},
-		&entity.ChatMessage{},
-		&entity.Comment{},
-		&entity.Order{},
-		&entity.OrderItem{},
-		&entity.Product{},
-		&entity.Review{},
-		&entity.Seller{},
-		&entity.ShoppingCart{},
-		&entity.ShoppingCartItem{},
-		&entity.User{},
-	)
-	if err != nil {
-		log.Error("auto migrate failed:", err)
-		panic(err)
-	}
-
-	log.Info("database initialized successfully")
-	return db
-}
-
-// FOR TESTING
-func InitConfigTest(log *logger.Logger) *conf {
+func InitConfig(log *logger.Logger) *conf {
 
 	cfg = &conf{}
 
 	viper.AutomaticEnv()
 
+	viper.BindEnv("WEB_SERVER_PORT")
+	viper.BindEnv("DB_DRIVER")
+	viper.BindEnv("DB_HOST")
+	viper.BindEnv("DB_PORT")
+	viper.BindEnv("DB_NAME")
+	viper.BindEnv("DB_USER")
+	viper.BindEnv("DB_PASSWORD")
+	viper.BindEnv("JWT_SECRET")
+	viper.BindEnv("JWT_EXPIRE_IN")
+	viper.BindEnv("JWT_REFRESH_EXPIRE_IN")
+	viper.BindEnv("BTCPAY_BASE_URL")
+	viper.BindEnv("BTCPAY_STORE_ID")
+	viper.BindEnv("BTCPAY_API_KEY")
+	viper.BindEnv("BTCPAY_WEBHOOK_SECRET")
+
 	err := viper.Unmarshal(cfg)
 	if err != nil {
-
 		log.Error("viper unmarshal failed:", err)
 		panic(err)
 	}
 
-	cfg.JwtAccessToken = jwtauth.New("HS256", []byte(cfg.JwtSecret), nil)
+	log.Infof("DB_HOST: %s, DB_PORT: %s, DB_NAME: %s, DB_USER: %s",
+		cfg.DbHost, cfg.DbPort, cfg.DbName, cfg.DbUser)
 
-	log.Info("config initialized successfully")
+	cfg.JwtAccessToken = jwtauth.New(
+		"HS256",
+		[]byte(cfg.JwtSecret),
+		nil,
+	)
+
+	log.Info("production config initialized successfully")
+
 	return cfg
 }
 
-func InitDBTest(log *logger.Logger) *gorm.DB {
+func InitDB(log *logger.Logger) *gorm.DB {
 
-	cfg := conf{}
+	cfg := NewConfig()
 
 	dsn := fmt.Sprintf(
-		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
+		cfg.DbHost,
 		cfg.DbUser,
 		cfg.DbPassword,
-		cfg.DbHost,
-		cfg.DbPort,
 		cfg.DbName,
+		cfg.DbPort,
 	)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
@@ -135,27 +99,56 @@ func InitDBTest(log *logger.Logger) *gorm.DB {
 	}
 
 	err = db.AutoMigrate(
+		&entity.User{},
+		&entity.Seller{},
+		&entity.Product{},
+		&entity.ShoppingCart{},
+		&entity.Order{},
 		&entity.Address{},
 		&entity.BitcoinPayment{},
+		&entity.ChatMessage{},
 		&entity.Comment{},
-		&entity.Order{},
 		&entity.OrderItem{},
-		&entity.Product{},
 		&entity.Review{},
-		&entity.Seller{},
-		&entity.User{},
+		&entity.ShoppingCartItem{},
 	)
+
 	if err != nil {
 		log.Error("auto migrate failed:", err)
 		panic(err)
 	}
 
-	log.Info("database initialized successfully")
+	log.Info("production database initialized successfully")
+
 	return db
 }
 
 func (c *conf) GetWebServerPort() string {
 	return c.WebServerPort
+}
+
+func (c *conf) GetDbName() string {
+	return c.DbName
+}
+
+func (c *conf) GetDbPort() string {
+	return c.DbPort
+}
+
+func (c *conf) GetDbUser() string {
+	return c.DbUser
+}
+
+func (c *conf) GetDbPassword() string {
+	return c.DbPassword
+}
+
+func (c *conf) GetDbHost() string {
+	return c.DbHost
+}
+
+func (c *conf) GetDbDriver() string {
+	return c.DbDriver
 }
 
 func (c *conf) GetJWTSecret() string {
@@ -164,6 +157,10 @@ func (c *conf) GetJWTSecret() string {
 
 func (c *conf) GetJWTExpire() int {
 	return c.JwtExpireIn
+}
+
+func (c *conf) GetJWTRefreshExpire() int {
+	return c.JwtRefreshExpireIn
 }
 
 func (c *conf) GetTokenAuth() *jwtauth.JWTAuth {

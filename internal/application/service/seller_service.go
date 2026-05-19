@@ -37,8 +37,8 @@ func (s *SellerService) CreateSeller(auth *entity.User, req *dseller.CreateSelle
 		return nil, errors.ErrNotFound("User", err)
 	}
 
-	if user.IsSeller {
-		return nil, errors.ErrConflict("Seller", nil)
+	if err := user.MarkAsSeller(); err != nil {
+		return nil, err
 	}
 
 	seller := s.sellerMapper.CreateToSeller(req)
@@ -49,7 +49,6 @@ func (s *SellerService) CreateSeller(auth *entity.User, req *dseller.CreateSelle
 		return nil, errors.ErrDatabase("failed to create seller", err)
 	}
 
-	user.IsSeller = true
 	if _, err = s.userRepository.Update(user); err != nil {
 		return nil, errors.ErrDatabase("failed to update user", err)
 	}
@@ -71,8 +70,8 @@ func (s *SellerService) UpdateSeller(auth *entity.User, req *dseller.UpdateSelle
 		return nil, errors.ErrNotFound("User", err)
 	}
 
-	if !user.IsSeller || user.Seller == nil {
-		return nil, errors.ErrNotFound("Seller", nil)
+	if err := user.EnsureSeller(); err != nil {
+		return nil, err
 	}
 
 	patch := s.sellerMapper.UpdateToSeller(req)
@@ -92,16 +91,19 @@ func (s *SellerService) DeleteSeller(auth *entity.User) error {
 		return errors.ErrNotFound("User", err)
 	}
 
-	if !user.IsSeller || user.Seller == nil {
-		return errors.ErrNotFound("Seller", nil)
+	if err := user.EnsureSeller(); err != nil {
+		return err
 	}
 
 	if err = s.sellerRepository.DeleteByID(user.Seller.ID); err != nil {
 		return err
 	}
 
-	user.IsSeller = false
 	user.Seller = nil
+	if err := user.UnmarkAsSeller(); err != nil {
+		return err
+	}
+
 	if _, err = s.userRepository.Update(user); err != nil {
 		return errors.ErrDatabase("failed to update user", err)
 	}

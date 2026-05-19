@@ -35,8 +35,8 @@ func (s *FeaturedProductService) AddFeatured(auth *entity.User, req *dproduct.Ad
 	if err != nil {
 		return nil, errors.ErrNotFound("User", err)
 	}
-	if !user.IsSeller || user.Seller == nil {
-		return nil, errors.ErrForbidden(nil)
+	if err := user.EnsureSeller(); err != nil {
+		return nil, err
 	}
 
 	productID, err := id.Parse(req.ProductID)
@@ -49,7 +49,7 @@ func (s *FeaturedProductService) AddFeatured(auth *entity.User, req *dproduct.Ad
 		return nil, errors.ErrNotFound("Product", err)
 	}
 
-	if product.SellerID != user.Seller.ID {
+	if !product.IsOwnedBy(user.Seller.ID) {
 		return nil, errors.ErrForbidden(nil)
 	}
 
@@ -66,7 +66,11 @@ func (s *FeaturedProductService) AddFeatured(auth *entity.User, req *dproduct.Ad
 		return nil, errors.ErrConflict("FeaturedProduct", nil)
 	}
 
-	featured := entity.NewFeaturedProduct(user.Seller.ID, productID, req.Position)
+	featured, err := entity.NewFeaturedProduct(user.Seller.ID, productID, req.Position)
+	if err != nil {
+		return nil, err
+	}
+
 	saved, err := s.featuredRepository.Add(featured)
 	if err != nil {
 		return nil, errors.ErrDatabase("failed to add featured product", err)
@@ -80,8 +84,8 @@ func (s *FeaturedProductService) RemoveFeatured(auth *entity.User, productID id.
 	if err != nil {
 		return errors.ErrNotFound("User", err)
 	}
-	if !user.IsSeller || user.Seller == nil {
-		return errors.ErrForbidden(nil)
+	if err := user.EnsureSeller(); err != nil {
+		return err
 	}
 
 	return s.featuredRepository.Remove(user.Seller.ID, productID)
@@ -92,8 +96,8 @@ func (s *FeaturedProductService) UpdatePosition(auth *entity.User, productID id.
 	if err != nil {
 		return errors.ErrNotFound("User", err)
 	}
-	if !user.IsSeller || user.Seller == nil {
-		return errors.ErrForbidden(nil)
+	if err := user.EnsureSeller(); err != nil {
+		return err
 	}
 
 	_, err = s.featuredRepository.FindBySellerIDAndProductID(user.Seller.ID, productID)
@@ -122,8 +126,8 @@ func (s *FeaturedProductService) GetMyFeatured(auth *entity.User) ([]*dproduct.F
 	if err != nil {
 		return nil, errors.ErrNotFound("User", err)
 	}
-	if !user.IsSeller || user.Seller == nil {
-		return nil, errors.ErrForbidden(nil)
+	if err := user.EnsureSeller(); err != nil {
+		return nil, err
 	}
 
 	return s.GetFeaturedBySeller(user.Seller.ID)

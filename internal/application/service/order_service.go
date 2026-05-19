@@ -75,23 +75,21 @@ func (s *OrderService) CreateOrder(auth *entity.User, req *dorder.CreateOrderReq
 			return nil, errors.ErrInvalidUUID(err)
 		}
 
-		if itemReq.Quantity <= 0 {
-			return nil, errors.ErrBadRequest("quantity must be greater than zero", nil)
-		}
-
 		product, err := s.productRepository.FindByID(productID)
 		if err != nil {
 			s.log.Errorf("Failed to find product %s: %v", productID, err)
 			return nil, errors.ErrNotFound("Product", err)
 		}
 
-		items = append(items, *entity.NewOrderItem(productID, itemReq.Quantity, product.PriceBTC))
+		item, err := entity.NewOrderItem(productID, itemReq.Quantity, product.PriceBTC)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, *item)
 	}
 
 	order := entity.NewOrder(user.ID, addressID, items)
-	for i := range order.Items {
-		order.Items[i].OrderID = order.ID
-	}
+	order.SetOrderIDForItems()
 
 	createdOrder, err := s.orderRepository.Create(order)
 	if err != nil {
@@ -112,9 +110,9 @@ func (s *OrderService) GetOrder(auth *entity.User, orderID id.UUID) (*dorder.Ord
 		return nil, errors.ErrNotFound("Order", err)
 	}
 
-	if order.UserID != auth.ID {
+	if err := order.EnsureOwnedBy(auth.ID); err != nil {
 		s.log.Warnf("Order %s does not belong to user %s", orderID, auth.ID)
-		return nil, errors.ErrForbidden(fmt.Errorf("order does not belong to user"))
+		return nil, err
 	}
 
 	return s.orderMapper.OrderToResponse(order), nil
@@ -141,17 +139,15 @@ func (s *OrderService) CancelOrder(auth *entity.User, orderID id.UUID) error {
 		return errors.ErrNotFound("Order", err)
 	}
 
-	if order.UserID != auth.ID {
+	if err := order.EnsureOwnedBy(auth.ID); err != nil {
 		s.log.Warnf("Order %s does not belong to user %s", orderID, auth.ID)
-		return errors.ErrForbidden(fmt.Errorf("order does not belong to user"))
+		return err
 	}
 
-	if order.Status != entity.OrderStatusPending {
+	if err := order.CancelPending(); err != nil {
 		s.log.Warnf("Cannot cancel order %s in status %s", orderID, order.Status)
-		return errors.ErrConflict("Order", fmt.Errorf("order cannot be cancelled in current status"))
+		return err
 	}
-
-	order.Status = entity.OrderStatusCancelled
 	_, err = s.orderRepository.Updates(order)
 	if err != nil {
 		s.log.Errorf("Failed to cancel order %s: %v", orderID, err)

@@ -43,3 +43,7 @@ func NewProduct(
 		Categories:  categories,
 	}
 }
+
+func (p *Product) IsOwnedBy(sellerID id.UUID) bool {
+	return p.SellerID == sellerID
+}

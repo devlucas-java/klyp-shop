@@ -5,11 +5,9 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dothers"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	"github.com/devlucas-java/klyp-shop/internal/domain/enums"
 	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/security/jwt"
-	"github.com/devlucas-java/klyp-shop/pkg/password_encoder"
 )
 
 type AuthService struct {
@@ -32,9 +30,9 @@ func (a *AuthService) Login(login *dauth.LoginRequest) (*dauth.JWTResponse, erro
 		return nil, errors.ErrInvalidCredentials(err)
 	}
 
-	match, err := password_encoder.Match(login.Password, user.Password)
+	match, err := user.VerifyPassword(login.Password)
 	if err != nil {
-		return nil, errors.ErrInternal("failed to verify password", err)
+		return nil, err
 	}
 
 	if !match {
@@ -50,19 +48,14 @@ func (a *AuthService) Login(login *dauth.LoginRequest) (*dauth.JWTResponse, erro
 }
 
 func (a *AuthService) Register(dto *dauth.RegisterDTO) (*dauth.JWTResponse, error) {
-	user := a.mapper.RegisterDTOToUser(dto)
-
-	pass, err := password_encoder.Encoder(dto.Password)
+	user, err := entity.NewUser(dto.Name, dto.Email, dto.Username, dto.Password)
 	if err != nil {
-		return nil, errors.ErrInternal("failed to encode password", err)
+		return nil, errors.ErrInternal("failed to create user", err)
 	}
-
-	user.Password = pass
-	user.Roles = []enums.Role{enums.USER}
 
 	user, err = a.userRepository.Create(user)
 	if err != nil {
-		return nil, errors.ErrDatabase("failed to create duser", err)
+		return nil, errors.ErrDatabase("failed to create user", err)
 	}
 
 	token, err := a.jwtService.GenerateToken(user)
@@ -76,12 +69,12 @@ func (a *AuthService) Register(dto *dauth.RegisterDTO) (*dauth.JWTResponse, erro
 func (a *AuthService) VerifyPassword(req *dauth.VerifyPasswordRequest, user *entity.User) (*dothers.BooleanDTO, error) {
 	stored, err := a.userRepository.FindByID(user.ID)
 	if err != nil {
-		return nil, errors.ErrInternal("failed to retrieve duser", err)
+		return nil, errors.ErrInternal("failed to retrieve user", err)
 	}
 
-	match, err := password_encoder.Match(req.Password, stored.Password)
+	match, err := stored.VerifyPassword(req.Password)
 	if err != nil {
-		return nil, errors.ErrInternal("failed to verify password", err)
+		return nil, err
 	}
 
 	return &dothers.BooleanDTO{Result: match}, nil
@@ -90,24 +83,12 @@ func (a *AuthService) VerifyPassword(req *dauth.VerifyPasswordRequest, user *ent
 func (a *AuthService) UpdatePassword(dto *dauth.UpdatePasswordRequest, user *entity.User) error {
 	stored, err := a.userRepository.FindByID(user.ID)
 	if err != nil {
-		return errors.ErrInternal("failed to retrieve duser", err)
+		return errors.ErrInternal("failed to retrieve user", err)
 	}
 
-	match, err := password_encoder.Match(dto.CurrentPassword, stored.Password)
-	if err != nil {
-		return errors.ErrInternal("failed to verify password", err)
+	if err := stored.ChangePassword(dto.CurrentPassword, dto.NewPassword); err != nil {
+		return err
 	}
-
-	if !match {
-		return errors.ErrInvalidCredentials(nil)
-	}
-
-	hash, err := password_encoder.Encoder(dto.NewPassword)
-	if err != nil {
-		return errors.ErrInternal("failed to encode password", err)
-	}
-
-	stored.Password = hash
 
 	_, err = a.userRepository.Update(stored)
 	if err != nil {

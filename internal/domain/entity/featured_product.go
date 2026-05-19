@@ -3,6 +3,7 @@ package entity
 import (
 	"time"
 
+	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 )
 
@@ -20,7 +21,11 @@ type FeaturedProduct struct {
 	Product Product `gorm:"foreignKey:ProductID"`
 }
 
-func NewFeaturedProduct(sellerID, productID id.UUID, position int) *FeaturedProduct {
+func NewFeaturedProduct(sellerID, productID id.UUID, position int) (*FeaturedProduct, error) {
+	if position < 1 || position > 10 {
+		return nil, errors.ErrBadRequest("position must be between 1 and 10", nil)
+	}
+
 	now := time.Now()
 	return &FeaturedProduct{
 		ID:        id.NewUUID(),
@@ -29,5 +34,14 @@ func NewFeaturedProduct(sellerID, productID id.UUID, position int) *FeaturedProd
 		SellerID:  sellerID,
 		ProductID: productID,
 		Position:  position,
+	}, nil
+}
+
+func (f *FeaturedProduct) SetPosition(position int) error {
+	if position < 1 || position > 10 {
+		return errors.ErrBadRequest("position must be between 1 and 10", nil)
 	}
+	f.Position = position
+	f.UpdatedAt = time.Now()
+	return nil
 }

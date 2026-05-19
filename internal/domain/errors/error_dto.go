@@ -16,6 +16,10 @@ func (e *AppError) Error() string {
 	return fmt.Sprintf("[%s] %s", e.Code, e.Message)
 }
 
+func (e *AppError) StatusCode() int {
+	return e.Status
+}
+
 func (e *AppError) Unwrap() error {
 	return e.Err
 }

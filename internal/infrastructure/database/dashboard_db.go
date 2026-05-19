@@ -1,8 +1,8 @@
 package database
 
 import (
+	"context"
 	"fmt"
-
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"gorm.io/gorm"
@@ -18,7 +18,7 @@ func NewDashboardDB(db *gorm.DB) repository.DashboardRepository {
 
 func (d *DashboardDB) CountOrdersByStatusForSeller(sellerID id.UUID) ([]repository.OrderStatusCount, error) {
 	var rows []repository.OrderStatusCount
-	err := d.db.Raw(`
+	err := d.db.WithContext(context.Background()).Raw(`
 		SELECT o.status, COUNT(DISTINCT o.id) AS count
 		FROM orders o
 		INNER JOIN order_items oi ON oi.order_id = o.id
@@ -34,7 +34,7 @@ func (d *DashboardDB) CountOrdersByStatusForSeller(sellerID id.UUID) ([]reposito
 
 func (d *DashboardDB) SumRevenueForSeller(sellerID id.UUID) (float64, error) {
 	var revenue float64
-	err := d.db.Raw(`
+	err := d.db.WithContext(context.Background()).Raw(`
 		SELECT COALESCE(SUM(oi.price_btc * oi.quantity), 0)
 		FROM order_items oi
 		INNER JOIN products p ON p.id = oi.product_id
@@ -50,7 +50,7 @@ func (d *DashboardDB) SumRevenueForSeller(sellerID id.UUID) (float64, error) {
 
 func (d *DashboardDB) CountProductsForSeller(sellerID id.UUID) (int64, error) {
 	var count int64
-	err := d.db.Raw(`SELECT COUNT(*) FROM products WHERE seller_id = ?`, sellerID).Scan(&count).Error
+	err := d.db.WithContext(context.Background()).Raw(`SELECT COUNT(*) FROM products WHERE seller_id = ?`, sellerID).Scan(&count).Error
 	if err != nil {
 		return 0, fmt.Errorf("DashboardDB.CountProductsForSeller: %w", err)
 	}
@@ -63,7 +63,7 @@ func (d *DashboardDB) AvgRatingForSeller(sellerID id.UUID) (float64, int64, erro
 		Total int64
 	}
 	var r result
-	err := d.db.Raw(`
+	err := d.db.WithContext(context.Background()).Raw(`
 		SELECT COALESCE(AVG(rv.rating), 0) AS avg, COUNT(rv.id) AS total
 		FROM reviews rv
 		INNER JOIN products p ON p.id = rv.product_id
@@ -77,7 +77,7 @@ func (d *DashboardDB) AvgRatingForSeller(sellerID id.UUID) (float64, int64, erro
 
 func (d *DashboardDB) TopProductsForSeller(sellerID id.UUID, limit int) ([]repository.ProductSalesRow, error) {
 	var rows []repository.ProductSalesRow
-	err := d.db.Raw(`
+	err := d.db.WithContext(context.Background()).Raw(`
 		SELECT
 			p.id          AS product_id,
 			p.name        AS name,
@@ -100,7 +100,7 @@ func (d *DashboardDB) TopProductsForSeller(sellerID id.UUID, limit int) ([]repos
 
 func (d *DashboardDB) CountAllUsers() (int64, error) {
 	var count int64
-	err := d.db.Raw(`SELECT COUNT(*) FROM users`).Scan(&count).Error
+	err := d.db.WithContext(context.Background()).Raw(`SELECT COUNT(*) FROM users`).Scan(&count).Error
 	if err != nil {
 		return 0, fmt.Errorf("DashboardDB.CountAllUsers: %w", err)
 	}
@@ -109,7 +109,7 @@ func (d *DashboardDB) CountAllUsers() (int64, error) {
 
 func (d *DashboardDB) CountAllSellers() (int64, error) {
 	var count int64
-	err := d.db.Raw(`SELECT COUNT(*) FROM sellers`).Scan(&count).Error
+	err := d.db.WithContext(context.Background()).Raw(`SELECT COUNT(*) FROM sellers`).Scan(&count).Error
 	if err != nil {
 		return 0, fmt.Errorf("DashboardDB.CountAllSellers: %w", err)
 	}
@@ -118,7 +118,7 @@ func (d *DashboardDB) CountAllSellers() (int64, error) {
 
 func (d *DashboardDB) CountAllProducts() (int64, error) {
 	var count int64
-	err := d.db.Raw(`SELECT COUNT(*) FROM products`).Scan(&count).Error
+	err := d.db.WithContext(context.Background()).Raw(`SELECT COUNT(*) FROM products`).Scan(&count).Error
 	if err != nil {
 		return 0, fmt.Errorf("DashboardDB.CountAllProducts: %w", err)
 	}
@@ -127,7 +127,7 @@ func (d *DashboardDB) CountAllProducts() (int64, error) {
 
 func (d *DashboardDB) CountAllOrdersByStatus() ([]repository.OrderStatusCount, error) {
 	var rows []repository.OrderStatusCount
-	err := d.db.Raw(`
+	err := d.db.WithContext(context.Background()).Raw(`
 		SELECT status, COUNT(*) AS count
 		FROM orders
 		GROUP BY status
@@ -140,7 +140,7 @@ func (d *DashboardDB) CountAllOrdersByStatus() ([]repository.OrderStatusCount, e
 
 func (d *DashboardDB) SumTotalRevenue() (float64, error) {
 	var revenue float64
-	err := d.db.Raw(`
+	err := d.db.WithContext(context.Background()).Raw(`
 		SELECT COALESCE(SUM(oi.price_btc * oi.quantity), 0)
 		FROM order_items oi
 		INNER JOIN orders o ON o.id = oi.order_id
@@ -154,7 +154,7 @@ func (d *DashboardDB) SumTotalRevenue() (float64, error) {
 
 func (d *DashboardDB) TopSellersByRevenue(limit int) ([]repository.SellerRevenueRow, error) {
 	var rows []repository.SellerRevenueRow
-	err := d.db.Raw(`
+	err := d.db.WithContext(context.Background()).Raw(`
 		SELECT
 			s.id           AS seller_id,
 			s.display_name AS display_name,

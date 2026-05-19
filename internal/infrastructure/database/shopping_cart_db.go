@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
@@ -24,7 +25,7 @@ func (s *ShoppingCartDB) FindByUserID(userID id.UUID) (*entity.ShoppingCart, err
 
 	var cart entity.ShoppingCart
 
-	err := s.DB.Preload("Items.Product").
+	err := s.DB.WithContext(context.Background()).Preload("Items.Product").
 		Where("user_id = ?", userID).
 		First(&cart).Error
 
@@ -39,7 +40,7 @@ func (s *ShoppingCartDB) FindByUserID(userID id.UUID) (*entity.ShoppingCart, err
 }
 
 func (s *ShoppingCartDB) Create(cart *entity.ShoppingCart) (*entity.ShoppingCart, error) {
-	err := s.DB.Create(cart).Error
+	err := s.DB.WithContext(context.Background()).Create(cart).Error
 	if err != nil {
 		s.log.Errorf("Failed to create shopping cart: %v", err)
 		return nil, err
@@ -49,7 +50,7 @@ func (s *ShoppingCartDB) Create(cart *entity.ShoppingCart) (*entity.ShoppingCart
 
 func (s *ShoppingCartDB) Updates(cart *entity.ShoppingCart) (*entity.ShoppingCart, error) {
 
-	err := s.DB.Session(&gorm.Session{FullSaveAssociations: true}).Updates(cart).Error
+	err := s.DB.WithContext(context.Background()).Session(&gorm.Session{FullSaveAssociations: true}).Updates(cart).Error
 	if err != nil {
 		s.log.Errorf("Failed to update shopping cart %s: %v", cart.ID, err)
 		return nil, err
@@ -58,7 +59,7 @@ func (s *ShoppingCartDB) Updates(cart *entity.ShoppingCart) (*entity.ShoppingCar
 }
 
 func (s *ShoppingCartDB) DeleteByID(uuid id.UUID) error {
-	err := s.DB.Where("id = ?", uuid).Delete(&entity.ShoppingCart{}).Error
+	err := s.DB.WithContext(context.Background()).Where("id = ?", uuid).Delete(&entity.ShoppingCart{}).Error
 	if err != nil {
 		s.log.Errorf("Failed to delete shopping cart %s: %v", uuid, err)
 		return err
@@ -70,7 +71,7 @@ func (s *ShoppingCartDB) FindByID(uuid id.UUID) (*entity.ShoppingCart, error) {
 
 	var cart entity.ShoppingCart
 
-	err := s.DB.Preload("Items.Product").
+	err := s.DB.WithContext(context.Background()).Preload("Items.Product").
 		Where("id = ?", uuid).
 		First(&cart).Error
 
@@ -85,7 +86,7 @@ func (s *ShoppingCartDB) FindByID(uuid id.UUID) (*entity.ShoppingCart, error) {
 }
 
 func (s *ShoppingCartDB) Save(cart *entity.ShoppingCart) (*entity.ShoppingCart, error) {
-	err := s.DB.Session(&gorm.Session{FullSaveAssociations: true}).Save(cart).Error
+	err := s.DB.WithContext(context.Background()).Session(&gorm.Session{FullSaveAssociations: true}).Save(cart).Error
 	if err != nil {
 		s.log.Errorf("Failed to save shopping cart %s: %v", cart.ID, err)
 		return nil, err

@@ -1,19 +1,18 @@
 package response
 
 import (
+	"errors"
 	"net/http"
 
-	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
+	domainErrors "github.com/devlucas-java/klyp-shop/internal/domain/errors"
 )
 
 func ResponseError(w http.ResponseWriter, err error) {
-	var appErr *errors.AppError
-	switch e := err.(type) {
-	case *errors.AppError:
-		appErr = e
-	default:
-		appErr = errors.New("INTERNAL_ERROR", "an unexpected error occurred", http.StatusInternalServerError, err)
+	var appErr *domainErrors.AppError
+	if errors.As(err, &appErr) {
+		ResponseEntity(w, appErr.StatusCode(), appErr)
+		return
 	}
 
-	ResponseEntity(w, appErr.Status, appErr)
+	ResponseEntity(w, http.StatusInternalServerError, domainErrors.New("INTERNAL_ERROR", "an unexpected error occurred", http.StatusInternalServerError, err))
 }

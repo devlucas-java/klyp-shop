@@ -46,7 +46,8 @@ func TestOrderService_CreateOrder(t *testing.T) {
 	addressRepo.On("FindByID", address.ID).Return(address, nil)
 	productRepo.On("FindByID", product.ID).Return(product, nil)
 
-	createdOrder := entity.NewOrder(user.ID, address.ID, []entity.OrderItem{*entity.NewOrderItem(product.ID, 2, product.PriceBTC)})
+	orderItem, _ := entity.NewOrderItem(product.ID, 2, product.PriceBTC)
+	createdOrder := entity.NewOrder(user.ID, address.ID, []entity.OrderItem{*orderItem})
 	orderRepo.On("Create", mock.AnythingOfType("*entity.Order")).Return(createdOrder, nil)
 
 	req := &dorder.CreateOrderRequest{

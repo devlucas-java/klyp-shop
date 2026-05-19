@@ -14,8 +14,8 @@ import (
 func main() {
 	log := logger.NewLogger(logger.DEBUG)
 
-	cfg := configs.InitConfigDev(log)
-	db := configs.InitDBDev(log)
+	cfg := configs.InitConfig(log)
+	db := configs.InitDB(log)
 
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)

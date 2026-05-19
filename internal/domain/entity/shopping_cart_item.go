@@ -3,6 +3,7 @@ package entity
 import (
 	"time"
 
+	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 )
 
@@ -19,7 +20,11 @@ type ShoppingCartItem struct {
 	PriceBTC float64 `gorm:"not null"`
 }
 
-func NewShoppingCartItem(cartID, productID id.UUID, quantity int, priceBTC float64) *ShoppingCartItem {
+func NewShoppingCartItem(cartID, productID id.UUID, quantity int, priceBTC float64) (*ShoppingCartItem, error) {
+	if quantity <= 0 {
+		return nil, errors.ErrBadRequest("quantity must be greater than zero", nil)
+	}
+
 	now := time.Now()
 	return &ShoppingCartItem{
 		ID:        id.NewUUID(),
@@ -29,7 +34,16 @@ func NewShoppingCartItem(cartID, productID id.UUID, quantity int, priceBTC float
 		ProductID: productID,
 		Quantity:  quantity,
 		PriceBTC:  priceBTC,
+	}, nil
+}
+
+func (item *ShoppingCartItem) SetQuantity(quantity int) error {
+	if quantity <= 0 {
+		return errors.ErrBadRequest("quantity must be greater than zero", nil)
 	}
+	item.Quantity = quantity
+	item.UpdatedAt = time.Now()
+	return nil
 }
 
 func (item *ShoppingCartItem) Subtotal() float64 {

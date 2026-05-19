@@ -1,8 +1,10 @@
 package entity
 
 import (
+	"fmt"
 	"time"
 
+	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 )
 
@@ -71,4 +73,40 @@ func (o *Order) Cancel() {
 
 func (o *Order) IsPending() bool {
 	return o.Status == OrderStatusPending
+}
+
+func (o *Order) IsOwnedBy(userID id.UUID) bool {
+	return o.UserID == userID
+}
+
+func (o *Order) EnsureOwnedBy(userID id.UUID) error {
+	if !o.IsOwnedBy(userID) {
+		return errors.ErrForbidden(fmt.Errorf("order does not belong to user"))
+	}
+	return nil
+}
+
+func (o *Order) CanBePaidBy(userID id.UUID) error {
+	if !o.IsOwnedBy(userID) {
+		return errors.ErrForbidden(fmt.Errorf("order does not belong to user"))
+	}
+	if o.Status != OrderStatusPending {
+		return errors.ErrConflict("Order", fmt.Errorf("order is not in pending status"))
+	}
+	return nil
+}
+
+func (o *Order) CancelPending() error {
+	if o.Status != OrderStatusPending {
+		return errors.ErrConflict("Order", fmt.Errorf("order cannot be cancelled in current status"))
+	}
+
+	o.Status = OrderStatusCancelled
+	return nil
+}
+
+func (o *Order) SetOrderIDForItems() {
+	for i := range o.Items {
+		o.Items[i].OrderID = o.ID
+	}
 }

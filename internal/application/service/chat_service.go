@@ -1,11 +1,8 @@
 package service
 
 import (
-	"fmt"
-
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dchat"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	"github.com/devlucas-java/klyp-shop/internal/domain/enums"
 	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
@@ -41,7 +38,7 @@ func (s *ChatService) SendMessage(sender *entity.User, req *dchat.SendMessageReq
 		return nil, errors.ErrNotFound("User", err)
 	}
 
-	if err := s.validateChatPermission(sender, receiver); err != nil {
+	if err := sender.CanChatWith(receiver); err != nil {
 		return nil, err
 	}
 
@@ -60,7 +57,7 @@ func (s *ChatService) GetConversation(auth *entity.User, peerID id.UUID, limit, 
 		return nil, errors.ErrNotFound("User", err)
 	}
 
-	if err := s.validateChatPermission(auth, peer); err != nil {
+	if err := auth.CanChatWith(peer); err != nil {
 		return nil, err
 	}
 
@@ -80,27 +77,6 @@ func (s *ChatService) GetConversation(auth *entity.User, peerID id.UUID, limit, 
 		result[i] = toMessageResponse(m)
 	}
 	return result, nil
-}
-
-func (s *ChatService) validateChatPermission(sender, receiver *entity.User) error {
-	senderIsAdmin := sender.HasRole(enums.ADMIN)
-	receiverIsAdmin := receiver.HasRole(enums.ADMIN)
-	senderIsSeller := sender.IsSeller
-	receiverIsSeller := receiver.IsSeller
-
-	if senderIsAdmin || receiverIsAdmin {
-		return nil
-	}
-
-	if senderIsSeller && !receiverIsSeller {
-		return nil
-	}
-
-	if !senderIsSeller && receiverIsSeller {
-		return nil
-	}
-
-	return errors.ErrForbidden(fmt.Errorf("chat is only allowed between user and seller, or with admin"))
 }
 
 func toMessageResponse(m *entity.ChatMessage) *dchat.MessageResponse {

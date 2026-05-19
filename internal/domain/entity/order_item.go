@@ -3,6 +3,7 @@ package entity
 import (
 	"time"
 
+	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 )
 
@@ -19,7 +20,11 @@ type OrderItem struct {
 	PriceBTC float64 `gorm:"not null"`
 }
 
-func NewOrderItem(productID id.UUID, quantity int, priceBTC float64) *OrderItem {
+func NewOrderItem(productID id.UUID, quantity int, priceBTC float64) (*OrderItem, error) {
+	if quantity <= 0 {
+		return nil, errors.ErrBadRequest("quantity must be greater than zero", nil)
+	}
+
 	now := time.Now()
 	return &OrderItem{
 		ID:        id.NewUUID(),
@@ -28,7 +33,7 @@ func NewOrderItem(productID id.UUID, quantity int, priceBTC float64) *OrderItem 
 		ProductID: productID,
 		Quantity:  quantity,
 		PriceBTC:  priceBTC,
-	}
+	}, nil
 }
 
 func (oi *OrderItem) Subtotal() float64 {

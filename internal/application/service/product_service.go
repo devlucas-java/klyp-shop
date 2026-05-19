@@ -37,8 +37,8 @@ func (s *ProductService) CreateProduct(auth *entity.User, req *dproduct.CreatePr
 		return nil, err
 	}
 
-	if !user.IsSeller || user.Seller == nil {
-		return nil, errors.ErrForbidden(fmt.Errorf("user is not a seller"))
+	if err := user.EnsureSeller(); err != nil {
+		return nil, err
 	}
 
 	product := s.productMapper.CreateProductToProduct(req)
@@ -67,7 +67,7 @@ func (s *ProductService) UpdateProduct(auth *entity.User, req *dproduct.UpdatePr
 		return nil, err
 	}
 
-	if product.SellerID != user.Seller.ID {
+	if !product.IsOwnedBy(user.Seller.ID) {
 		s.log.Errorf("user is not the owner of the product")
 		return nil, errors.ErrUnauthorized(fmt.Errorf("user is not the owner of the product"))
 	}
@@ -98,7 +98,7 @@ func (s *ProductService) DeleteProduct(auth *entity.User, id id.UUID) error {
 		return err
 	}
 
-	if product.SellerID != user.Seller.ID {
+	if !product.IsOwnedBy(user.Seller.ID) {
 		s.log.Errorf("user is not the owner of the product")
 		return errors.ErrUnauthorized(fmt.Errorf("user is not the owner of the product"))
 	}
