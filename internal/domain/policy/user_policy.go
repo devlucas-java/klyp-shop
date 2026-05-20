@@ -6,14 +6,12 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 )
 
-// UserPolicy contém as regras de negócio para gerenciamento de usuários.
 type UserPolicy struct{}
 
 func NewUserPolicy() *UserPolicy {
 	return &UserPolicy{}
 }
 
-// CanPromoteToAdmin verifica se o usuário pode ser promovido a admin.
 func (p *UserPolicy) CanPromoteToAdmin(user *entity.User) error {
 	if user.IsSeller {
 		return errors.ErrInvalidRole("seller cannot be promoted to admin", nil)
@@ -24,7 +22,6 @@ func (p *UserPolicy) CanPromoteToAdmin(user *entity.User) error {
 	return nil
 }
 
-// CanDemoteToUser verifica se o usuário pode ser rebaixado a user comum.
 func (p *UserPolicy) CanDemoteToUser(user *entity.User) error {
 	if user.IsSeller {
 		return errors.ErrInvalidRole("seller cannot be demoted", nil)

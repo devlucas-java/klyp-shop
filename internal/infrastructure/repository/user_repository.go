@@ -14,4 +14,6 @@ type UserRepository interface {
 	FindByIDWithSeller(id id.UUID) (*entity.User, error)
 	FindByEmailOrUsername(str string) (*entity.User, error)
 	DeleteByID(id id.UUID) error
+	ExistsUserByEmail(email string) (bool, error)
+	ExistsUserByUserName(username string) (bool, error)
 }

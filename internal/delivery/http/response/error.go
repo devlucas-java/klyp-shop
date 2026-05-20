@@ -14,5 +14,5 @@ func ResponseError(w http.ResponseWriter, err error) {
 		return
 	}
 
-	ResponseEntity(w, http.StatusInternalServerError, domainErrors.New("INTERNAL_ERROR", "an unexpected error occurred", http.StatusInternalServerError, err))
+	ResponseEntity(w, http.StatusInternalServerError, domainErrors.New("an unexpected error occurred", http.StatusInternalServerError, err))
 }

@@ -41,6 +41,8 @@ func TestAuthService_Register(t *testing.T) {
 		Name: "Alice", Email: "alice@test.com", Username: "alice", Password: "securepass",
 	}
 
+	userRepo.On("ExistsUserByEmail", dto.Email).Return(false, nil)
+	userRepo.On("ExistsUserByUserName", dto.Username).Return(false, nil)
 	userRepo.On("Create", mock.AnythingOfType("*entity.User")).
 		Return(&entity.User{
 			ID: id.NewUUID(), Name: dto.Name, Email: dto.Email,
@@ -64,6 +66,8 @@ func TestAuthService_Register_DBError(t *testing.T) {
 		Name: "Bob", Email: "bob@test.com", Username: "bob", Password: "pass123",
 	}
 
+	userRepo.On("ExistsUserByEmail", dto.Email).Return(false, nil)
+	userRepo.On("ExistsUserByUserName", dto.Username).Return(false, nil)
 	userRepo.On("Create", mock.AnythingOfType("*entity.User")).
 		Return(nil, domainErr.ErrDatabase("duplicate email", nil))
 

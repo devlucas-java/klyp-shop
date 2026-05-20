@@ -83,10 +83,9 @@ func TestUpdateMe_EmailConflict(t *testing.T) {
 	svc := newUserService(userRepo)
 
 	user := newUser()
-	other := &entity.User{ID: id.NewUUID(), Email: "taken@test.com"}
 
 	userRepo.On("FindByID", user.ID).Return(user, nil)
-	userRepo.On("FindByEmailOrUsername", "taken@test.com").Return(other, nil)
+	userRepo.On("ExistsUserByEmail", "taken@test.com").Return(true, nil)
 
 	_, err := svc.UpdateMe(user, &duser.UpdateUserRequest{Email: "taken@test.com"})
 
@@ -99,10 +98,9 @@ func TestUpdateMe_UsernameConflict(t *testing.T) {
 	svc := newUserService(userRepo)
 
 	user := newUser()
-	other := &entity.User{ID: id.NewUUID(), Username: "takenuser"}
 
 	userRepo.On("FindByID", user.ID).Return(user, nil)
-	userRepo.On("FindByEmailOrUsername", "takenuser").Return(other, nil)
+	userRepo.On("ExistsUserByUserName", "takenuser").Return(true, nil)
 
 	_, err := svc.UpdateMe(user, &duser.UpdateUserRequest{Username: "takenuser"})
 

@@ -8,6 +8,7 @@ import (
 type FeaturedProductRepository interface {
 	Add(featured *entity.FeaturedProduct) (*entity.FeaturedProduct, error)
 	Remove(sellerID, productID id.UUID) error
+	FindAll() ([]*entity.FeaturedProduct, error)
 	FindBySellerID(sellerID id.UUID) ([]*entity.FeaturedProduct, error)
 	FindBySellerIDAndProductID(sellerID, productID id.UUID) (*entity.FeaturedProduct, error)
 	CountBySellerID(sellerID id.UUID) (int64, error)

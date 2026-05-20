@@ -33,10 +33,10 @@ func NewFeaturedProductRouter(
 }
 
 func (f *FeaturedProductRouter) RegisterFeaturedRoutes(r chi.Router) {
-	// Public — anyone can see a seller's top 10
+	// Public — anyone can browse featured products
+	r.Get("/", adapter.Adapt(f.featuredHandler.GetAllFeatured))
 	r.Get("/seller/{sellerID}", adapter.Adapt(f.featuredHandler.GetFeaturedBySeller))
 
-	// Protected — only sellers manage their own top 10
 	r.Group(func(protected chi.Router) {
 		protected.Use(middleware.JwtMiddleware(f.jwtService, f.log, f.userRepository))
 		protected.Use(middleware.RoleMiddleware([]enums.Role{enums.SELLER, enums.ADMIN}))

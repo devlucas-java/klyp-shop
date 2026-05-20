@@ -10,15 +10,16 @@ import (
 const MaxFeaturedProducts = 10
 
 type FeaturedProduct struct {
-	ID        id.UUID `gorm:"type:uuid;primaryKey"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        id.UUID   `gorm:"type:uuid;primaryKey"`
+	CreatedAt time.Time `gorm:"autoCreateTime"`
+	UpdatedAt time.Time `gorm:"autoUpdateTime"`
 
-	SellerID  id.UUID `gorm:"index;not null"`
-	ProductID id.UUID `gorm:"uniqueIndex:idx_seller_product;not null"`
-	Position  int     `gorm:"not null;check:position >= 1 AND position <= 10"`
+	SellerID  id.UUID `gorm:"uniqueIndex:idx_featured_seller_product;not null"`
+	ProductID id.UUID `gorm:"uniqueIndex:idx_featured_seller_product;not null"`
 
-	Product Product `gorm:"foreignKey:ProductID"`
+	Position int `gorm:"not null;check:position >= 1 AND position <= 10"`
+
+	Product Product `gorm:"foreignKey:ProductID;references:ID"`
 }
 
 func NewFeaturedProduct(sellerID, productID id.UUID, position int) (*FeaturedProduct, error) {

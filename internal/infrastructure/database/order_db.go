@@ -24,7 +24,7 @@ func NewOrderDB(db *gorm.DB, log *logger.Logger) repository.OrderRepository {
 func (o *OrderDB) Create(order *entity.Order) (*entity.Order, error) {
 	if err := o.db.WithContext(context.Background()).Create(order).Error; err != nil {
 		o.log.Errorf("OrderDB.Create: %v", err)
-		return nil, domainErr.ErrDatabase("failed to create order", err)
+		return nil, handlePgError(err, "failed to create order")
 	}
 	return order, nil
 }
@@ -32,7 +32,7 @@ func (o *OrderDB) Create(order *entity.Order) (*entity.Order, error) {
 func (o *OrderDB) Save(order *entity.Order) (*entity.Order, error) {
 	if err := o.db.WithContext(context.Background()).Where("id = ?", order.ID).Save(order).Error; err != nil {
 		o.log.Errorf("OrderDB.Save %s: %v", order.ID, err)
-		return nil, domainErr.ErrDatabase("failed to save order", err)
+		return nil, handlePgError(err, "failed to save order")
 	}
 	return order, nil
 }
@@ -40,7 +40,7 @@ func (o *OrderDB) Save(order *entity.Order) (*entity.Order, error) {
 func (o *OrderDB) Updates(order *entity.Order) (*entity.Order, error) {
 	if err := o.db.WithContext(context.Background()).Model(order).Where("id = ?", order.ID).Updates(order).Error; err != nil {
 		o.log.Errorf("OrderDB.Updates %s: %v", order.ID, err)
-		return nil, domainErr.ErrDatabase("failed to update order", err)
+		return nil, handlePgError(err, "failed to update order")
 	}
 	return order, nil
 }
@@ -57,7 +57,7 @@ func (o *OrderDB) FindByID(orderID id.UUID) (*entity.Order, error) {
 			return nil, domainErr.ErrNotFound("Order", err)
 		}
 		o.log.Errorf("OrderDB.FindByID %s: %v", orderID, err)
-		return nil, domainErr.ErrDatabase("failed to find order", err)
+		return nil, handlePgError(err, "failed to find order")
 	}
 	return &order, nil
 }
@@ -66,7 +66,7 @@ func (o *OrderDB) FindByUser(userID id.UUID) ([]*entity.Order, error) {
 	var orders []*entity.Order
 	if err := o.db.WithContext(context.Background()).Preload("Items").Preload("User").Preload("Address").Preload("BitcoinPayment").Where("user_id = ?", userID).Find(&orders).Error; err != nil {
 		o.log.Errorf("OrderDB.FindByUser %s: %v", userID, err)
-		return nil, domainErr.ErrDatabase("failed to find orders", err)
+		return nil, handlePgError(err, "failed to find orders")
 	}
 	return orders, nil
 }
@@ -80,7 +80,7 @@ func (o *OrderDB) FindAll() ([]*entity.Order, error) {
 		Preload("BitcoinPayment").
 		Find(&orders).Error; err != nil {
 		o.log.Errorf("OrderDB.FindAll: %v", err)
-		return nil, domainErr.ErrDatabase("failed to find orders", err)
+		return nil, handlePgError(err, "failed to find orders")
 	}
 	return orders, nil
 }
@@ -95,7 +95,7 @@ func (o *OrderDB) FindAllWithDetails() ([]*entity.Order, error) {
 		Order("created_at desc").
 		Find(&orders).Error; err != nil {
 		o.log.Errorf("OrderDB.FindAllWithDetails: %v", err)
-		return nil, domainErr.ErrDatabase("failed to find orders with details", err)
+		return nil, handlePgError(err, "failed to find orders with details")
 	}
 	return orders, nil
 }
@@ -194,7 +194,7 @@ func (o *OrderDB) FindBySellerID(sellerID id.UUID) ([]*entity.Order, error) {
 		Order("orders.created_at desc").
 		Find(&orders).Error; err != nil {
 		o.log.Errorf("OrderDB.FindBySellerID %s: %v", sellerID, err)
-		return nil, domainErr.ErrDatabase("failed to find orders by seller", err)
+		return nil, handlePgError(err, "failed to find orders by seller")
 	}
 	return orders, nil
 }
@@ -202,7 +202,7 @@ func (o *OrderDB) FindBySellerID(sellerID id.UUID) ([]*entity.Order, error) {
 func (o *OrderDB) DeleteByID(orderID id.UUID) error {
 	if err := o.db.WithContext(context.Background()).Delete(&entity.Order{}, "id = ?", orderID).Error; err != nil {
 		o.log.Errorf("OrderDB.DeleteByID %s: %v", orderID, err)
-		return domainErr.ErrDatabase("failed to delete order", err)
+		return handlePgError(err, "failed to delete order")
 	}
 	return nil
 }

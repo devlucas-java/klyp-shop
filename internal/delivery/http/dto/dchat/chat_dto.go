@@ -1,5 +1,7 @@
 package dchat
 
+import "github.com/devlucas-java/klyp-shop/internal/domain/errors"
+
 type SendMessageRequest struct {
 	ReceiverID string `json:"receiver_id"`
 	Content    string `json:"content"`
@@ -7,13 +9,13 @@ type SendMessageRequest struct {
 
 func (r *SendMessageRequest) Validate() error {
 	if r.ReceiverID == "" {
-		return errBadRequest("receiver_id is required")
+		return errors.ErrBadRequest("receiver_id is required", nil)
 	}
 	if len(r.Content) == 0 {
-		return errBadRequest("content is required")
+		return errors.ErrBadRequest("content is required", nil)
 	}
 	if len(r.Content) > 4000 {
-		return errBadRequest("content must not exceed 4000 characters")
+		return errors.ErrBadRequest("content must not exceed 4000 characters", nil)
 	}
 	return nil
 }
@@ -30,10 +32,6 @@ type MessageResponse struct {
 type WSMessage struct {
 	Type    string          `json:"type"`
 	Payload MessageResponse `json:"payload"`
-}
-
-func errBadRequest(msg string) error {
-	return &chatError{msg: msg}
 }
 
 type chatError struct{ msg string }

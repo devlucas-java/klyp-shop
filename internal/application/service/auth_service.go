@@ -48,6 +48,23 @@ func (a *AuthService) Login(login *dauth.LoginRequest) (*dauth.JWTResponse, erro
 }
 
 func (a *AuthService) Register(dto *dauth.RegisterDTO) (*dauth.JWTResponse, error) {
+
+	exists, err := a.userRepository.ExistsUserByEmail(dto.Email)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, errors.ErrConflict("email", err)
+	}
+
+	exists, err = a.userRepository.ExistsUserByUserName(dto.Username)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, errors.ErrConflict("username", err)
+	}
+
 	user, err := entity.NewUser(dto.Name, dto.Email, dto.Username, dto.Password)
 	if err != nil {
 		return nil, errors.ErrInternal("failed to create user", err)
@@ -55,7 +72,7 @@ func (a *AuthService) Register(dto *dauth.RegisterDTO) (*dauth.JWTResponse, erro
 
 	user, err = a.userRepository.Create(user)
 	if err != nil {
-		return nil, errors.ErrDatabase("failed to create user", err)
+		return nil, err
 	}
 
 	token, err := a.jwtService.GenerateToken(user)

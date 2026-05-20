@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/ddashboard"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dothers"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
@@ -300,12 +301,12 @@ func buildAdminOrders(orders []*entity.Order) []ddashboard.AdminOrder {
 	return result
 }
 
-func paginate(page, size int, total int64) ddashboard.Pagination {
+func paginate(page, size int, total int64) dothers.Pagination {
 	totalPages := int64(math.Ceil(float64(total) / float64(size)))
 	if totalPages < 1 {
 		totalPages = 1
 	}
-	return ddashboard.Pagination{
+	return dothers.Pagination{
 		Page:       page,
 		Size:       size,
 		Total:      total,

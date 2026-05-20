@@ -108,6 +108,19 @@ func (s *FeaturedProductService) UpdatePosition(auth *entity.User, productID id.
 	return s.featuredRepository.UpdatePosition(user.Seller.ID, productID, req.Position)
 }
 
+func (s *FeaturedProductService) GetAllFeatured() ([]*dproduct.FeaturedProductResponse, error) {
+	featured, err := s.featuredRepository.FindAll()
+	if err != nil {
+		return nil, errors.ErrDatabase("failed to fetch featured products", err)
+	}
+
+	result := make([]*dproduct.FeaturedProductResponse, 0, len(featured))
+	for _, f := range featured {
+		result = append(result, toFeaturedResponse(f, &f.Product))
+	}
+	return result, nil
+}
+
 func (s *FeaturedProductService) GetFeaturedBySeller(sellerID id.UUID) ([]*dproduct.FeaturedProductResponse, error) {
 	featured, err := s.featuredRepository.FindBySellerID(sellerID)
 	if err != nil {

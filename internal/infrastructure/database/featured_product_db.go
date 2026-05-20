@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	domainErr "github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
@@ -21,7 +22,7 @@ func NewFeaturedProductDB(db *gorm.DB) repository.FeaturedProductRepository {
 
 func (r *FeaturedProductDB) Add(featured *entity.FeaturedProduct) (*entity.FeaturedProduct, error) {
 	if err := r.db.WithContext(context.Background()).Create(featured).Error; err != nil {
-		return nil, domainErr.ErrDatabase("failed to add featured product", err)
+		return nil, handlePgError(err, "failed to add featured product")
 	}
 	return featured, nil
 }
@@ -39,6 +40,18 @@ func (r *FeaturedProductDB) Remove(sellerID, productID id.UUID) error {
 	return nil
 }
 
+func (r *FeaturedProductDB) FindAll() ([]*entity.FeaturedProduct, error) {
+	var featured []*entity.FeaturedProduct
+	err := r.db.WithContext(context.Background()).
+		Preload("Product").
+		Order("seller_id, position asc").
+		Find(&featured).Error
+	if err != nil {
+		return nil, handlePgError(err, "failed to find all featured products")
+	}
+	return featured, nil
+}
+
 func (r *FeaturedProductDB) FindBySellerID(sellerID id.UUID) ([]*entity.FeaturedProduct, error) {
 	var featured []*entity.FeaturedProduct
 	err := r.db.WithContext(context.Background()).
@@ -47,7 +60,7 @@ func (r *FeaturedProductDB) FindBySellerID(sellerID id.UUID) ([]*entity.Featured
 		Order("position asc").
 		Find(&featured).Error
 	if err != nil {
-		return nil, domainErr.ErrDatabase("failed to find featured products", err)
+		return nil, handlePgError(err, "failed to find featured products")
 	}
 	return featured, nil
 }
@@ -61,7 +74,7 @@ func (r *FeaturedProductDB) FindBySellerIDAndProductID(sellerID, productID id.UU
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domainErr.ErrNotFound("FeaturedProduct", err)
 		}
-		return nil, domainErr.ErrDatabase("failed to find featured product", err)
+		return nil, handlePgError(err, "failed to find featured product")
 	}
 	return &featured, nil
 }
@@ -82,7 +95,7 @@ func (r *FeaturedProductDB) UpdatePosition(sellerID, productID id.UUID, position
 		Where("seller_id = ? AND product_id = ?", sellerID, productID).
 		Update("position", position).Error
 	if err != nil {
-		return domainErr.ErrDatabase("failed to update featured product position", err)
+		return handlePgError(err, "failed to update featured product position")
 	}
 	return nil
 }

@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
@@ -34,7 +35,7 @@ func (s *ShoppingCartDB) FindByUserID(userID id.UUID) (*entity.ShoppingCart, err
 			return nil, nil
 		}
 		s.log.Errorf("Failed to get shopping cart for user %s: %v", userID, err)
-		return nil, err
+		return nil, handlePgError(err, "failed to find shopping cart by user id")
 	}
 	return &cart, nil
 }
@@ -43,7 +44,7 @@ func (s *ShoppingCartDB) Create(cart *entity.ShoppingCart) (*entity.ShoppingCart
 	err := s.DB.WithContext(context.Background()).Create(cart).Error
 	if err != nil {
 		s.log.Errorf("Failed to create shopping cart: %v", err)
-		return nil, err
+		return nil, handlePgError(err, "failed to create shopping cart")
 	}
 	return cart, nil
 }
@@ -53,7 +54,7 @@ func (s *ShoppingCartDB) Updates(cart *entity.ShoppingCart) (*entity.ShoppingCar
 	err := s.DB.WithContext(context.Background()).Session(&gorm.Session{FullSaveAssociations: true}).Updates(cart).Error
 	if err != nil {
 		s.log.Errorf("Failed to update shopping cart %s: %v", cart.ID, err)
-		return nil, err
+		return nil, handlePgError(err, "failed to update shopping cart")
 	}
 	return cart, nil
 }
@@ -62,7 +63,7 @@ func (s *ShoppingCartDB) DeleteByID(uuid id.UUID) error {
 	err := s.DB.WithContext(context.Background()).Where("id = ?", uuid).Delete(&entity.ShoppingCart{}).Error
 	if err != nil {
 		s.log.Errorf("Failed to delete shopping cart %s: %v", uuid, err)
-		return err
+		return handlePgError(err, "failed to delete shopping cart")
 	}
 	return nil
 }
@@ -80,7 +81,7 @@ func (s *ShoppingCartDB) FindByID(uuid id.UUID) (*entity.ShoppingCart, error) {
 			return nil, nil
 		}
 		s.log.Errorf("Failed to get shopping cart %s: %v", uuid, err)
-		return nil, err
+		return nil, handlePgError(err, "failed to find shopping cart by id")
 	}
 	return &cart, nil
 }
@@ -89,7 +90,7 @@ func (s *ShoppingCartDB) Save(cart *entity.ShoppingCart) (*entity.ShoppingCart, 
 	err := s.DB.WithContext(context.Background()).Session(&gorm.Session{FullSaveAssociations: true}).Save(cart).Error
 	if err != nil {
 		s.log.Errorf("Failed to save shopping cart %s: %v", cart.ID, err)
-		return nil, err
+		return nil, handlePgError(err, "failed to save shopping cart")
 	}
 	return cart, nil
 }

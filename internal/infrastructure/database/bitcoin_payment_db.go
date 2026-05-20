@@ -32,7 +32,7 @@ func (b *BitcoinPaymentDB) Create(payment *entity.BitcoinPayment) (*entity.Bitco
 func (b *BitcoinPaymentDB) Save(payment *entity.BitcoinPayment) (*entity.BitcoinPayment, error) {
 	if err := b.db.WithContext(context.Background()).Where("id = ?", payment.ID).Save(payment).Error; err != nil {
 		b.log.Errorf("BitcoinPaymentDB.Save %s: %v", payment.ID, err)
-		return nil, domainErr.ErrDatabase("failed to save bitcoin payment", err)
+		return nil, handlePgError(err, "failed to save bitcoin payment")
 	}
 	return payment, nil
 }
@@ -40,7 +40,7 @@ func (b *BitcoinPaymentDB) Save(payment *entity.BitcoinPayment) (*entity.Bitcoin
 func (b *BitcoinPaymentDB) Updates(payment *entity.BitcoinPayment) (*entity.BitcoinPayment, error) {
 	if err := b.db.WithContext(context.Background()).Model(payment).Where("id = ?", payment.ID).Updates(payment).Error; err != nil {
 		b.log.Errorf("BitcoinPaymentDB.Updates %s: %v", payment.ID, err)
-		return nil, domainErr.ErrDatabase("failed to update bitcoin payment", err)
+		return nil, handlePgError(err, "failed to update bitcoin payment")
 	}
 	return payment, nil
 }
@@ -57,7 +57,7 @@ func (b *BitcoinPaymentDB) FindByID(paymentID id.UUID) (*entity.BitcoinPayment, 
 			return nil, domainErr.ErrNotFound("BitcoinPayment", err)
 		}
 		b.log.Errorf("BitcoinPaymentDB.FindByID %s: %v", paymentID, err)
-		return nil, domainErr.ErrDatabase("failed to find bitcoin payment", err)
+		return nil, handlePgError(err, "failed to find bitcoin payment")
 	}
 	return &payment, nil
 }
@@ -70,7 +70,7 @@ func (b *BitcoinPaymentDB) FindByOrderID(orderID id.UUID) (*entity.BitcoinPaymen
 			return nil, domainErr.ErrNotFound("BitcoinPayment", err)
 		}
 		b.log.Errorf("BitcoinPaymentDB.FindByOrderID %s: %v", orderID, err)
-		return nil, domainErr.ErrDatabase("failed to find bitcoin payment", err)
+		return nil, handlePgError(err, "failed to find bitcoin payment")
 	}
 	return &payment, nil
 }
@@ -83,7 +83,7 @@ func (b *BitcoinPaymentDB) FindByTxHash(txHash string) (*entity.BitcoinPayment, 
 			return nil, domainErr.ErrNotFound("BitcoinPayment", err)
 		}
 		b.log.Errorf("BitcoinPaymentDB.FindByTxHash %s: %v", txHash, err)
-		return nil, domainErr.ErrDatabase("failed to find bitcoin payment", err)
+		return nil, handlePgError(err, "failed to find bitcoin payment")
 	}
 	return &payment, nil
 }
@@ -91,7 +91,7 @@ func (b *BitcoinPaymentDB) FindByTxHash(txHash string) (*entity.BitcoinPayment, 
 func (b *BitcoinPaymentDB) DeleteByID(paymentID id.UUID) error {
 	if err := b.db.WithContext(context.Background()).Delete(&entity.BitcoinPayment{}, "id = ?", paymentID).Error; err != nil {
 		b.log.Errorf("BitcoinPaymentDB.DeleteByID %s: %v", paymentID, err)
-		return domainErr.ErrDatabase("failed to delete bitcoin payment", err)
+		return handlePgError(err, "failed to delete bitcoin payment")
 	}
 	return nil
 }

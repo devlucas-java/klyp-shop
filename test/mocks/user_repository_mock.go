@@ -66,6 +66,16 @@ func (m *UserRepositoryMock) FindByEmailOrUsername(str string) (*entity.User, er
 	return args.Get(0).(*entity.User), args.Error(1)
 }
 
+func (m *UserRepositoryMock) ExistsUserByEmail(email string) (bool, error) {
+	args := m.Called(email)
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *UserRepositoryMock) ExistsUserByUserName(username string) (bool, error) {
+	args := m.Called(username)
+	return args.Bool(0), args.Error(1)
+}
+
 func (m *UserRepositoryMock) DeleteByID(userID id.UUID) error {
 	args := m.Called(userID)
 	return args.Error(0)

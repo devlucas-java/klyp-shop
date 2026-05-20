@@ -4,7 +4,7 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/duser"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
+	domainErrors "github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/policy"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
@@ -35,7 +35,10 @@ func (s *UserService) GetMe(auth *entity.User) (*duser.UserResponse, error) {
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
 		s.log.Errorf("Failed to find user by ID %s: %v", auth.ID, err)
-		return nil, errors.ErrNotFound("User", err)
+		if appErr := domainErrors.As(err); appErr != nil {
+			return nil, appErr
+		}
+		return nil, domainErrors.ErrDatabase("failed to retrieve user", err)
 	}
 	return s.userMapper.ToResponse(user), nil
 }
@@ -44,22 +47,41 @@ func (s *UserService) UpdateMe(auth *entity.User, req *duser.UpdateUserRequest) 
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
 		s.log.Errorf("Failed to find user by ID %s: %v", auth.ID, err)
-		return nil, errors.ErrNotFound("User", err)
+		if appErr := domainErrors.As(err); appErr != nil {
+			return nil, appErr
+		}
+		return nil, domainErrors.ErrDatabase("failed to retrieve user", err)
 	}
 
 	if req.Email != "" && req.Email != user.Email {
-		existing, _ := s.userRepository.FindByEmailOrUsername(req.Email)
-		if existing != nil {
-			return nil, errors.ErrConflict("Email", nil)
+		exists, err := s.userRepository.ExistsUserByEmail(req.Email)
+		if err != nil {
+			s.log.Errorf("Failed to check existing email %s: %v", req.Email, err)
+			if appErr := domainErrors.As(err); appErr != nil {
+				return nil, appErr
+			}
+			return nil, domainErrors.ErrDatabase("failed to validate email", err)
 		}
+		if exists {
+			return nil, domainErrors.ErrConflict("Email", nil)
+		}
+
 		user.ChangeEmail(req.Email)
 	}
 
 	if req.Username != "" && req.Username != user.Username {
-		existing, _ := s.userRepository.FindByEmailOrUsername(req.Username)
-		if existing != nil {
-			return nil, errors.ErrConflict("Username", nil)
+		exists, err := s.userRepository.ExistsUserByUserName(req.Username)
+		if err != nil {
+			s.log.Errorf("Failed to check existing username %s: %v", req.Username, err)
+			if appErr := domainErrors.As(err); appErr != nil {
+				return nil, appErr
+			}
+			return nil, domainErrors.ErrDatabase("failed to validate username", err)
 		}
+		if exists {
+			return nil, domainErrors.ErrConflict("Username", nil)
+		}
+
 		user.ChangeUsername(req.Username)
 	}
 
@@ -67,7 +89,10 @@ func (s *UserService) UpdateMe(auth *entity.User, req *duser.UpdateUserRequest) 
 
 	if _, err = s.userRepository.Update(user); err != nil {
 		s.log.Errorf("Failed to update user %s: %v", auth.ID, err)
-		return nil, errors.ErrDatabase("failed to update user", err)
+		if appErr := domainErrors.As(err); appErr != nil {
+			return nil, appErr
+		}
+		return nil, domainErrors.ErrDatabase("failed to update user", err)
 	}
 
 	return s.userMapper.ToResponse(user), nil
@@ -77,12 +102,18 @@ func (s *UserService) DeleteMe(auth *entity.User) error {
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
 		s.log.Errorf("Failed to find user by ID %s: %v", auth.ID, err)
-		return errors.ErrNotFound("User", err)
+		if appErr := domainErrors.As(err); appErr != nil {
+			return appErr
+		}
+		return domainErrors.ErrDatabase("failed to retrieve user", err)
 	}
 
 	if err := s.userRepository.DeleteByID(user.ID); err != nil {
 		s.log.Errorf("Failed to delete user %s: %v", auth.ID, err)
-		return errors.ErrDatabase("failed to delete user", err)
+		if appErr := domainErrors.As(err); appErr != nil {
+			return appErr
+		}
+		return domainErrors.ErrDatabase("failed to delete user", err)
 	}
 
 	return nil
@@ -92,7 +123,10 @@ func (s *UserService) PromoteToAdmin(userID id.UUID) error {
 	user, err := s.userRepository.FindByID(userID)
 	if err != nil {
 		s.log.Errorf("Failed to find user by ID %s: %v", userID, err)
-		return errors.ErrNotFound("User", err)
+		if appErr := domainErrors.As(err); appErr != nil {
+			return appErr
+		}
+		return domainErrors.ErrDatabase("failed to retrieve user", err)
 	}
 
 	if err := s.userPolicy.CanPromoteToAdmin(user); err != nil {
@@ -104,7 +138,10 @@ func (s *UserService) PromoteToAdmin(userID id.UUID) error {
 
 	if _, err := s.userRepository.Update(user); err != nil {
 		s.log.Errorf("Failed to update user %s roles: %v", userID, err)
-		return errors.ErrDatabase("failed to update user roles", err)
+		if appErr := domainErrors.As(err); appErr != nil {
+			return appErr
+		}
+		return domainErrors.ErrDatabase("failed to update user roles", err)
 	}
 
 	s.log.Infof("User %s promoted to admin", userID)
@@ -115,7 +152,10 @@ func (s *UserService) DemoteToUser(userID id.UUID) error {
 	user, err := s.userRepository.FindByID(userID)
 	if err != nil {
 		s.log.Errorf("Failed to find user by ID %s: %v", userID, err)
-		return errors.ErrNotFound("User", err)
+		if appErr := domainErrors.As(err); appErr != nil {
+			return appErr
+		}
+		return domainErrors.ErrDatabase("failed to retrieve user", err)
 	}
 
 	if err := s.userPolicy.CanDemoteToUser(user); err != nil {
@@ -127,7 +167,10 @@ func (s *UserService) DemoteToUser(userID id.UUID) error {
 
 	if _, err := s.userRepository.Update(user); err != nil {
 		s.log.Errorf("Failed to update user %s roles: %v", userID, err)
-		return errors.ErrDatabase("failed to update user roles", err)
+		if appErr := domainErrors.As(err); appErr != nil {
+			return appErr
+		}
+		return domainErrors.ErrDatabase("failed to update user roles", err)
 	}
 
 	s.log.Infof("User %s demoted to regular user", userID)

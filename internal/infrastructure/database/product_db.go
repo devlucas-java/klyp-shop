@@ -20,25 +20,25 @@ func NewProductDB(db *gorm.DB) repository.ProductRepository {
 
 func (r *ProductDB) Create(product *entity.Product) (*entity.Product, error) {
 	if err := r.db.WithContext(context.Background()).Create(product).Error; err != nil {
-		return nil, domainErr.ErrDatabase("failed to create product", err)
+		return nil, handlePgError(err, "failed to create product")
 	}
 	return product, nil
 }
 
 func (r *ProductDB) Save(product *entity.Product) (*entity.Product, error) {
 	if err := r.db.WithContext(context.Background()).Where("id = ?", product.ID).Save(product).Error; err != nil {
-		return nil, domainErr.ErrDatabase("failed to save product", err)
+		return nil, handlePgError(err, "failed to save product")
 	}
 	return product, nil
 }
 
 func (r *ProductDB) Updates(product *entity.Product) (*entity.Product, error) {
 	if err := r.db.WithContext(context.Background()).Model(product).Where("id = ?", product.ID).Updates(product).Error; err != nil {
-		return nil, domainErr.ErrDatabase("failed to update product", err)
+		return nil, handlePgError(err, "failed to update product")
 	}
 	var saved entity.Product
 	if err := r.db.WithContext(context.Background()).First(&saved, "id = ?", product.ID).Error; err != nil {
-		return nil, domainErr.ErrDatabase("failed to reload product", err)
+		return nil, handlePgError(err, "failed to reload product")
 	}
 	return &saved, nil
 }
@@ -50,7 +50,7 @@ func (r *ProductDB) FindByID(productID id.UUID) (*entity.Product, error) {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domainErr.ErrNotFound("Product", err)
 		}
-		return nil, domainErr.ErrDatabase("failed to find product", err)
+		return nil, handlePgError(err, "failed to find product")
 	}
 	return &product, nil
 }
@@ -65,7 +65,7 @@ func (r *ProductDB) FindBySellerID(sellerID id.UUID, page, size int) ([]*entity.
 		Order("created_at desc").
 		Find(&products).Error
 	if err != nil {
-		return nil, domainErr.ErrDatabase("failed to find products by seller", err)
+		return nil, handlePgError(err, "failed to find products by seller")
 	}
 	return products, nil
 }
@@ -91,14 +91,14 @@ func (r *ProductDB) Search(page, size int, order, search string, categories []st
 	}
 
 	if err := query.Find(&products).Error; err != nil {
-		return nil, domainErr.ErrDatabase("failed to search products", err)
+		return nil, handlePgError(err, "failed to search products")
 	}
 	return products, nil
 }
 
 func (r *ProductDB) DeleteByID(productID id.UUID) error {
 	if err := r.db.WithContext(context.Background()).Delete(&entity.Product{}, "id = ?", productID).Error; err != nil {
-		return domainErr.ErrDatabase("failed to delete product", err)
+		return handlePgError(err, "failed to delete product")
 	}
 	return nil
 }

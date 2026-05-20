@@ -3,17 +3,16 @@ package errors
 import "fmt"
 
 type AppError struct {
-	Code    string `json:"code"`
 	Message string `json:"message"`
-	Status  int    `json:"-"`
+	Status  int    `json:"status"`
 	Err     error  `json:"-"`
 }
 
 func (e *AppError) Error() string {
 	if e.Err != nil {
-		return fmt.Sprintf("[%s] %s: %v", e.Code, e.Message, e.Err)
+		return fmt.Sprintf("[%d] %s: %v", e.Status, e.Message, e.Err)
 	}
-	return fmt.Sprintf("[%s] %s", e.Code, e.Message)
+	return fmt.Sprintf("[%d] %s", e.Status, e.Message)
 }
 
 func (e *AppError) StatusCode() int {
@@ -24,15 +23,14 @@ func (e *AppError) Unwrap() error {
 	return e.Err
 }
 
-func New(code, message string, status int, err error) *AppError {
+func New(message string, status int, err error) *AppError {
 	return &AppError{
-		Code:    code,
 		Message: message,
 		Status:  status,
 		Err:     err,
 	}
 }
 
-func Wrap(code, message string, status int, err error) *AppError {
-	return New(code, message, status, err)
+func Wrap(message string, status int, err error) *AppError {
+	return New(message, status, err)
 }

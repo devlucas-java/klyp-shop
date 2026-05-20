@@ -2,8 +2,8 @@ package database
 
 import (
 	"context"
+
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	domainErr "github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"gorm.io/gorm"
@@ -19,7 +19,7 @@ func NewChatDB(db *gorm.DB) repository.ChatRepository {
 
 func (c *ChatDB) Save(msg *entity.ChatMessage) (*entity.ChatMessage, error) {
 	if err := c.db.WithContext(context.Background()).Create(msg).Error; err != nil {
-		return nil, domainErr.ErrDatabase("failed to save message", err)
+		return nil, handlePgError(err, "failed to save message")
 	}
 	return msg, nil
 }
@@ -34,7 +34,7 @@ func (c *ChatDB) FindConversation(userA, userB id.UUID, limit, offset int) ([]*e
 		Offset(offset).
 		Find(&msgs).Error
 	if err != nil {
-		return nil, domainErr.ErrDatabase("failed to find conversation", err)
+		return nil, handlePgError(err, "failed to find conversation")
 	}
 	return msgs, nil
 }

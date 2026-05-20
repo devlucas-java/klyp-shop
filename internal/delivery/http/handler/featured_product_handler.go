@@ -87,6 +87,16 @@ func (h *FeaturedProductHandler) GetMyFeatured(w http.ResponseWriter, r *http.Re
 	return nil
 }
 
+// GET /featured/  — public: lista todos os produtos em destaque de todos os sellers
+func (h *FeaturedProductHandler) GetAllFeatured(w http.ResponseWriter, r *http.Request) error {
+	res, err := h.featuredService.GetAllFeatured()
+	if err != nil {
+		return err
+	}
+	response.ResponseEntity(w, http.StatusOK, res)
+	return nil
+}
+
 // GET /featured/seller/{sellerID}  — public: anyone sees a seller's top 10
 func (h *FeaturedProductHandler) GetFeaturedBySeller(w http.ResponseWriter, r *http.Request) error {
 	sellerID, err := id.Parse(chi.URLParam(r, "sellerID"))

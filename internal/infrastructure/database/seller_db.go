@@ -29,18 +29,18 @@ func (r *SellerDB) Create(seller *entity.Seller) (*entity.Seller, error) {
 
 func (r *SellerDB) Save(seller *entity.Seller) (*entity.Seller, error) {
 	if err := r.db.WithContext(context.Background()).Where("id = ?", seller.ID).Save(seller).Error; err != nil {
-		return nil, domainErr.ErrDatabase("failed to save seller", err)
+		return nil, handlePgError(err, "failed to save seller")
 	}
 	return seller, nil
 }
 
 func (r *SellerDB) Updates(seller *entity.Seller) (*entity.Seller, error) {
 	if err := r.db.WithContext(context.Background()).Model(seller).Where("id = ?", seller.ID).Updates(seller).Error; err != nil {
-		return nil, domainErr.ErrDatabase("failed to update seller", err)
+		return nil, handlePgError(err, "failed to update seller")
 	}
 	var saved entity.Seller
 	if err := r.db.WithContext(context.Background()).First(&saved, "id = ?", seller.ID).Error; err != nil {
-		return nil, domainErr.ErrDatabase("failed to reload seller", err)
+		return nil, handlePgError(err, "failed to reload seller")
 	}
 	return &saved, nil
 }
@@ -52,7 +52,7 @@ func (r *SellerDB) FindByID(sellerID id.UUID) (*entity.Seller, error) {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domainErr.ErrNotFound("Seller", err)
 		}
-		return nil, domainErr.ErrDatabase("failed to find seller", err)
+		return nil, handlePgError(err, "failed to find seller")
 	}
 	return &seller, nil
 }
@@ -80,7 +80,7 @@ func (r *SellerDB) Find(page, size int, order, search string) ([]*entity.Seller,
 	}
 
 	if err := query.Find(&sellers).Error; err != nil {
-		return nil, domainErr.ErrDatabase("failed to list sellers", err)
+		return nil, handlePgError(err, "failed to list sellers")
 	}
 	return sellers, nil
 }
