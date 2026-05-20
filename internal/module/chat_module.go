@@ -14,7 +14,7 @@ import (
 )
 
 func InitChatModule(db *gorm.DB, log *logger.Logger, jwtService *jwt.JWTService, metric *metrics.Metric) (chi.Router, *socket.Hub) {
-	chatRepository := database.NewChatDB(db)
+	chatRepository := database.NewChatDB(db, log)
 	userRepository := database.NewUserDB(db, log)
 
 	chatService := service.NewChatService(log, chatRepository, userRepository)

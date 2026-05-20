@@ -2,10 +2,10 @@ package database
 
 import (
 	"context"
-	"errors"
 	"fmt"
+
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	domainErr "github.com/devlucas-java/klyp-shop/internal/domain/errors"
+	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
@@ -23,41 +23,38 @@ func NewOrderDB(db *gorm.DB, log *logger.Logger) repository.OrderRepository {
 
 func (o *OrderDB) Create(order *entity.Order) (*entity.Order, error) {
 	if err := o.db.WithContext(context.Background()).Create(order).Error; err != nil {
-		o.log.Errorf("OrderDB.Create: %v", err)
-		return nil, handlePgError(err, "failed to create order")
+		return nil, errors.HandlePgError(o.log, err, "failed to create order")
 	}
 	return order, nil
 }
 
 func (o *OrderDB) Save(order *entity.Order) (*entity.Order, error) {
 	if err := o.db.WithContext(context.Background()).Where("id = ?", order.ID).Save(order).Error; err != nil {
-		o.log.Errorf("OrderDB.Save %s: %v", order.ID, err)
-		return nil, handlePgError(err, "failed to save order")
+		return nil, errors.HandlePgError(o.log, err, "failed to save order")
 	}
 	return order, nil
 }
 
 func (o *OrderDB) Updates(order *entity.Order) (*entity.Order, error) {
 	if err := o.db.WithContext(context.Background()).Model(order).Where("id = ?", order.ID).Updates(order).Error; err != nil {
-		o.log.Errorf("OrderDB.Updates %s: %v", order.ID, err)
-		return nil, handlePgError(err, "failed to update order")
+		return nil, errors.HandlePgError(o.log, err, "failed to update order")
 	}
 	return order, nil
 }
 
 func (o *OrderDB) Update(order *entity.Order) (*entity.Order, error) {
-	return o.Save(order)
+	saved, err := o.Save(order)
+	if err != nil {
+		return nil, errors.HandlePgError(o.log, err, "erros in update order")
+	}
+	return saved, nil
 }
 
 func (o *OrderDB) FindByID(orderID id.UUID) (*entity.Order, error) {
 	var order entity.Order
 	err := o.db.WithContext(context.Background()).Preload("Items").Preload("User").Preload("Address").Preload("BitcoinPayment").First(&order, "id = ?", orderID).Error
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domainErr.ErrNotFound("Order", err)
-		}
-		o.log.Errorf("OrderDB.FindByID %s: %v", orderID, err)
-		return nil, handlePgError(err, "failed to find order")
+		return nil, errors.HandlePgError(o.log, err, "failed to find order")
 	}
 	return &order, nil
 }
@@ -65,8 +62,7 @@ func (o *OrderDB) FindByID(orderID id.UUID) (*entity.Order, error) {
 func (o *OrderDB) FindByUser(userID id.UUID) ([]*entity.Order, error) {
 	var orders []*entity.Order
 	if err := o.db.WithContext(context.Background()).Preload("Items").Preload("User").Preload("Address").Preload("BitcoinPayment").Where("user_id = ?", userID).Find(&orders).Error; err != nil {
-		o.log.Errorf("OrderDB.FindByUser %s: %v", userID, err)
-		return nil, handlePgError(err, "failed to find orders")
+		return nil, errors.HandlePgError(o.log, err, "failed to find orders")
 	}
 	return orders, nil
 }
@@ -79,8 +75,7 @@ func (o *OrderDB) FindAll() ([]*entity.Order, error) {
 		Preload("Address").
 		Preload("BitcoinPayment").
 		Find(&orders).Error; err != nil {
-		o.log.Errorf("OrderDB.FindAll: %v", err)
-		return nil, handlePgError(err, "failed to find orders")
+		return nil, errors.HandlePgError(o.log, err, "failed to find orders")
 	}
 	return orders, nil
 }
@@ -94,8 +89,7 @@ func (o *OrderDB) FindAllWithDetails() ([]*entity.Order, error) {
 		Preload("BitcoinPayment").
 		Order("created_at desc").
 		Find(&orders).Error; err != nil {
-		o.log.Errorf("OrderDB.FindAllWithDetails: %v", err)
-		return nil, handlePgError(err, "failed to find orders with details")
+		return nil, errors.HandlePgError(o.log, err, "failed to find orders with details")
 	}
 	return orders, nil
 }
@@ -130,7 +124,6 @@ func (o *OrderDB) FindAllPaginated(page, size int, status string) ([]*entity.Ord
 		q = q.Where("status = ?", status)
 	}
 	if err := q.Find(&orders).Error; err != nil {
-		o.log.Errorf("OrderDB.FindAllPaginated: %v", err)
 		return nil, 0, fmt.Errorf("failed to find paginated orders: %w", err)
 	}
 	return orders, total, nil
@@ -174,7 +167,6 @@ func (o *OrderDB) FindBySellerIDPaginated(sellerID id.UUID, page, size int, stat
 		q = q.Where("orders.status = ?", status)
 	}
 	if err := q.Find(&orders).Error; err != nil {
-		o.log.Errorf("OrderDB.FindBySellerIDPaginated %s: %v", sellerID, err)
 		return nil, 0, fmt.Errorf("failed to find paginated seller orders: %w", err)
 	}
 	return orders, total, nil
@@ -193,16 +185,14 @@ func (o *OrderDB) FindBySellerID(sellerID id.UUID) ([]*entity.Order, error) {
 		Group("orders.id").
 		Order("orders.created_at desc").
 		Find(&orders).Error; err != nil {
-		o.log.Errorf("OrderDB.FindBySellerID %s: %v", sellerID, err)
-		return nil, handlePgError(err, "failed to find orders by seller")
+		return nil, errors.HandlePgError(o.log, err, "failed to find orders by seller")
 	}
 	return orders, nil
 }
 
 func (o *OrderDB) DeleteByID(orderID id.UUID) error {
 	if err := o.db.WithContext(context.Background()).Delete(&entity.Order{}, "id = ?", orderID).Error; err != nil {
-		o.log.Errorf("OrderDB.DeleteByID %s: %v", orderID, err)
-		return handlePgError(err, "failed to delete order")
+		return errors.HandlePgError(o.log, err, "failed to delete order")
 	}
 	return nil
 }

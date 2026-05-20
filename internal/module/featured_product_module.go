@@ -13,8 +13,8 @@ import (
 
 func InitFeaturedProductModule(db *gorm.DB, log *logger.Logger, jwtService *jwt.JWTService) chi.Router {
 	userRepository := database.NewUserDB(db, log)
-	productRepository := database.NewProductDB(db)
-	featuredRepository := database.NewFeaturedProductDB(db)
+	productRepository := database.NewProductDB(db, log)
+	featuredRepository := database.NewFeaturedProductDB(db, log)
 
 	featuredService := service.NewFeaturedProductService(log, featuredRepository, productRepository, userRepository)
 	featuredHandler := handler.NewFeaturedProductHandler(featuredService, log)

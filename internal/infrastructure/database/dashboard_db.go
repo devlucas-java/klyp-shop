@@ -3,17 +3,20 @@ package database
 import (
 	"context"
 
+	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
+	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"gorm.io/gorm"
 )
 
 type DashboardDB struct {
-	db *gorm.DB
+	db  *gorm.DB
+	log *logger.Logger
 }
 
-func NewDashboardDB(db *gorm.DB) repository.DashboardRepository {
-	return &DashboardDB{db: db}
+func NewDashboardDB(db *gorm.DB, log *logger.Logger) repository.DashboardRepository {
+	return &DashboardDB{db: db, log: log}
 }
 
 func (d *DashboardDB) CountOrdersByStatusForSeller(sellerID id.UUID) ([]repository.OrderStatusCount, error) {
@@ -27,7 +30,7 @@ func (d *DashboardDB) CountOrdersByStatusForSeller(sellerID id.UUID) ([]reposito
 		GROUP BY o.status
 	`, sellerID).Scan(&rows).Error
 	if err != nil {
-		return nil, handlePgError(err, "failed to count orders by status for seller")
+		return nil, errors.HandlePgError(d.log, err, "failed to count orders by status for seller")
 	}
 	return rows, nil
 }
@@ -43,7 +46,7 @@ func (d *DashboardDB) SumRevenueForSeller(sellerID id.UUID) (float64, error) {
 		  AND o.status IN ('paid', 'delivered')
 	`, sellerID).Scan(&revenue).Error
 	if err != nil {
-		return 0, handlePgError(err, "failed to sum revenue for seller")
+		return 0, errors.HandlePgError(d.log, err, "failed to sum revenue for seller")
 	}
 	return revenue, nil
 }
@@ -52,7 +55,7 @@ func (d *DashboardDB) CountProductsForSeller(sellerID id.UUID) (int64, error) {
 	var count int64
 	err := d.db.WithContext(context.Background()).Raw(`SELECT COUNT(*) FROM products WHERE seller_id = ?`, sellerID).Scan(&count).Error
 	if err != nil {
-		return 0, handlePgError(err, "failed to count products for seller")
+		return 0, errors.HandlePgError(d.log, err, "failed to count products for seller")
 	}
 	return count, nil
 }
@@ -70,7 +73,7 @@ func (d *DashboardDB) AvgRatingForSeller(sellerID id.UUID) (float64, int64, erro
 		WHERE p.seller_id = ?
 	`, sellerID).Scan(&r).Error
 	if err != nil {
-		return 0, 0, handlePgError(err, "failed to calculate average rating for seller")
+		return 0, 0, errors.HandlePgError(d.log, err, "failed to calculate average rating for seller")
 	}
 	return r.Avg, r.Total, nil
 }
@@ -93,7 +96,7 @@ func (d *DashboardDB) TopProductsForSeller(sellerID id.UUID, limit int) ([]repos
 		LIMIT ?
 	`, sellerID, limit).Scan(&rows).Error
 	if err != nil {
-		return nil, handlePgError(err, "failed to get top products for seller")
+		return nil, errors.HandlePgError(d.log, err, "failed to get top products for seller")
 	}
 	return rows, nil
 }
@@ -102,7 +105,7 @@ func (d *DashboardDB) CountAllUsers() (int64, error) {
 	var count int64
 	err := d.db.WithContext(context.Background()).Raw(`SELECT COUNT(*) FROM users`).Scan(&count).Error
 	if err != nil {
-		return 0, handlePgError(err, "failed to count all users")
+		return 0, errors.HandlePgError(d.log, err, "failed to count all users")
 	}
 	return count, nil
 }
@@ -111,7 +114,7 @@ func (d *DashboardDB) CountAllSellers() (int64, error) {
 	var count int64
 	err := d.db.WithContext(context.Background()).Raw(`SELECT COUNT(*) FROM sellers`).Scan(&count).Error
 	if err != nil {
-		return 0, handlePgError(err, "failed to count all sellers")
+		return 0, errors.HandlePgError(d.log, err, "failed to count all sellers")
 	}
 	return count, nil
 }
@@ -120,7 +123,7 @@ func (d *DashboardDB) CountAllProducts() (int64, error) {
 	var count int64
 	err := d.db.WithContext(context.Background()).Raw(`SELECT COUNT(*) FROM products`).Scan(&count).Error
 	if err != nil {
-		return 0, handlePgError(err, "failed to count all products")
+		return 0, errors.HandlePgError(d.log, err, "failed to count all products")
 	}
 	return count, nil
 }
@@ -133,7 +136,7 @@ func (d *DashboardDB) CountAllOrdersByStatus() ([]repository.OrderStatusCount, e
 		GROUP BY status
 	`).Scan(&rows).Error
 	if err != nil {
-		return nil, handlePgError(err, "failed to count orders by status")
+		return nil, errors.HandlePgError(d.log, err, "failed to count orders by status")
 	}
 	return rows, nil
 }
@@ -147,7 +150,7 @@ func (d *DashboardDB) SumTotalRevenue() (float64, error) {
 		WHERE o.status IN ('paid', 'delivered')
 	`).Scan(&revenue).Error
 	if err != nil {
-		return 0, handlePgError(err, "failed to sum total revenue")
+		return 0, errors.HandlePgError(d.log, err, "failed to sum total revenue")
 	}
 	return revenue, nil
 }
@@ -170,7 +173,7 @@ func (d *DashboardDB) TopSellersByRevenue(limit int) ([]repository.SellerRevenue
 		LIMIT ?
 	`, limit).Scan(&rows).Error
 	if err != nil {
-		return nil, handlePgError(err, "failed to get top sellers by revenue")
+		return nil, errors.HandlePgError(d.log, err, "failed to get top sellers by revenue")
 	}
 	return rows, nil
 }

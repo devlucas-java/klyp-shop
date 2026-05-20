@@ -74,7 +74,6 @@ func (s *SellerService) UpdateSeller(auth *entity.User, req *seller.UpdateSeller
 		return nil, err
 	}
 
-	// Aplica os campos do request diretamente na entidade existente
 	user.Seller.UpdateInfo(req.DisplayName, req.Bio)
 
 	updated, err := s.sellerRepository.Updates(user.Seller)
@@ -103,6 +102,7 @@ func (s *SellerService) DeleteSeller(auth *entity.User) error {
 	if err := user.UnmarkAsSeller(); err != nil {
 		return err
 	}
+	user.ChangerToUser()
 
 	if _, err = s.userRepository.Update(user); err != nil {
 		return errors.ErrDatabase("failed to update user", err)

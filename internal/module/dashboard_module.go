@@ -14,7 +14,7 @@ import (
 func InitDashboardModule(db *gorm.DB, log *logger.Logger, jwtService *jwt.JWTService) chi.Router {
 	userRepository := database.NewUserDB(db, log)
 	orderRepository := database.NewOrderDB(db, log)
-	dashboardRepository := database.NewDashboardDB(db)
+	dashboardRepository := database.NewDashboardDB(db, log)
 
 	dashboardService := service.NewDashboardService(log, userRepository, orderRepository, dashboardRepository)
 	dashboardHandler := handler.NewDashboardHandler(dashboardService, log)

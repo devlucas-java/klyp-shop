@@ -15,7 +15,7 @@ import (
 func InitSellerModule(db *gorm.DB, log *logger.Logger, jwtService *jwt.JWTService) chi.Router {
 
 	userRepository := database.NewUserDB(db, log)
-	sellerRepository := database.NewSellerDB(db)
+	sellerRepository := database.NewSellerDB(db, log)
 	sellerMapper := mapper.NewSellerMapper()
 
 	sellerService := service.NewSellerService(log, userRepository, sellerRepository, sellerMapper)

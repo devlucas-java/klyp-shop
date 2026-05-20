@@ -15,8 +15,8 @@ import (
 func InitProductModule(db *gorm.DB, log *logger.Logger, jwtService *jwt.JWTService) chi.Router {
 
 	userRepository := database.NewUserDB(db, log)
-	productRepository := database.NewProductDB(db)
-	sellerRepository := database.NewSellerDB(db)
+	productRepository := database.NewProductDB(db, log)
+	sellerRepository := database.NewSellerDB(db, log)
 	productMapper := mapper.NewProductMapper()
 
 	productService := service.NewProductService(log, productRepository, userRepository, sellerRepository, productMapper)

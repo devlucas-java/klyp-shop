@@ -4,6 +4,7 @@ import (
 	goErrors "errors"
 	"strings"
 
+	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
@@ -15,10 +16,15 @@ const (
 	pgErrInvalidText         = "22P02"
 )
 
-func HandlePgError(err error, genericMsg string) error {
+func HandlePgError(log *logger.Logger, err error, genericMsg string) error {
 	var pgErr *pgconn.PgError
 
 	if !goErrors.As(err, &pgErr) {
+		log.Errorf(
+			"pg error detail=%v message=%s",
+			err.Error(),
+			genericMsg,
+		)
 		return ErrDatabase(genericMsg, err)
 	}
 
@@ -57,6 +63,14 @@ func HandlePgError(err error, genericMsg string) error {
 		)
 
 	default:
+
+		log.Errorf(
+			"pg error code=%s field=%s detail=%s message=%s",
+			pgErr.Code,
+			field,
+			pgErr.Detail,
+			pgErr.Message,
+		)
 		return ErrDatabase(genericMsg, err)
 	}
 }

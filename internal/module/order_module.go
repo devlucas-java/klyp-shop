@@ -16,7 +16,7 @@ import (
 func InitOrderModule(db *gorm.DB, log *logger.Logger, jwtService *jwt.JWTService, metric *metrics.Metric) chi.Router {
 	orderRepository := database.NewOrderDB(db, log)
 	orderItemRepository := database.NewOrderItemDB(db, log)
-	productRepository := database.NewProductDB(db)
+	productRepository := database.NewProductDB(db, log)
 	userRepository := database.NewUserDB(db, log)
 	addressRepository := database.NewAddressDB(db, log)
 

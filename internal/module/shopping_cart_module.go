@@ -14,7 +14,7 @@ import (
 
 func InitShoppingCartModule(db *gorm.DB, log *logger.Logger, jwtService *jwt.JWTService) chi.Router {
 	shoppingCartRepository := database.NewShoppingCartDB(db, log)
-	productRepository := database.NewProductDB(db)
+	productRepository := database.NewProductDB(db, log)
 	userRepository := database.NewUserDB(db, log)
 
 	shoppingCartService := service.NewShoppingCartService(log, shoppingCartRepository, mapper.NewShoppingCartMapper())

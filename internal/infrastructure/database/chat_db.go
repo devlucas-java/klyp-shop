@@ -4,22 +4,25 @@ import (
 	"context"
 
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
+	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
+	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"gorm.io/gorm"
 )
 
 type ChatDB struct {
-	db *gorm.DB
+	db  *gorm.DB
+	log *logger.Logger
 }
 
-func NewChatDB(db *gorm.DB) repository.ChatRepository {
-	return &ChatDB{db: db}
+func NewChatDB(db *gorm.DB, log *logger.Logger) repository.ChatRepository {
+	return &ChatDB{db: db, log: log}
 }
 
 func (c *ChatDB) Save(msg *entity.ChatMessage) (*entity.ChatMessage, error) {
 	if err := c.db.WithContext(context.Background()).Create(msg).Error; err != nil {
-		return nil, handlePgError(err, "failed to save message")
+		return nil, errors.HandlePgError(c.log, err, "failed to save message")
 	}
 	return msg, nil
 }
@@ -34,7 +37,7 @@ func (c *ChatDB) FindConversation(userA, userB id.UUID, limit, offset int) ([]*e
 		Offset(offset).
 		Find(&msgs).Error
 	if err != nil {
-		return nil, handlePgError(err, "failed to find conversation")
+		return nil, errors.HandlePgError(c.log, err, "failed to find conversation")
 	}
 	return msgs, nil
 }

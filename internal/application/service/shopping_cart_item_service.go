@@ -32,7 +32,9 @@ func NewShoppingCartItemService(
 }
 
 func (s *ShoppingCartItemService) AddItem(auth *entity.User, req *cart.AddShoppingCartItemRequest) (*cart.ShoppingCartResponse, error) {
-	if req.Quantity <= 0 {
+
+	err := req.Validate()
+	if err != nil {
 		return nil, errors.ErrBadRequest("quantity must be greater than zero", nil)
 	}
 
@@ -44,7 +46,7 @@ func (s *ShoppingCartItemService) AddItem(auth *entity.User, req *cart.AddShoppi
 	product, err := s.productRepo.FindByID(productID)
 	if err != nil {
 		s.log.Errorf("Failed to find product %s: %v", productID, err)
-		return nil, errors.ErrNotFound("Product", err)
+		return nil, err
 	}
 
 	cart, err := s.cartRepository.FindByUserID(auth.ID)
@@ -81,11 +83,14 @@ func (s *ShoppingCartItemService) AddItem(auth *entity.User, req *cart.AddShoppi
 }
 
 func (s *ShoppingCartItemService) UpdateItem(auth *entity.User, itemID id.UUID, req *cart.UpdateShoppingCartItemRequest) (*cart.ShoppingCartResponse, error) {
-	if req.Quantity <= 0 {
-		return nil, errors.ErrBadRequest("quantity must be greater than zero", nil)
+
+	err := req.Validate()
+	if err != nil {
+		return nil, err
 	}
 
 	cart, err := s.cartRepository.FindByUserID(auth.ID)
+
 	if err != nil {
 		s.log.Errorf("Failed to get shopping cart for user %s: %v", auth.ID, err)
 		return nil, err
@@ -114,7 +119,7 @@ func (s *ShoppingCartItemService) RemoveItem(auth *entity.User, itemID id.UUID) 
 		return err
 	}
 	if cart == nil {
-		return errors.ErrNotFound("ShoppingCart", nil)
+		return err
 	}
 
 	if err := cart.RemoveItem(itemID); err != nil {
