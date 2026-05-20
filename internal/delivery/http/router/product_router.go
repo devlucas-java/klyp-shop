@@ -28,12 +28,13 @@ func NewProductRouter(jwtService *jwt.JWTService, productHandler *handler.Produc
 	}
 }
 
-func (p *ProductRouter) RegisterProductRoutes(protect chi.Router) {
+func (p *ProductRouter) RegisterProductRoutes(mux chi.Router) {
+	mux.Group(func(protected chi.Router) {
+		protected.Use(middleware.JwtMiddleware(p.jwtService, p.log, p.userRepository))
 
-	protect.Use(middleware.AuthMiddleware(p.jwtService, p.log, p.userRepository))
-
-	protect.Post("/product", adapter.Adapt(p.productHandler.CreateProduct))
-	protect.Get("/product/{id}", adapter.Adapt(p.productHandler.GetProductByID))
-	protect.Patch("/product/{id}", adapter.Adapt(p.productHandler.UpdateProduct))
-	protect.Delete("/product/{id}", adapter.Adapt(p.productHandler.DeleteProduct))
+		protected.Post("/product", adapter.Adapt(p.productHandler.CreateProduct))
+		protected.Get("/product/{id}", adapter.Adapt(p.productHandler.GetProductByID))
+		protected.Patch("/product/{id}", adapter.Adapt(p.productHandler.UpdateProduct))
+		protected.Delete("/product/{id}", adapter.Adapt(p.productHandler.DeleteProduct))
+	})
 }

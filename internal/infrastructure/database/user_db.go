@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"errors"
+
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	domainErr "github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
@@ -23,25 +24,19 @@ func NewUserDB(db *gorm.DB, log *logger.Logger) repository.UserRepository {
 func (r *UserDB) Create(user *entity.User) (*entity.User, error) {
 	if err := r.db.WithContext(context.Background()).Create(user).Error; err != nil {
 		r.log.Errorf("UserDB.Create: %v", err)
-		return nil, domainErr.ErrDatabase("failed to create user", err)
+		return nil, handlePgError(err, "failed to create user")
 	}
 	return user, nil
 }
 
 func (r *UserDB) Save(user *entity.User) (*entity.User, error) {
-	if err := r.db.WithContext(context.Background()).Model(user).Where("id = ?", user.ID).
+	if err := r.db.WithContext(context.Background()).
+		Model(user).
+		Session(&gorm.Session{FullSaveAssociations: false}).
 		Select("name", "email", "username", "password", "is_seller", "roles", "updated_at").
-		Updates(map[string]interface{}{
-			"name":       user.Name,
-			"email":      user.Email,
-			"username":   user.Username,
-			"password":   user.Password,
-			"is_seller":  user.IsSeller,
-			"roles":      user.Roles,
-			"updated_at": user.UpdatedAt,
-		}).Error; err != nil {
+		Save(user).Error; err != nil {
 		r.log.Errorf("UserDB.Save %s: %v", user.ID, err)
-		return nil, domainErr.ErrDatabase("failed to save user", err)
+		return nil, handlePgError(err, "failed to save user")
 	}
 	return user, nil
 }

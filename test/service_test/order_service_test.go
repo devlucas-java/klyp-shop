@@ -28,6 +28,7 @@ func newOrderService(
 		addressRepo,
 		productRepo,
 		mapper.NewOrderMapper(),
+		mocks.NewTestMetric(),
 	)
 }
 
@@ -36,6 +37,7 @@ func TestOrderService_CreateOrder(t *testing.T) {
 	userRepo := new(mocks.UserRepositoryMock)
 	addressRepo := new(mocks.AddressRepositoryMock)
 	productRepo := new(mocks.ProductRepositoryMock)
+
 	svc := newOrderService(orderRepo, userRepo, addressRepo, productRepo)
 
 	user := &entity.User{ID: id.NewUUID()}
@@ -73,10 +75,18 @@ func TestOrderService_GetOrder(t *testing.T) {
 	userRepo := new(mocks.UserRepositoryMock)
 	addressRepo := new(mocks.AddressRepositoryMock)
 	productRepo := new(mocks.ProductRepositoryMock)
+
 	svc := newOrderService(orderRepo, userRepo, addressRepo, productRepo)
 
 	user := &entity.User{ID: id.NewUUID()}
-	order := &entity.Order{ID: id.NewUUID(), UserID: user.ID, AddressID: id.NewUUID(), Status: entity.OrderStatusPending, TotalBTC: 0.0, Items: []entity.OrderItem{}}
+	order := &entity.Order{
+		ID:        id.NewUUID(),
+		UserID:    user.ID,
+		AddressID: id.NewUUID(),
+		Status:    entity.OrderStatusPending,
+		TotalBTC:  0.0,
+		Items:     []entity.OrderItem{},
+	}
 
 	orderRepo.On("FindByID", order.ID).Return(order, nil)
 

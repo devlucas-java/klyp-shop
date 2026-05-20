@@ -15,43 +15,53 @@ import (
 
 type contextKey string
 
-const AuthKey contextKey = "auth_context"
+const (
+	AuthKey contextKey = "auth_context"
+	JTIKey  contextKey = "jti_context"
+)
 
-func AuthMiddleware(jwtService *jwt.JWTService, log *logger.Logger, userRepository repository.UserRepository) func(http.Handler) http.Handler {
+func JwtMiddleware(
+	jwtService *jwt.JWTService,
+	log *logger.Logger,
+	userRepository repository.UserRepository,
+) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 			token := jwtauth.TokenFromHeader(r)
 
 			claims, err := jwtService.Validate(token)
 			if err != nil {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				http.Error(w, "Forbidden", http.StatusForbidden)
 				return
 			}
+
 			userIDStr, ok := claims["user_id"].(string)
 			if !ok {
 				http.Error(w, "Invalid token claims", http.StatusUnauthorized)
 				return
 			}
+
 			userID, err := id.Parse(userIDStr)
 			if err != nil {
-				http.Error(w, "Invalid duser ID in token", http.StatusUnauthorized)
+				http.Error(w, "Invalid user ID in token", http.StatusUnauthorized)
 				return
 			}
 
 			email, _ := claims["email"].(string)
+			jti, _ := claims["jti"].(string)
 
 			user, err := userRepository.FindByID(userID)
 			if err != nil || user == nil {
-				log.Errorf("Error finding duser by ID %s: %v", userID, err)
-				http.Error(w, "Forbidden", http.StatusForbidden)
+				log.Errorf("JwtMiddleware: user not found %s: %v", userID, err)
+
+				http.Error(w, "Unauthorize", http.StatusUnauthorized)
 				return
 			}
 
 			var roles []enums.Role
 			if rolesClaim, ok := claims["roles"].([]interface{}); ok {
-				for _, r := range rolesClaim {
-					if roleStr, ok := r.(string); ok {
+				for _, claim := range rolesClaim {
+					if roleStr, ok := claim.(string); ok {
 						roles = append(roles, enums.Role(roleStr))
 					}
 				}
@@ -64,6 +74,7 @@ func AuthMiddleware(jwtService *jwt.JWTService, log *logger.Logger, userReposito
 			}
 
 			ctx := context.WithValue(r.Context(), AuthKey, auth)
+			ctx = context.WithValue(ctx, JTIKey, jti)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

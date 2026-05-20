@@ -26,11 +26,13 @@ func NewOrderRouter(jwtService *jwt.JWTService, orderHandler *handler.OrderHandl
 	}
 }
 
-func (r *OrderRouter) RegisterOrderRoutes(protect chi.Router) {
-	protect.Use(middleware.AuthMiddleware(r.jwtService, r.log, r.userRepository))
+func (r *OrderRouter) RegisterOrderRoutes(mux chi.Router) {
+	mux.Group(func(protected chi.Router) {
+		protected.Use(middleware.JwtMiddleware(r.jwtService, r.log, r.userRepository))
 
-	protect.Post("/", adapter.Adapt(r.orderHandler.CreateOrder))
-	protect.Get("/", adapter.Adapt(r.orderHandler.ListOrders))
-	protect.Get("/{id}", adapter.Adapt(r.orderHandler.GetOrderByID))
-	protect.Delete("/{id}", adapter.Adapt(r.orderHandler.CancelOrder))
+		protected.Post("/", adapter.Adapt(r.orderHandler.CreateOrder))
+		protected.Get("/", adapter.Adapt(r.orderHandler.ListOrders))
+		protected.Get("/{id}", adapter.Adapt(r.orderHandler.GetOrderByID))
+		protected.Delete("/{id}", adapter.Adapt(r.orderHandler.CancelOrder))
+	})
 }

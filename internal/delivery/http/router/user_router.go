@@ -27,19 +27,19 @@ func NewUserRouter(jwtService *jwt.JWTService, userHandler *handler.UserHandler,
 	}
 }
 
-func (u *UserRouter) RegisterUserRoutes(protect chi.Router) {
+func (u *UserRouter) RegisterUserRoutes(mux chi.Router) {
+	mux.Group(func(protected chi.Router) {
+		protected.Use(middleware.JwtMiddleware(u.jwtService, u.log, u.userRepository))
 
-	protect.Use(middleware.AuthMiddleware(u.jwtService, u.log, u.userRepository))
+		protected.Get("/me", adapter.Adapt(u.userHandler.GetMe))
+		protected.Delete("/me", adapter.Adapt(u.userHandler.DeleteMe))
+		protected.Patch("/me", adapter.Adapt(u.userHandler.UpdateMe))
 
-	protect.Get("/me", adapter.Adapt(u.userHandler.GetMe))
-	protect.Delete("/me", adapter.Adapt(u.userHandler.DeleteMe))
-	protect.Patch("/me", adapter.Adapt(u.userHandler.UpdateMe))
+		protected.Group(func(admin chi.Router) {
+			admin.Use(middleware.RoleMiddleware([]enums.Role{enums.ADMIN}))
 
-	protect.Route("/", func(admin chi.Router) {
-		admin.Use(middleware.RoleMiddleware([]enums.Role{enums.ADMIN}))
-
-		admin.Post("/promote/{id}", adapter.Adapt(u.userHandler.PromoteUser))
-		admin.Post("/demote/{id}", adapter.Adapt(u.userHandler.DemoteUser))
-
+			admin.Post("/promote/{id}", adapter.Adapt(u.userHandler.PromoteUser))
+			admin.Post("/demote/{id}", adapter.Adapt(u.userHandler.DemoteUser))
+		})
 	})
 }

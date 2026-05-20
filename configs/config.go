@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type conf struct {
+type Conf struct {
 	log *logger.Logger
 
 	WebServerPort      string `mapstructure:"WEB_SERVER_PORT"`
@@ -32,15 +32,15 @@ type conf struct {
 	BTCPayWebhookSecret string `mapstructure:"BTCPAY_WEBHOOK_SECRET"`
 }
 
-var cfg *conf
+var cfg *Conf
 
-func NewConfig() *conf {
+func NewConfig() *Conf {
 	return cfg
 }
 
-func InitConfig(log *logger.Logger) *conf {
+func InitConfig(log *logger.Logger) *Conf {
 
-	cfg = &conf{}
+	cfg = &Conf{}
 
 	viper.AutomaticEnv()
 
@@ -123,62 +123,62 @@ func InitDB(log *logger.Logger) *gorm.DB {
 	return db
 }
 
-func (c *conf) GetWebServerPort() string {
+func (c *Conf) GetWebServerPort() string {
 	return c.WebServerPort
 }
 
-func (c *conf) GetDbName() string {
+func (c *Conf) GetDbName() string {
 	return c.DbName
 }
 
-func (c *conf) GetDbPort() string {
+func (c *Conf) GetDbPort() string {
 	return c.DbPort
 }
 
-func (c *conf) GetDbUser() string {
+func (c *Conf) GetDbUser() string {
 	return c.DbUser
 }
 
-func (c *conf) GetDbPassword() string {
+func (c *Conf) GetDbPassword() string {
 	return c.DbPassword
 }
 
-func (c *conf) GetDbHost() string {
+func (c *Conf) GetDbHost() string {
 	return c.DbHost
 }
 
-func (c *conf) GetDbDriver() string {
+func (c *Conf) GetDbDriver() string {
 	return c.DbDriver
 }
 
-func (c *conf) GetJWTSecret() string {
+func (c *Conf) GetJWTSecret() string {
 	return c.JwtSecret
 }
 
-func (c *conf) GetJWTExpire() int {
+func (c *Conf) GetJWTExpire() int {
 	return c.JwtExpireIn
 }
 
-func (c *conf) GetJWTRefreshExpire() int {
+func (c *Conf) GetJWTRefreshExpire() int {
 	return c.JwtRefreshExpireIn
 }
 
-func (c *conf) GetTokenAuth() *jwtauth.JWTAuth {
+func (c *Conf) GetTokenAuth() *jwtauth.JWTAuth {
 	return c.JwtAccessToken
 }
 
-func (c *conf) GetBTCPayBaseURL() string {
+func (c *Conf) GetBTCPayBaseURL() string {
 	return c.BTCPayBaseURL
 }
 
-func (c *conf) GetBTCPayStoreID() string {
+func (c *Conf) GetBTCPayStoreID() string {
 	return c.BTCPayStoreID
 }
 
-func (c *conf) GetBTCPayAPIKey() string {
+func (c *Conf) GetBTCPayAPIKey() string {
 	return c.BTCPayAPIKey
 }
 
-func (c *conf) GetBTCPayWebhookSecret() string {
+func (c *Conf) GetBTCPayWebhookSecret() string {
 	return c.BTCPayWebhookSecret
 }

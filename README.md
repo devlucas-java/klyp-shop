@@ -53,10 +53,11 @@ klyp-shop/
 │   │   │   ├── handler/
 │   │   │   ├── middleware/
 │   │   │   └── routes/
-│   │   ├── websocket/
+│   │   └── websocket/
 │   ├── domain/
 │   │   ├── entity/
 │   │   ├── repository/
+│   │   └── policy/
 │   ├── application/
 │   │   └── service/
 │   ├── infrastructure/
@@ -66,8 +67,9 @@ klyp-shop/
 │   └── configs/
 ├── pkg/
 │   ├── logger/
+│   ├── password_encoder/
 │   └── utils/
-├── docs/ (swagger)
+├── docs/ (swagger, draw.io)
 ├── docker/
 │   └── Dockerfile
 ├── docker-compose.yml

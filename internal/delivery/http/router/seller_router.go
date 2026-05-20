@@ -34,11 +34,13 @@ func NewSellerRouter(
 	}
 }
 
-func (s *SellerRouter) RegisterSellerRoutes(r chi.Router) {
-	r.Use(middleware.AuthMiddleware(s.jwtService, s.log, s.userRepository))
+func (s *SellerRouter) RegisterSellerRoutes(mux chi.Router) {
+	mux.Group(func(protected chi.Router) {
+		protected.Use(middleware.JwtMiddleware(s.jwtService, s.log, s.userRepository))
 
-	r.Post("/seller", adapter.Adapt(s.sellerHandler.CreateSeller))
-	r.Patch("/seller", adapter.Adapt(s.sellerHandler.UpdateSeller))
-	r.Delete("/seller", adapter.Adapt(s.sellerHandler.DeleteSeller))
-	r.Get("/seller/{id}", adapter.Adapt(s.sellerHandler.GetSellerByID))
+		protected.Post("/seller", adapter.Adapt(s.sellerHandler.CreateSeller))
+		protected.Patch("/seller", adapter.Adapt(s.sellerHandler.UpdateSeller))
+		protected.Delete("/seller", adapter.Adapt(s.sellerHandler.DeleteSeller))
+		protected.Get("/seller/{id}", adapter.Adapt(s.sellerHandler.GetSellerByID))
+	})
 }

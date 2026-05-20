@@ -14,6 +14,8 @@ const (
 	PaymentStatusFailed    PaymentStatus = "failed"
 )
 
+// BitcoinPayment representa um pagamento Bitcoin.
+// AmountSats é o valor em satoshis (1 BTC = 100_000_000 satoshis).
 type BitcoinPayment struct {
 	ID        id.UUID   `gorm:"type:uuid;primaryKey"`
 	CreatedAt time.Time `gorm:"autoCreateTime"`
@@ -23,11 +25,11 @@ type BitcoinPayment struct {
 
 	WalletAddress string        `gorm:"not null"`
 	TxHash        string        `gorm:"index"`
-	AmountBTC     float64       `gorm:"type:decimal(18,8);not null"`
+	AmountSats    int64         `gorm:"not null"`
 	Status        PaymentStatus `gorm:"default:'pending'"`
 }
 
-func NewBitcoinPayment(orderID id.UUID, walletAddress string, amountBTC float64) *BitcoinPayment {
+func NewBitcoinPayment(orderID id.UUID, walletAddress string, amountSats int64) *BitcoinPayment {
 	now := time.Now()
 	return &BitcoinPayment{
 		ID:            id.NewUUID(),
@@ -35,7 +37,7 @@ func NewBitcoinPayment(orderID id.UUID, walletAddress string, amountBTC float64)
 		UpdatedAt:     now,
 		OrderID:       orderID,
 		WalletAddress: walletAddress,
-		AmountBTC:     amountBTC,
+		AmountSats:    amountSats,
 		Status:        PaymentStatusPending,
 	}
 }

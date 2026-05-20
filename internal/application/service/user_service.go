@@ -32,20 +32,15 @@ func NewUserService(
 }
 
 func (s *UserService) GetMe(auth *entity.User) (*duser.UserResponse, error) {
-	s.log.Infof("Getting user by ID %s", auth.ID)
-
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
 		s.log.Errorf("Failed to find user by ID %s: %v", auth.ID, err)
 		return nil, errors.ErrNotFound("User", err)
 	}
-
-	return s.userMapper.UserToUserDTO(user), nil
+	return s.userMapper.ToResponse(user), nil
 }
 
 func (s *UserService) UpdateMe(auth *entity.User, req *duser.UpdateUserRequest) (*duser.UserResponse, error) {
-	s.log.Infof("Updating user %s", auth.ID)
-
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
 		s.log.Errorf("Failed to find user by ID %s: %v", auth.ID, err)
@@ -70,18 +65,15 @@ func (s *UserService) UpdateMe(auth *entity.User, req *duser.UpdateUserRequest) 
 
 	user.ChangeName(req.Name)
 
-	_, err = s.userRepository.Update(user)
-	if err != nil {
+	if _, err = s.userRepository.Update(user); err != nil {
 		s.log.Errorf("Failed to update user %s: %v", auth.ID, err)
 		return nil, errors.ErrDatabase("failed to update user", err)
 	}
 
-	return s.userMapper.UserToUserDTO(user), nil
+	return s.userMapper.ToResponse(user), nil
 }
 
 func (s *UserService) DeleteMe(auth *entity.User) error {
-	s.log.Infof("Deleting user %s", auth.ID)
-
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
 		s.log.Errorf("Failed to find user by ID %s: %v", auth.ID, err)
@@ -97,8 +89,6 @@ func (s *UserService) DeleteMe(auth *entity.User) error {
 }
 
 func (s *UserService) PromoteToAdmin(userID id.UUID) error {
-	s.log.Infof("Promoting user %s to admin", userID)
-
 	user, err := s.userRepository.FindByID(userID)
 	if err != nil {
 		s.log.Errorf("Failed to find user by ID %s: %v", userID, err)
@@ -110,7 +100,7 @@ func (s *UserService) PromoteToAdmin(userID id.UUID) error {
 		return err
 	}
 
-	user.PromoteToAdmin()
+	user.ChangerToAdmin()
 
 	if _, err := s.userRepository.Update(user); err != nil {
 		s.log.Errorf("Failed to update user %s roles: %v", userID, err)
@@ -122,8 +112,6 @@ func (s *UserService) PromoteToAdmin(userID id.UUID) error {
 }
 
 func (s *UserService) DemoteToUser(userID id.UUID) error {
-	s.log.Infof("Demoting user %s to regular user", userID)
-
 	user, err := s.userRepository.FindByID(userID)
 	if err != nil {
 		s.log.Errorf("Failed to find user by ID %s: %v", userID, err)
@@ -135,7 +123,7 @@ func (s *UserService) DemoteToUser(userID id.UUID) error {
 		return err
 	}
 
-	user.DemoteToUser()
+	user.ChangerToUser()
 
 	if _, err := s.userRepository.Update(user); err != nil {
 		s.log.Errorf("Failed to update user %s roles: %v", userID, err)

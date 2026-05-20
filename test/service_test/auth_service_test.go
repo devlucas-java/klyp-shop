@@ -18,7 +18,7 @@ import (
 )
 
 func newAuthService(userRepo *mocks.UserRepositoryMock) *service.AuthService {
-	return service.NewAuthService(userRepo, jwt.NewJWTService("test-secret"), mapper.NewUserMapper())
+	return service.NewAuthService(userRepo, jwt.NewJWTService("test-secret", 5), mapper.NewUserMapper())
 }
 
 func newHashedUser(email, username, plainPass string) *entity.User {

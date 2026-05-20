@@ -38,7 +38,7 @@ func (h *UserHandler) UpdateMe(w http.ResponseWriter, r *http.Request) error {
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
 	var dto duser.UpdateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		return errors.ErrBadRequest("invalid request payload", err)
+		return errors.ErrInvalidPayload(err)
 	}
 	if err := dto.Validate(); err != nil {
 		return err

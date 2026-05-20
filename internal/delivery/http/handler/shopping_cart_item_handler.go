@@ -28,7 +28,7 @@ func (h *ShoppingCartItemHandler) AddItem(w http.ResponseWriter, r *http.Request
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
 	var req dcart.AddShoppingCartItemRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return errors.ErrBadRequest("invalid request payload", err)
+		return errors.ErrInvalidPayload(err)
 	}
 	res, err := h.shoppingCartItemService.AddItem(auth, &req)
 	if err != nil {
@@ -46,7 +46,7 @@ func (h *ShoppingCartItemHandler) UpdateItem(w http.ResponseWriter, r *http.Requ
 	}
 	var req dcart.UpdateShoppingCartItemRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return errors.ErrBadRequest("invalid request payload", err)
+		return errors.ErrInvalidPayload(err)
 	}
 	res, err := h.shoppingCartItemService.UpdateItem(auth, itemID, &req)
 	if err != nil {

@@ -44,7 +44,7 @@ func (a *AuthService) Login(login *dauth.LoginRequest) (*dauth.JWTResponse, erro
 		return nil, errors.ErrInternal("failed to generate token", err)
 	}
 
-	return dauth.NewJWTResponse(token, a.mapper.UserToUserDTO(user)), nil
+	return dauth.NewJWTResponse(token, a.mapper.ToResponse(user)), nil
 }
 
 func (a *AuthService) Register(dto *dauth.RegisterDTO) (*dauth.JWTResponse, error) {
@@ -63,7 +63,7 @@ func (a *AuthService) Register(dto *dauth.RegisterDTO) (*dauth.JWTResponse, erro
 		return nil, errors.ErrInternal("failed to generate token", err)
 	}
 
-	return dauth.NewJWTResponse(token, a.mapper.UserToUserDTO(user)), nil
+	return dauth.NewJWTResponse(token, a.mapper.ToResponse(user)), nil
 }
 
 func (a *AuthService) VerifyPassword(req *dauth.VerifyPasswordRequest, user *entity.User) (*dothers.BooleanDTO, error) {

@@ -1,42 +1,47 @@
 package service
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
+	"math"
 
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dpayment"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
-	"github.com/devlucas-java/klyp-shop/internal/infrastructure/btcpay"
+	"github.com/devlucas-java/klyp-shop/internal/infrastructure/client/port"
+	"github.com/devlucas-java/klyp-shop/internal/infrastructure/observability/metrics"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 )
 
+const satsPerBTC = int64(100_000_000)
+
+// btcToSats converte um valor em BTC (float64) para satoshis (int64).
+func btcToSats(btc float64) int64 {
+	return int64(math.Round(btc * float64(satsPerBTC)))
+}
+
 type PaymentService struct {
 	log               *logger.Logger
 	paymentRepository repository.BitcoinPaymentRepository
 	orderRepository   repository.OrderRepository
-	btcpayClient      *btcpay.Client
-	webhookSecret     string
+	paymentGateway    port.PaymentGateway
+	metric            *metrics.Metric
 }
 
 func NewPaymentService(
 	log *logger.Logger,
 	paymentRepository repository.BitcoinPaymentRepository,
 	orderRepository repository.OrderRepository,
-	btcpayClient *btcpay.Client,
-	webhookSecret string,
+	paymentGateway port.PaymentGateway,
+	metric *metrics.Metric,
 ) *PaymentService {
 	return &PaymentService{
 		log:               log,
 		paymentRepository: paymentRepository,
 		orderRepository:   orderRepository,
-		btcpayClient:      btcpayClient,
-		webhookSecret:     webhookSecret,
+		paymentGateway:    paymentGateway,
+		metric:            metric,
 	}
 }
 
@@ -50,24 +55,27 @@ func (s *PaymentService) CreateInvoice(auth *entity.User, orderID id.UUID) (*dpa
 		return nil, err
 	}
 
+	// Retorna invoice existente sem criar duplicata
 	existing, _ := s.paymentRepository.FindByOrderID(orderID)
 	if existing != nil {
 		return &dpayment.InvoiceResponse{
 			PaymentID:     existing.ID.String(),
 			OrderID:       existing.OrderID.String(),
-			AmountBTC:     existing.AmountBTC,
+			AmountSats:    existing.AmountSats,
 			Status:        string(existing.Status),
 			WalletAddress: existing.WalletAddress,
 		}, nil
 	}
 
-	invoice, err := s.btcpayClient.CreateInvoice(orderID.String(), order.TotalBTC)
+	amountSats := btcToSats(order.TotalBTC)
+
+	invoice, err := s.paymentGateway.CreateInvoice(orderID.String(), amountSats)
 	if err != nil {
-		s.log.Errorf("PaymentService.CreateInvoice btcpay error: %v", err)
-		return nil, errors.ErrInternal("failed to create btcpay invoice", err)
+		s.log.Errorf("PaymentService.CreateInvoice gateway error: %v", err)
+		return nil, errors.ErrInternal("failed to create invoice", err)
 	}
 
-	payment := entity.NewBitcoinPayment(orderID, invoice.CheckoutLink, order.TotalBTC)
+	payment := entity.NewBitcoinPayment(orderID, invoice.CheckoutLink, amountSats)
 	payment.TxHash = invoice.ID
 
 	saved, err := s.paymentRepository.Create(payment)
@@ -75,10 +83,12 @@ func (s *PaymentService) CreateInvoice(auth *entity.User, orderID id.UUID) (*dpa
 		return nil, errors.ErrDatabase("failed to save payment", err)
 	}
 
+	s.metric.PaymentsCreated.Inc()
+
 	return &dpayment.InvoiceResponse{
 		PaymentID:     saved.ID.String(),
 		OrderID:       saved.OrderID.String(),
-		AmountBTC:     saved.AmountBTC,
+		AmountSats:    saved.AmountSats,
 		Status:        string(saved.Status),
 		WalletAddress: saved.WalletAddress,
 		CheckoutURL:   invoice.CheckoutLink,
@@ -102,7 +112,7 @@ func (s *PaymentService) GetPaymentStatus(auth *entity.User, orderID id.UUID) (*
 	}
 
 	if payment.TxHash != "" {
-		invoice, err := s.btcpayClient.GetInvoice(payment.TxHash)
+		invoice, err := s.paymentGateway.GetInvoice(payment.TxHash)
 		if err == nil {
 			s.syncPaymentStatus(payment, invoice.Status)
 		}
@@ -111,39 +121,36 @@ func (s *PaymentService) GetPaymentStatus(auth *entity.User, orderID id.UUID) (*
 	return &dpayment.InvoiceResponse{
 		PaymentID:     payment.ID.String(),
 		OrderID:       payment.OrderID.String(),
-		AmountBTC:     payment.AmountBTC,
+		AmountSats:    payment.AmountSats,
 		Status:        string(payment.Status),
 		WalletAddress: payment.WalletAddress,
 		InvoiceID:     payment.TxHash,
 	}, nil
 }
 
+// HandleWebhook recebe o payload bruto e delega parse + validação de assinatura ao gateway.
 func (s *PaymentService) HandleWebhook(rawBody []byte, signature string) error {
-	if !s.verifyWebhookSignature(rawBody, signature) {
-		s.log.Warnf("PaymentService.HandleWebhook: invalid signature")
-		return errors.ErrUnauthorized(fmt.Errorf("invalid webhook signature"))
-	}
-
-	var payload btcpay.WebhookPayload
-	if err := json.Unmarshal(rawBody, &payload); err != nil {
-		return errors.ErrBadRequest("invalid webhook payload", err)
+	event, err := s.paymentGateway.ParseWebhook(rawBody, signature)
+	if err != nil {
+		s.log.Warnf("PaymentService.HandleWebhook: %v", err)
+		return errors.ErrUnauthorized(fmt.Errorf("invalid webhook: %w", err))
 	}
 
 	s.log.Infof("PaymentService.HandleWebhook: type=%s invoiceID=%s orderID=%s",
-		payload.Type, payload.InvoiceID, payload.Metadata.OrderID)
+		event.Type, event.InvoiceID, event.OrderID)
 
-	switch payload.Type {
+	switch event.Type {
 	case "InvoiceSettled", "InvoicePaymentSettled":
-		return s.handleInvoiceSettled(payload)
+		return s.handleInvoiceSettled(event)
 	case "InvoiceExpired", "InvoiceInvalid":
-		return s.handleInvoiceFailed(payload)
+		return s.handleInvoiceFailed(event)
 	}
 
 	return nil
 }
 
-func (s *PaymentService) handleInvoiceSettled(payload btcpay.WebhookPayload) error {
-	orderID, err := id.Parse(payload.Metadata.OrderID)
+func (s *PaymentService) handleInvoiceSettled(event *port.WebhookEvent) error {
+	orderID, err := id.Parse(event.OrderID)
 	if err != nil {
 		return errors.ErrInvalidUUID(err)
 	}
@@ -153,7 +160,7 @@ func (s *PaymentService) handleInvoiceSettled(payload btcpay.WebhookPayload) err
 		return errors.ErrNotFound("Payment", err)
 	}
 
-	payment.Confirm(payload.InvoiceID)
+	payment.Confirm(event.InvoiceID)
 	if _, err := s.paymentRepository.Save(payment); err != nil {
 		return errors.ErrDatabase("failed to update payment", err)
 	}
@@ -168,12 +175,13 @@ func (s *PaymentService) handleInvoiceSettled(payload btcpay.WebhookPayload) err
 		return errors.ErrDatabase("failed to update order", err)
 	}
 
+	s.metric.PaymentsSettled.Inc()
 	s.log.Infof("PaymentService: order %s marked as paid", orderID)
 	return nil
 }
 
-func (s *PaymentService) handleInvoiceFailed(payload btcpay.WebhookPayload) error {
-	orderID, err := id.Parse(payload.Metadata.OrderID)
+func (s *PaymentService) handleInvoiceFailed(event *port.WebhookEvent) error {
+	orderID, err := id.Parse(event.OrderID)
 	if err != nil {
 		return errors.ErrInvalidUUID(err)
 	}
@@ -188,12 +196,13 @@ func (s *PaymentService) handleInvoiceFailed(payload btcpay.WebhookPayload) erro
 		return errors.ErrDatabase("failed to update payment", err)
 	}
 
+	s.metric.PaymentsFailed.Inc()
 	s.log.Infof("PaymentService: payment for order %s marked as failed", orderID)
 	return nil
 }
 
-func (s *PaymentService) syncPaymentStatus(payment *entity.BitcoinPayment, btcpayStatus string) {
-	switch btcpayStatus {
+func (s *PaymentService) syncPaymentStatus(payment *entity.BitcoinPayment, gatewayStatus string) {
+	switch gatewayStatus {
 	case "Settled", "Complete":
 		if !payment.IsConfirmed() {
 			payment.Confirm(payment.TxHash)
@@ -205,14 +214,4 @@ func (s *PaymentService) syncPaymentStatus(payment *entity.BitcoinPayment, btcpa
 			s.paymentRepository.Save(payment)
 		}
 	}
-}
-
-func (s *PaymentService) verifyWebhookSignature(body []byte, signature string) bool {
-	if s.webhookSecret == "" {
-		return true
-	}
-	mac := hmac.New(sha256.New, []byte(s.webhookSecret))
-	mac.Write(body)
-	expected := "sha256=" + hex.EncodeToString(mac.Sum(nil))
-	return hmac.Equal([]byte(expected), []byte(signature))
 }

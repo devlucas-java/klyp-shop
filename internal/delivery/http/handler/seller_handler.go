@@ -28,7 +28,7 @@ func (h *SellerHandler) CreateSeller(w http.ResponseWriter, r *http.Request) err
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
 	var dto dseller.CreateSeller
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		return errors.ErrBadRequest("invalid request payload", err)
+		return errors.ErrInvalidPayload(err)
 	}
 	if err := dto.Validate(); err != nil {
 		return err
@@ -58,7 +58,7 @@ func (h *SellerHandler) UpdateSeller(w http.ResponseWriter, r *http.Request) err
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
 	var dto dseller.UpdateSeller
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		return errors.ErrBadRequest("invalid request payload", err)
+		return errors.ErrInvalidPayload(err)
 	}
 	if err := dto.Validate(); err != nil {
 		return err

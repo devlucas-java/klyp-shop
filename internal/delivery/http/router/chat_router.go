@@ -37,7 +37,7 @@ func NewChatRouter(
 
 func (c *ChatRouter) RegisterChatRoutes(r chi.Router) {
 	r.Group(func(protected chi.Router) {
-		protected.Use(middleware.AuthMiddleware(c.jwtService, c.log, c.userRepository))
+		protected.Use(middleware.JwtMiddleware(c.jwtService, c.log, c.userRepository))
 		protected.Post("/messages", adapter.Adapt(c.chatHandler.SendMessage))
 		protected.Get("/messages/{peerID}", adapter.Adapt(c.chatHandler.GetConversation))
 		protected.Handle("/ws", c.wsHandler)

@@ -28,7 +28,7 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) e
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
 	var dto dproduct.CreateProduct
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		return errors.ErrBadRequest("invalid request payload", err)
+		return errors.ErrInvalidPayload(err)
 	}
 	if err := dto.Validate(); err != nil {
 		return err
@@ -62,7 +62,7 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) e
 	}
 	var dto dproduct.UpdateProduct
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		return errors.ErrBadRequest("invalid request payload", err)
+		return errors.ErrInvalidPayload(err)
 	}
 	if err := dto.Validate(); err != nil {
 		return err

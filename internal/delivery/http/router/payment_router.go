@@ -35,7 +35,7 @@ func (p *PaymentRouter) RegisterPaymentRoutes(r chi.Router) {
 	r.Post("/webhook", adapter.Adapt(p.handler.Webhook))
 
 	r.Group(func(protected chi.Router) {
-		protected.Use(middleware.AuthMiddleware(p.jwtService, p.log, p.userRepository))
+		protected.Use(middleware.JwtMiddleware(p.jwtService, p.log, p.userRepository))
 		protected.Post("/orders/{orderID}/invoice", adapter.Adapt(p.handler.CreateInvoice))
 		protected.Get("/orders/{orderID}/status", adapter.Adapt(p.handler.GetPaymentStatus))
 	})

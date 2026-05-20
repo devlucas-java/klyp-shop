@@ -41,19 +41,19 @@ func (s *SellerService) CreateSeller(auth *entity.User, req *dseller.CreateSelle
 		return nil, err
 	}
 
-	seller := s.sellerMapper.CreateToSeller(req)
-	seller.UserID = user.ID
+	seller := entity.NewSeller(user.ID, req.DisplayName, req.Bio)
 
 	saved, err := s.sellerRepository.Create(seller)
 	if err != nil {
 		return nil, errors.ErrDatabase("failed to create seller", err)
 	}
 
+	user.ChangerToSeller()
 	if _, err = s.userRepository.Update(user); err != nil {
 		return nil, errors.ErrDatabase("failed to update user", err)
 	}
 
-	return s.sellerMapper.SellerToResponse(saved), nil
+	return s.sellerMapper.ToResponse(saved), nil
 }
 
 func (s *SellerService) GetSellerByID(uuid id.UUID) (*dseller.SellerResponse, error) {
@@ -61,7 +61,7 @@ func (s *SellerService) GetSellerByID(uuid id.UUID) (*dseller.SellerResponse, er
 	if err != nil {
 		return nil, err
 	}
-	return s.sellerMapper.SellerToResponse(seller), nil
+	return s.sellerMapper.ToResponse(seller), nil
 }
 
 func (s *SellerService) UpdateSeller(auth *entity.User, req *dseller.UpdateSeller) (*dseller.SellerResponse, error) {
@@ -74,15 +74,15 @@ func (s *SellerService) UpdateSeller(auth *entity.User, req *dseller.UpdateSelle
 		return nil, err
 	}
 
-	patch := s.sellerMapper.UpdateToSeller(req)
-	patch.ID = user.Seller.ID
+	// Aplica os campos do request diretamente na entidade existente
+	user.Seller.UpdateInfo(req.DisplayName, req.Bio)
 
-	updated, err := s.sellerRepository.Updates(patch)
+	updated, err := s.sellerRepository.Updates(user.Seller)
 	if err != nil {
 		return nil, errors.ErrDatabase("failed to update seller", err)
 	}
 
-	return s.sellerMapper.SellerToResponse(updated), nil
+	return s.sellerMapper.ToResponse(updated), nil
 }
 
 func (s *SellerService) DeleteSeller(auth *entity.User) error {

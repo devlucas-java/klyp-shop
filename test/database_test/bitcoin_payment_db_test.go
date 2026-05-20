@@ -73,7 +73,7 @@ func TestSaveBitcoinPayment(t *testing.T) {
 
 	order := createOrderForPayment(t)
 
-	payment := entity.NewBitcoinPayment(order.ID, "bc1qxyz123", 0.005)
+	payment := entity.NewBitcoinPayment(order.ID, "bc1qxyz123", 500) // 500 satoshis
 
 	res, err := bitcoinRepo.Save(payment)
 	if err != nil {
@@ -81,7 +81,7 @@ func TestSaveBitcoinPayment(t *testing.T) {
 	}
 
 	assert.Equal(t, payment.WalletAddress, res.WalletAddress)
-	assert.Equal(t, payment.AmountBTC, res.AmountBTC)
+	assert.Equal(t, payment.AmountSats, res.AmountSats)
 	assert.Equal(t, entity.PaymentStatusPending, res.Status)
 	assert.Equal(t, order.ID, res.OrderID)
 }
@@ -91,7 +91,7 @@ func TestFindBitcoinPaymentByOrderID(t *testing.T) {
 
 	order := createOrderForPayment(t)
 
-	payment := entity.NewBitcoinPayment(order.ID, "bc1qabc456", 0.01)
+	payment := entity.NewBitcoinPayment(order.ID, "bc1qabc456", 1_000_000) // 0.01 BTC em satoshis
 	dbBitcoin.Create(payment)
 
 	found, err := bitcoinRepo.FindByOrderID(order.ID)
@@ -115,7 +115,7 @@ func TestFindBitcoinPaymentByTxHash(t *testing.T) {
 
 	order := createOrderForPayment(t)
 
-	payment := entity.NewBitcoinPayment(order.ID, "bc1qdef789", 0.02)
+	payment := entity.NewBitcoinPayment(order.ID, "bc1qdef789", 2_000_000) // 0.02 BTC em satoshis
 	payment.TxHash = "txhash_abc123"
 	dbBitcoin.Create(payment)
 
@@ -140,7 +140,7 @@ func TestUpdateBitcoinPayment(t *testing.T) {
 
 	order := createOrderForPayment(t)
 
-	payment := entity.NewBitcoinPayment(order.ID, "bc1qghi000", 0.03)
+	payment := entity.NewBitcoinPayment(order.ID, "bc1qghi000", 3_000_000) // 0.03 BTC em satoshis
 	dbBitcoin.Create(payment)
 
 	payment.Confirm("txhash_confirmed")

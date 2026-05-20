@@ -24,7 +24,7 @@ func NewBitcoinPaymentDB(db *gorm.DB, log *logger.Logger) repository.BitcoinPaym
 func (b *BitcoinPaymentDB) Create(payment *entity.BitcoinPayment) (*entity.BitcoinPayment, error) {
 	if err := b.db.WithContext(context.Background()).Create(payment).Error; err != nil {
 		b.log.Errorf("BitcoinPaymentDB.Create: %v", err)
-		return nil, domainErr.ErrDatabase("failed to create bitcoin payment", err)
+		return nil, handlePgError(err, "failed to create bitcoin payment")
 	}
 	return payment, nil
 }

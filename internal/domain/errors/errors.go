@@ -67,6 +67,14 @@ func ErrBadRequest(message string, err error) *AppError {
 		err,
 	)
 }
+func ErrInvalidPayload(err error) *AppError {
+	return New(
+		"BAD_REQUEST",
+		"invalid request payload",
+		400,
+		err,
+	)
+}
 func ErrUnprocessable(message string, err error) *AppError {
 	return New(
 		"UNPROCESSABLE_ENTITY",

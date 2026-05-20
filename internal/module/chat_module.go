@@ -6,18 +6,19 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/router"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/socket"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/database"
+	"github.com/devlucas-java/klyp-shop/internal/infrastructure/observability/metrics"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/security/jwt"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/go-chi/chi"
 	"gorm.io/gorm"
 )
 
-func InitChatModule(db *gorm.DB, log *logger.Logger, jwtService *jwt.JWTService) (chi.Router, *socket.Hub) {
+func InitChatModule(db *gorm.DB, log *logger.Logger, jwtService *jwt.JWTService, metric *metrics.Metric) (chi.Router, *socket.Hub) {
 	chatRepository := database.NewChatDB(db)
 	userRepository := database.NewUserDB(db, log)
 
 	chatService := service.NewChatService(log, chatRepository, userRepository)
-	hub := socket.NewHub(log)
+	hub := socket.NewHub(log, metric)
 
 	chatHandler := handler.NewChatHandler(chatService, log)
 	wsHandler := socket.NewChatWSHandler(hub, chatService, log)

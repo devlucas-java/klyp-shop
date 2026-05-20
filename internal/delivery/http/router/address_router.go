@@ -27,16 +27,14 @@ func NewAddressRouter(h *handler.AddressHandler, l *logger.Logger, js *jwt.JWTSe
 	}
 }
 
-func (a *AddressRouter) Handle(router chi.Router) {
-	router.Use(middleware.AuthMiddleware(a.jwtService, a.log, a.userRepository))
+func (a *AddressRouter) Handle(mux chi.Router) {
+	mux.Group(func(protected chi.Router) {
+		protected.Use(middleware.JwtMiddleware(a.jwtService, a.log, a.userRepository))
+		protected.Use(middleware.RoleMiddleware([]enums.Role{enums.USER}))
 
-	router.Route("/", func(user chi.Router) {
-		user.Use(middleware.RoleMiddleware([]enums.Role{enums.USER}))
-
-		user.Get("/", adapter.Adapt(a.handler.GetAddresses))
-		user.Post("/", adapter.Adapt(a.handler.CreateAddress))
-		user.Put("/{id}", adapter.Adapt(a.handler.UpdateAddress))
-		user.Delete("/{id}", adapter.Adapt(a.handler.DeleteAddress))
+		protected.Get("/", adapter.Adapt(a.handler.GetAddresses))
+		protected.Post("/", adapter.Adapt(a.handler.CreateAddress))
+		protected.Put("/{id}", adapter.Adapt(a.handler.UpdateAddress))
+		protected.Delete("/{id}", adapter.Adapt(a.handler.DeleteAddress))
 	})
-
 }

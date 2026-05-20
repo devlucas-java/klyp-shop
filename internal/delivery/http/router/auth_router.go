@@ -31,7 +31,7 @@ func (a *AuthRouter) RegisterAuthRoutes(r chi.Router) {
 	r.Post("/register", adapter.Adapt(a.handler.Register))
 
 	r.Route("/", func(protected chi.Router) {
-		protected.Use(middleware.AuthMiddleware(a.jwtService, a.log, a.userRepository))
+		protected.Use(middleware.JwtMiddleware(a.jwtService, a.log, a.userRepository))
 		protected.Put("/password", adapter.Adapt(a.handler.ChangePassword))
 		protected.Post("/password", adapter.Adapt(a.handler.VerifyPassword))
 	})

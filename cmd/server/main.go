@@ -1,14 +1,13 @@
 package main
 
 import (
-	"net/http"
-
 	"github.com/devlucas-java/klyp-shop/configs"
+	httpDelivery "github.com/devlucas-java/klyp-shop/internal/delivery/http"
+	"github.com/devlucas-java/klyp-shop/internal/infrastructure/observability/metrics"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/security/jwt"
-	"github.com/devlucas-java/klyp-shop/internal/module"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -17,39 +16,24 @@ func main() {
 	cfg := configs.InitConfig(log)
 	db := configs.InitDB(log)
 
-	r := chi.NewRouter()
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
+	reg := prometheus.NewRegistry()
+	metric := metrics.NewMetric(reg)
+	metricsHandler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg})
 
-	jwtService := jwt.NewJWTService(cfg.JwtSecret)
+	jwtService := jwt.NewJWTService(cfg.JwtSecret, cfg.JwtExpireIn)
 
-	r.Mount("/api/v1/auth", module.InitAuthModule(db, log, jwtService))
-	r.Mount("/api/v1/user", module.InitUserModule(db, log, jwtService))
-	r.Mount("/api/v1/address", module.InitAddressModule(db, log, jwtService))
-	r.Mount("/api/v1/seller", module.InitSellerModule(db, log, jwtService))
-	r.Mount("/api/v1/product", module.InitProductModule(db, log, jwtService))
-	r.Mount("/api/v1/order", module.InitOrderModule(db, log, jwtService))
-	r.Mount("/api/v1/cart", module.InitShoppingCartModule(db, log, jwtService))
-	r.Mount("/api/v1/dashboard", module.InitDashboardModule(db, log, jwtService))
+	router := httpDelivery.NewRouter(httpDelivery.RouterDeps{
+		Cfg:            cfg,
+		DB:             db,
+		Log:            log,
+		JwtService:     jwtService,
+		Metric:         metric,
+		MetricsHandler: metricsHandler,
+	})
 
-	r.Mount("/api/v1/payment", module.InitPaymentModule(
-		db, log, jwtService,
-		cfg.GetBTCPayBaseURL(),
-		cfg.GetBTCPayStoreID(),
-		cfg.GetBTCPayAPIKey(),
-		cfg.GetBTCPayWebhookSecret(),
-	))
-
-	chatModule, _ := module.InitChatModule(db, log, jwtService)
-	r.Mount("/api/v1/chat", chatModule)
-
-	r.Mount("/api/v1/featured", module.InitFeaturedProductModule(db, log, jwtService))
-
-	log.Infof("Server is running on port %s", cfg.WebServerPort)
-	if err := http.ListenAndServe(":"+cfg.WebServerPort, r); err != nil {
-		log.Errorf("http listen err: %v", err)
+	server := httpDelivery.NewServer(cfg.WebServerPort, router, log)
+	if err := server.Run(); err != nil {
+		log.Errorf("server error: %v", err)
 		panic(err)
 	}
 }

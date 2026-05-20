@@ -31,9 +31,11 @@ func NewShoppingCartRouter(
 	}
 }
 
-func (r *ShoppingCartRouter) RegisterShoppingCartRoutes(protect chi.Router) {
-	protect.Use(middleware.AuthMiddleware(r.jwtService, r.log, r.userRepository))
+func (r *ShoppingCartRouter) RegisterShoppingCartRoutes(mux chi.Router) {
+	mux.Group(func(protected chi.Router) {
+		protected.Use(middleware.JwtMiddleware(r.jwtService, r.log, r.userRepository))
 
-	protect.Get("/", adapter.Adapt(r.shoppingCartHandler.GetCart))
-	protect.Delete("/", adapter.Adapt(r.shoppingCartHandler.ClearCart))
+		protected.Get("/", adapter.Adapt(r.shoppingCartHandler.GetCart))
+		protected.Delete("/", adapter.Adapt(r.shoppingCartHandler.ClearCart))
+	})
 }

@@ -25,7 +25,7 @@ func NewAuthHandler(authService *service.AuthService, log *logger.Logger) *AuthH
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) error {
 	var req dauth.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return errors.ErrBadRequest("invalid request payload", err)
+		return errors.ErrInvalidPayload(err)
 	}
 	if err := req.Validate(); err != nil {
 		return err
@@ -41,7 +41,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) error {
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) error {
 	var req dauth.RegisterDTO
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return errors.ErrBadRequest("invalid request payload", err)
+		return errors.ErrInvalidPayload(err)
 	}
 	if err := req.Validate(); err != nil {
 		return err
@@ -57,7 +57,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) error {
 func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) error {
 	var req dauth.UpdatePasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return errors.ErrBadRequest("invalid request payload", err)
+		return errors.ErrInvalidPayload(err)
 	}
 	if err := req.Validate(); err != nil {
 		return err
@@ -73,7 +73,7 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) err
 func (h *AuthHandler) VerifyPassword(w http.ResponseWriter, r *http.Request) error {
 	var req dauth.VerifyPasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return errors.ErrBadRequest("invalid request payload", err)
+		return errors.ErrInvalidPayload(err)
 	}
 	if err := req.Validate(); err != nil {
 		return err

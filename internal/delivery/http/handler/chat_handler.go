@@ -30,7 +30,7 @@ func (h *ChatHandler) SendMessage(w http.ResponseWriter, r *http.Request) error 
 
 	var req dchat.SendMessageRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return errors.ErrBadRequest("invalid request payload", err)
+		return errors.ErrInvalidPayload(err)
 	}
 	if err := req.Validate(); err != nil {
 		return errors.ErrBadRequest(err.Error(), nil)

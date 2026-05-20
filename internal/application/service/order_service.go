@@ -6,6 +6,7 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/policy"
+	"github.com/devlucas-java/klyp-shop/internal/infrastructure/observability/metrics"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
@@ -19,6 +20,7 @@ type OrderService struct {
 	productRepository repository.ProductRepository
 	orderMapper       *mapper.OrderMapper
 	orderPolicy       *policy.OrderPolicy
+	metric            *metrics.Metric
 }
 
 func NewOrderService(
@@ -28,6 +30,7 @@ func NewOrderService(
 	addressRepository repository.AddressRepository,
 	productRepository repository.ProductRepository,
 	orderMapper *mapper.OrderMapper,
+	metric *metrics.Metric,
 ) *OrderService {
 	return &OrderService{
 		log:               log,
@@ -37,6 +40,7 @@ func NewOrderService(
 		productRepository: productRepository,
 		orderMapper:       orderMapper,
 		orderPolicy:       policy.NewOrderPolicy(),
+		metric:            metric,
 	}
 }
 
@@ -93,6 +97,7 @@ func (s *OrderService) CreateOrder(auth *entity.User, req *dorder.CreateOrderReq
 		return nil, errors.ErrDatabase("failed to create order", err)
 	}
 
+	s.metric.OrdersCreated.Inc()
 	s.log.Infof("Order %s created for user %s", created.ID, auth.ID)
 	return s.orderMapper.OrderToResponse(created), nil
 }
@@ -137,6 +142,7 @@ func (s *OrderService) CancelOrder(auth *entity.User, orderID id.UUID) error {
 		return errors.ErrDatabase("failed to cancel order", err)
 	}
 
+	s.metric.OrdersCancelled.Inc()
 	s.log.Infof("Order %s cancelled by user %s", orderID, auth.ID)
 	return nil
 }

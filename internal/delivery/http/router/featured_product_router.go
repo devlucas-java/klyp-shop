@@ -38,7 +38,7 @@ func (f *FeaturedProductRouter) RegisterFeaturedRoutes(r chi.Router) {
 
 	// Protected — only sellers manage their own top 10
 	r.Group(func(protected chi.Router) {
-		protected.Use(middleware.AuthMiddleware(f.jwtService, f.log, f.userRepository))
+		protected.Use(middleware.JwtMiddleware(f.jwtService, f.log, f.userRepository))
 		protected.Use(middleware.RoleMiddleware([]enums.Role{enums.SELLER, enums.ADMIN}))
 
 		protected.Get("/me", adapter.Adapt(f.featuredHandler.GetMyFeatured))

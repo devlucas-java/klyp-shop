@@ -27,9 +27,10 @@ func NewClient(baseURL, storeID, apiKey string) *Client {
 	}
 }
 
-func (c *Client) CreateInvoice(orderID string, amountBTC float64) (*InvoiceResponse, error) {
+// CreateInvoice cria uma invoice no BTCPay. amountSats é o valor em satoshis.
+func (c *Client) CreateInvoice(orderID string, amountSats int64) (*InvoiceResponse, error) {
 	req := CreateInvoiceRequest{
-		Amount:   amountBTC,
+		Amount:   amountSats,
 		Currency: "BTC",
 	}
 	req.Metadata.OrderID = orderID

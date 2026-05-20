@@ -28,7 +28,7 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) error
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
 	var req dorder.CreateOrderRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return errors.ErrBadRequest("invalid request payload", err)
+		return errors.ErrInvalidPayload(err)
 	}
 	res, err := h.orderService.CreateOrder(auth, &req)
 	if err != nil {

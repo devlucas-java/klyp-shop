@@ -48,7 +48,6 @@ func NewUser(name, email, username, pass string) (*User, error) {
 	}, nil
 }
 
-// HasRole verifica se o usuário possui a role informada.
 func (u *User) HasRole(role enums.Role) bool {
 	for _, r := range u.Roles {
 		if r == role {
@@ -58,7 +57,6 @@ func (u *User) HasRole(role enums.Role) bool {
 	return false
 }
 
-// VerifyPassword valida a senha fornecida contra o hash armazenado.
 func (u *User) VerifyPassword(password string) (bool, error) {
 	match, err := password_encoder.Match(password, u.Password)
 	if err != nil {
@@ -67,7 +65,6 @@ func (u *User) VerifyPassword(password string) (bool, error) {
 	return match, nil
 }
 
-// ChangePassword valida a senha atual e aplica a nova senha com hash.
 func (u *User) ChangePassword(currentPassword, newPassword string) error {
 	match, err := u.VerifyPassword(currentPassword)
 	if err != nil {
@@ -86,28 +83,24 @@ func (u *User) ChangePassword(currentPassword, newPassword string) error {
 	return nil
 }
 
-// ChangeName atualiza o nome do usuário se não for vazio.
 func (u *User) ChangeName(name string) {
 	if name != "" {
 		u.Name = name
 	}
 }
 
-// ChangeEmail atualiza o email do usuário se não for vazio.
 func (u *User) ChangeEmail(email string) {
 	if email != "" {
 		u.Email = email
 	}
 }
 
-// ChangeUsername atualiza o username do usuário se não for vazio.
 func (u *User) ChangeUsername(username string) {
 	if username != "" {
 		u.Username = username
 	}
 }
 
-// EnsureSeller retorna erro se o usuário não for um seller ativo.
 func (u *User) EnsureSeller() error {
 	if !u.IsSeller || u.Seller == nil {
 		return errors.ErrNotFound("Seller", nil)
@@ -115,7 +108,6 @@ func (u *User) EnsureSeller() error {
 	return nil
 }
 
-// MarkAsSeller marca o usuário como seller.
 func (u *User) MarkAsSeller() error {
 	if u.IsSeller {
 		return errors.ErrConflict("Seller", nil)
@@ -124,7 +116,6 @@ func (u *User) MarkAsSeller() error {
 	return nil
 }
 
-// UnmarkAsSeller remove o status de seller do usuário.
 func (u *User) UnmarkAsSeller() error {
 	if !u.IsSeller {
 		return errors.ErrConflict("Seller", nil)
@@ -133,15 +124,19 @@ func (u *User) UnmarkAsSeller() error {
 	return nil
 }
 
-// PromoteToAdmin aplica a role de admin ao usuário.
-// Pré-condição: validar com UserPolicy.CanPromoteToAdmin antes de chamar.
-func (u *User) PromoteToAdmin() {
+func (u *User) ChangerToAdmin() {
 	u.Roles = []enums.Role{enums.ADMIN}
 }
 
-// DemoteToUser remove roles especiais e retorna o usuário ao estado padrão.
-// Pré-condição: validar com UserPolicy.CanDemoteToUser antes de chamar.
-func (u *User) DemoteToUser() {
+func (u *User) ChangerToSuperAdmin() {
+	u.Roles = []enums.Role{enums.ADMIN, enums.USER, enums.SELLER}
+}
+
+func (u *User) ChangerToSeller() {
+	u.Roles = []enums.Role{enums.SELLER}
+}
+
+func (u *User) ChangerToUser() {
 	u.IsSeller = false
 	u.Roles = []enums.Role{enums.USER}
 }

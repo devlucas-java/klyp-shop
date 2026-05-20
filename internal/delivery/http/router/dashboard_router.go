@@ -34,7 +34,7 @@ func NewDashboardRouter(
 
 func (d *DashboardRouter) RegisterDashboardRoutes(r chi.Router) {
 	r.Group(func(protected chi.Router) {
-		protected.Use(middleware.AuthMiddleware(d.jwtService, d.log, d.userRepository))
+		protected.Use(middleware.JwtMiddleware(d.jwtService, d.log, d.userRepository))
 
 		protected.Group(func(sellerOnly chi.Router) {
 			sellerOnly.Use(middleware.RoleMiddleware([]enums.Role{enums.SELLER, enums.ADMIN}))

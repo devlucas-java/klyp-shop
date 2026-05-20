@@ -55,12 +55,10 @@ func NewOrder(userID, addressID id.UUID, items []OrderItem) *Order {
 	}
 }
 
-// IsOwnedBy verifica se o pedido pertence ao usuário informado.
 func (o *Order) IsOwnedBy(userID id.UUID) bool {
 	return o.UserID == userID
 }
 
-// EnsureOwnedBy retorna erro se o pedido não pertencer ao usuário.
 func (o *Order) EnsureOwnedBy(userID id.UUID) error {
 	if !o.IsOwnedBy(userID) {
 		return errors.ErrForbidden(fmt.Errorf("order does not belong to user"))
@@ -68,12 +66,10 @@ func (o *Order) EnsureOwnedBy(userID id.UUID) error {
 	return nil
 }
 
-// IsPending retorna true se o pedido estiver em status pendente.
 func (o *Order) IsPending() bool {
 	return o.Status == OrderStatusPending
 }
 
-// CanBePaidBy verifica se o usuário pode pagar este pedido.
 func (o *Order) CanBePaidBy(userID id.UUID) error {
 	if err := o.EnsureOwnedBy(userID); err != nil {
 		return err
@@ -84,25 +80,21 @@ func (o *Order) CanBePaidBy(userID id.UUID) error {
 	return nil
 }
 
-// MarkAsPaid transiciona o pedido para o status pago.
 func (o *Order) MarkAsPaid() {
 	o.Status = OrderStatusPaid
 	o.UpdatedAt = time.Now()
 }
 
-// MarkAsShipped transiciona o pedido para o status enviado.
 func (o *Order) MarkAsShipped() {
 	o.Status = OrderStatusShipped
 	o.UpdatedAt = time.Now()
 }
 
-// MarkAsDelivered transiciona o pedido para o status entregue.
 func (o *Order) MarkAsDelivered() {
 	o.Status = OrderStatusDelivered
 	o.UpdatedAt = time.Now()
 }
 
-// CancelPending cancela o pedido apenas se estiver pendente.
 func (o *Order) CancelPending() error {
 	if o.Status != OrderStatusPending {
 		return errors.ErrConflict("Order", fmt.Errorf("only pending orders can be cancelled"))
@@ -112,7 +104,6 @@ func (o *Order) CancelPending() error {
 	return nil
 }
 
-// SetOrderIDForItems propaga o ID do pedido para todos os itens.
 func (o *Order) SetOrderIDForItems() {
 	for i := range o.Items {
 		o.Items[i].OrderID = o.ID

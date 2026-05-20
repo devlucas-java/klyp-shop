@@ -24,12 +24,11 @@ func NewFeaturedProductHandler(featuredService *service.FeaturedProductService, 
 	return &FeaturedProductHandler{featuredService: featuredService, log: log}
 }
 
-// POST /featured  — seller adds a product to their top 10
 func (h *FeaturedProductHandler) AddFeatured(w http.ResponseWriter, r *http.Request) error {
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
 	var req dproduct.AddFeaturedRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return errors.ErrBadRequest("invalid request payload", err)
+		return errors.ErrInvalidPayload(err)
 	}
 	if err := req.Validate(); err != nil {
 		return err
@@ -65,7 +64,7 @@ func (h *FeaturedProductHandler) UpdatePosition(w http.ResponseWriter, r *http.R
 	}
 	var req dproduct.UpdateFeaturedPositionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return errors.ErrBadRequest("invalid request payload", err)
+		return errors.ErrInvalidPayload(err)
 	}
 	if err := req.Validate(); err != nil {
 		return err

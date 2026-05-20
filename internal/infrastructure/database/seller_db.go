@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	domainErr "github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
@@ -21,7 +22,7 @@ func NewSellerDB(db *gorm.DB) repository.SellerRepository {
 
 func (r *SellerDB) Create(seller *entity.Seller) (*entity.Seller, error) {
 	if err := r.db.WithContext(context.Background()).Create(seller).Error; err != nil {
-		return nil, domainErr.ErrDatabase("failed to create seller", err)
+		return nil, handlePgError(err, "failed to create seller")
 	}
 	return seller, nil
 }

@@ -8,28 +8,74 @@ services:
       - "8080:8080"
     env_file:
       - .default.env
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
 
   db:
-    container_name: klyp-yugabytedb
-    image: yugabytedb/yugabyte:2.25.2.0-b359
+    container_name: klyp-postgres
+    image: postgres:16-alpine
     restart: always
-    command:
-      bin/yugabyted start
-      --background=false
-      --daemon=false
     ports:
-      - "5433:5433"
-      - "7000:7000"
-      - "9000:9000"
-      - "15433:15433"
+      - "5432:5432"
     environment:
-      YSQL_PASSWORD: postgres
+      POSTGRES_DB: klyp
+      POSTGRES_USER: klyp
+      POSTGRES_PASSWORD: klyp
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "bin/yugabyted status"]
+      test: ["CMD-SHELL", "pg_isready -U klyp -d klyp"]
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 10s
+
+  postgres-exporter:
+    container_name: klyp-postgres-exporter
+    image: prometheuscommunity/postgres-exporter:v0.17.1
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://klyp:klyp@db:5432/klyp?sslmode=disable"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  prometheus:
+    container_name: klyp-prometheus
+    image: prom/prometheus:v3.4.0
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+    depends_on:
+      - app
+      - postgres-exporter
+
+  grafana:
+    container_name: klyp-grafana
+    image: grafana/grafana:12.0.1
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres_data:
+  prometheus_data:
+  grafana_data:

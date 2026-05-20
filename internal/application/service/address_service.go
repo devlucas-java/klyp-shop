@@ -49,15 +49,14 @@ func (s *AddressService) CreateAddress(auth *entity.User, req *daddress.CreateAd
 		return nil, err
 	}
 
-	address := s.mapper.CreateAddressRequestToAddress(req)
-	address.UserID = user.ID
+	address := entity.NewAddress(user.ID, req.Street, req.City, req.State, req.Country, req.PostCode, req.Number)
 
 	saved, err := s.addressRepository.Create(address)
 	if err != nil {
 		return nil, errors.ErrDatabase("failed to create address", err)
 	}
 
-	return s.mapper.AddressToAddressResponse(saved), nil
+	return s.mapper.ToResponse(saved), nil
 }
 
 func (s *AddressService) GetAddresses(auth *entity.User) ([]*daddress.AddressResponse, error) {
@@ -73,7 +72,7 @@ func (s *AddressService) GetAddresses(auth *entity.User) ([]*daddress.AddressRes
 
 	responses := make([]*daddress.AddressResponse, len(addrs))
 	for i, addr := range addrs {
-		responses[i] = s.mapper.AddressToAddressResponse(addr)
+		responses[i] = s.mapper.ToResponse(addr)
 	}
 
 	return responses, nil
@@ -94,16 +93,32 @@ func (s *AddressService) UpdateAddress(auth *entity.User, req *daddress.UpdateAd
 		return nil, err
 	}
 
-	updated := s.mapper.UpdateAddressRequestToAddress(req)
-	updated.ID = addrID
-	updated.UserID = user.ID
+	// Aplica os campos do request diretamente na entidade existente
+	if req.Street != "" {
+		addr.Street = req.Street
+	}
+	if req.City != "" {
+		addr.City = req.City
+	}
+	if req.State != "" {
+		addr.State = req.State
+	}
+	if req.Country != "" {
+		addr.Country = req.Country
+	}
+	if req.PostCode != "" {
+		addr.Postcode = req.PostCode
+	}
+	if req.Number > 0 {
+		addr.Number = req.Number
+	}
 
-	saved, err := s.addressRepository.Update(updated)
+	saved, err := s.addressRepository.Update(addr)
 	if err != nil {
 		return nil, errors.ErrDatabase("failed to update address", err)
 	}
 
-	return s.mapper.AddressToAddressResponse(saved), nil
+	return s.mapper.ToResponse(saved), nil
 }
 
 func (s *AddressService) DeleteAddress(auth *entity.User, addrID id.UUID) error {
