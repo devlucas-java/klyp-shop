@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dproduct"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
+	productDTO "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/product"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	domainErr "github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
@@ -62,7 +62,7 @@ func TestProductService_CreateProduct(t *testing.T) {
 	userRepo.On("FindByIDWithSeller", user.ID).Return(user, nil)
 	productRepo.On("Create", mock.AnythingOfType("*entity.Product")).Return(product, nil)
 
-	req := &dproduct.CreateProduct{Name: "Test Product", PriceBTC: 0.01, Stock: 100}
+	req := &productDTO.CreateProduct{Name: "Test Product", PriceBTC: 0.01, Stock: 100}
 	res, err := svc.CreateProduct(user, req)
 
 	assert.NoError(t, err)
@@ -81,7 +81,7 @@ func TestProductService_CreateProduct_NotSeller(t *testing.T) {
 	user := &entity.User{ID: id.NewUUID(), IsSeller: false, Seller: nil}
 	userRepo.On("FindByIDWithSeller", user.ID).Return(user, nil)
 
-	req := &dproduct.CreateProduct{Name: "Test", PriceBTC: 0.01, Stock: 1}
+	req := &productDTO.CreateProduct{Name: "Test", PriceBTC: 0.01, Stock: 1}
 	_, err := svc.CreateProduct(user, req)
 
 	assert.Error(t, err)
@@ -136,7 +136,7 @@ func TestProductService_UpdateProduct(t *testing.T) {
 	productRepo.On("FindByID", product.ID).Return(product, nil)
 	productRepo.On("Updates", mock.AnythingOfType("*entity.Product")).Return(&updated, nil)
 
-	req := &dproduct.UpdateProduct{Name: "Updated Name", PriceBTC: 0.02, Stock: 50}
+	req := &productDTO.UpdateProduct{Name: "Updated Name", PriceBTC: 0.02, Stock: 50}
 	res, err := svc.UpdateProduct(user, req, product.ID)
 
 	assert.NoError(t, err)
@@ -158,7 +158,7 @@ func TestProductService_UpdateProduct_NotOwner(t *testing.T) {
 	userRepo.On("FindByIDWithSeller", user2.ID).Return(user2, nil)
 	productRepo.On("FindByID", product.ID).Return(product, nil)
 
-	req := &dproduct.UpdateProduct{Name: "Hacked"}
+	req := &productDTO.UpdateProduct{Name: "Hacked"}
 	_, err := svc.UpdateProduct(user2, req, product.ID)
 
 	assert.Error(t, err)

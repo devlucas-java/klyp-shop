@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dorder"
-	dorderitem "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dorder_item"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/order"
+	dorderitem "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/order_item"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
@@ -52,7 +52,7 @@ func TestOrderService_CreateOrder(t *testing.T) {
 	createdOrder := entity.NewOrder(user.ID, address.ID, []entity.OrderItem{*orderItem})
 	orderRepo.On("Create", mock.AnythingOfType("*entity.Order")).Return(createdOrder, nil)
 
-	req := &dorder.CreateOrderRequest{
+	req := &order.CreateOrderRequest{
 		AddressID: address.ID.String(),
 		Items:     []dorderitem.OrderItemRequest{{ProductID: product.ID.String(), Quantity: 2}},
 	}

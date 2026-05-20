@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dchat"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/chat"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
@@ -28,7 +28,7 @@ func NewChatHandler(chatService *service.ChatService, log *logger.Logger) *ChatH
 func (h *ChatHandler) SendMessage(w http.ResponseWriter, r *http.Request) error {
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
 
-	var req dchat.SendMessageRequest
+	var req chat.SendMessageRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return errors.ErrInvalidPayload(err)
 	}

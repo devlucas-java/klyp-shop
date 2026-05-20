@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dseller"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/seller"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
@@ -31,7 +31,7 @@ func NewSellerService(
 	}
 }
 
-func (s *SellerService) CreateSeller(auth *entity.User, req *dseller.CreateSeller) (*dseller.SellerResponse, error) {
+func (s *SellerService) CreateSeller(auth *entity.User, req *seller.CreateSeller) (*seller.SellerResponse, error) {
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
 		return nil, errors.ErrNotFound("User", err)
@@ -56,7 +56,7 @@ func (s *SellerService) CreateSeller(auth *entity.User, req *dseller.CreateSelle
 	return s.sellerMapper.ToResponse(saved), nil
 }
 
-func (s *SellerService) GetSellerByID(uuid id.UUID) (*dseller.SellerResponse, error) {
+func (s *SellerService) GetSellerByID(uuid id.UUID) (*seller.SellerResponse, error) {
 	seller, err := s.sellerRepository.FindByID(uuid)
 	if err != nil {
 		return nil, err
@@ -64,7 +64,7 @@ func (s *SellerService) GetSellerByID(uuid id.UUID) (*dseller.SellerResponse, er
 	return s.sellerMapper.ToResponse(seller), nil
 }
 
-func (s *SellerService) UpdateSeller(auth *entity.User, req *dseller.UpdateSeller) (*dseller.SellerResponse, error) {
+func (s *SellerService) UpdateSeller(auth *entity.User, req *seller.UpdateSeller) (*seller.SellerResponse, error) {
 	user, err := s.userRepository.FindByIDWithSeller(auth.ID)
 	if err != nil {
 		return nil, errors.ErrNotFound("User", err)

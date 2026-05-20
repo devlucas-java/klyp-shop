@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dcart"
+	cartDTO "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/cart"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
@@ -36,7 +36,7 @@ func TestShoppingCartItemService_AddItem(t *testing.T) {
 	productRepo.On("FindByID", product.ID).Return(product, nil)
 	cartRepo.On("Save", mock.AnythingOfType("*entity.ShoppingCart")).Return(cart, nil)
 
-	req := &dcart.AddShoppingCartItemRequest{ProductID: product.ID.String(), Quantity: 2}
+	req := &cartDTO.AddShoppingCartItemRequest{ProductID: product.ID.String(), Quantity: 2}
 	res, err := svc.AddItem(user, req)
 
 	assert.NoError(t, err)
@@ -60,7 +60,7 @@ func TestShoppingCartItemService_UpdateItem(t *testing.T) {
 	cartRepo.On("FindByUserID", user.ID).Return(cart, nil)
 	cartRepo.On("Save", mock.AnythingOfType("*entity.ShoppingCart")).Return(cart, nil)
 
-	req := &dcart.UpdateShoppingCartItemRequest{Quantity: 4}
+	req := &cartDTO.UpdateShoppingCartItemRequest{Quantity: 4}
 	res, err := svc.UpdateItem(user, item.ID, req)
 
 	assert.NoError(t, err)

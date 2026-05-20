@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/daddress"
+	addressDTO "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/address"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
@@ -25,7 +25,7 @@ func NewAddressHandler(addressService *service.AddressService, log *logger.Logge
 }
 
 func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) error {
-	var req daddress.CreateAddressRequest
+	var req addressDTO.CreateAddressRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return errors.ErrBadRequest("invalid request payload", err)
 	}
@@ -42,7 +42,7 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) e
 }
 
 func (h *AddressHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) error {
-	var req daddress.UpdateAddressRequest
+	var req addressDTO.UpdateAddressRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return errors.ErrBadRequest("invalid request payload", err)
 	}

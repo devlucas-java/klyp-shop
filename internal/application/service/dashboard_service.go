@@ -3,8 +3,8 @@ package service
 import (
 	"math"
 
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/ddashboard"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dothers"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dashboard"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/others"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
@@ -32,7 +32,7 @@ func NewDashboardService(
 	}
 }
 
-func (s *DashboardService) GetSellerDashboard(auth *entity.User, page, size int, statusFilter string) (*ddashboard.SellerDashboardResponse, error) {
+func (s *DashboardService) GetSellerDashboard(auth *entity.User, page, size int, statusFilter string) (*dashboard.SellerDashboardResponse, error) {
 	user, err := s.userRepository.FindByIDWithSeller(auth.ID)
 	if err != nil {
 		return nil, errors.ErrNotFound("User", err)
@@ -75,9 +75,9 @@ func (s *DashboardService) GetSellerDashboard(auth *entity.User, page, size int,
 
 	stats := buildSellerStats(statusCounts, revenue, productCount, avgRating, totalReviews)
 
-	topProducts := make([]ddashboard.ProductSummary, len(topProductRows))
+	topProducts := make([]dashboard.ProductSummary, len(topProductRows))
 	for i, r := range topProductRows {
-		topProducts[i] = ddashboard.ProductSummary{
+		topProducts[i] = dashboard.ProductSummary{
 			ProductID:  r.ProductID,
 			Name:       r.Name,
 			TotalSold:  r.TotalSold,
@@ -88,14 +88,14 @@ func (s *DashboardService) GetSellerDashboard(auth *entity.User, page, size int,
 
 	orderItems := buildSellerOrders(orders)
 
-	return &ddashboard.SellerDashboardResponse{
-		Seller: ddashboard.SellerInfo{
+	return &dashboard.SellerDashboardResponse{
+		Seller: dashboard.SellerInfo{
 			SellerID:    sellerID.String(),
 			DisplayName: user.Seller.DisplayName,
 			Bio:         user.Seller.Bio,
 		},
 		Stats: stats,
-		Orders: ddashboard.SellerOrdersPage{
+		Orders: dashboard.SellerOrdersPage{
 			Pagination: paginate(page, size, total),
 			Items:      orderItems,
 		},
@@ -103,7 +103,7 @@ func (s *DashboardService) GetSellerDashboard(auth *entity.User, page, size int,
 	}, nil
 }
 
-func (s *DashboardService) GetAdminDashboard(page, size int, statusFilter string) (*ddashboard.AdminDashboardResponse, error) {
+func (s *DashboardService) GetAdminDashboard(page, size int, statusFilter string) (*dashboard.AdminDashboardResponse, error) {
 	totalUsers, err := s.dashboardRepository.CountAllUsers()
 	if err != nil {
 		return nil, errors.ErrDatabase("failed to count users", err)
@@ -144,9 +144,9 @@ func (s *DashboardService) GetAdminDashboard(page, size int, statusFilter string
 	totalOrders = ordersByStatus.Pending + ordersByStatus.Paid + ordersByStatus.Shipped +
 		ordersByStatus.Delivered + ordersByStatus.Cancelled
 
-	topSellers := make([]ddashboard.SellerRanking, len(topSellerRows))
+	topSellers := make([]dashboard.SellerRanking, len(topSellerRows))
 	for i, r := range topSellerRows {
-		topSellers[i] = ddashboard.SellerRanking{
+		topSellers[i] = dashboard.SellerRanking{
 			SellerID:    r.SellerID,
 			DisplayName: r.DisplayName,
 			TotalOrders: r.TotalOrders,
@@ -157,8 +157,8 @@ func (s *DashboardService) GetAdminDashboard(page, size int, statusFilter string
 
 	adminOrders := buildAdminOrders(orders)
 
-	return &ddashboard.AdminDashboardResponse{
-		Stats: ddashboard.AdminStats{
+	return &dashboard.AdminDashboardResponse{
+		Stats: dashboard.AdminStats{
 			TotalRevenueBTC: totalRevenue,
 			TotalOrders:     totalOrders,
 			TotalUsers:      totalUsers,
@@ -166,7 +166,7 @@ func (s *DashboardService) GetAdminDashboard(page, size int, statusFilter string
 			TotalProducts:   totalProducts,
 			OrdersByStatus:  ordersByStatus,
 		},
-		Orders: ddashboard.AdminOrdersPage{
+		Orders: dashboard.AdminOrdersPage{
 			Pagination: paginate(page, size, total),
 			Items:      adminOrders,
 		},
@@ -180,8 +180,8 @@ func buildSellerStats(
 	products int64,
 	avgRating float64,
 	totalReviews int64,
-) ddashboard.SellerStats {
-	s := ddashboard.SellerStats{
+) dashboard.SellerStats {
+	s := dashboard.SellerStats{
 		TotalRevenueBTC: revenue,
 		TotalProducts:   products,
 		AverageRating:   avgRating,
@@ -205,8 +205,8 @@ func buildSellerStats(
 	return s
 }
 
-func buildOrdersByStatus(counts []repository.OrderStatusCount) ddashboard.OrdersByStatus {
-	var s ddashboard.OrdersByStatus
+func buildOrdersByStatus(counts []repository.OrderStatusCount) dashboard.OrdersByStatus {
+	var s dashboard.OrdersByStatus
 	for _, c := range counts {
 		switch c.Status {
 		case string(entity.OrderStatusPending):
@@ -224,17 +224,17 @@ func buildOrdersByStatus(counts []repository.OrderStatusCount) ddashboard.Orders
 	return s
 }
 
-func buildSellerOrders(orders []*entity.Order) []ddashboard.SellerOrder {
-	result := make([]ddashboard.SellerOrder, 0, len(orders))
+func buildSellerOrders(orders []*entity.Order) []dashboard.SellerOrder {
+	result := make([]dashboard.SellerOrder, 0, len(orders))
 	for _, o := range orders {
 		paymentStatus := "none"
 		if o.BitcoinPayment != nil {
 			paymentStatus = string(o.BitcoinPayment.Status)
 		}
 
-		items := make([]ddashboard.OrderItemInfo, 0, len(o.Items))
+		items := make([]dashboard.OrderItemInfo, 0, len(o.Items))
 		for _, item := range o.Items {
-			items = append(items, ddashboard.OrderItemInfo{
+			items = append(items, dashboard.OrderItemInfo{
 				ProductID:   item.ProductID.String(),
 				ProductName: item.Product.Name,
 				Quantity:    item.Quantity,
@@ -243,7 +243,7 @@ func buildSellerOrders(orders []*entity.Order) []ddashboard.SellerOrder {
 			})
 		}
 
-		result = append(result, ddashboard.SellerOrder{
+		result = append(result, dashboard.SellerOrder{
 			OrderID:       o.ID.String(),
 			BuyerID:       o.UserID.String(),
 			BuyerName:     o.User.Name,
@@ -259,22 +259,22 @@ func buildSellerOrders(orders []*entity.Order) []ddashboard.SellerOrder {
 	return result
 }
 
-func buildAdminOrders(orders []*entity.Order) []ddashboard.AdminOrder {
-	result := make([]ddashboard.AdminOrder, 0, len(orders))
+func buildAdminOrders(orders []*entity.Order) []dashboard.AdminOrder {
+	result := make([]dashboard.AdminOrder, 0, len(orders))
 	for _, o := range orders {
 		paymentStatus := "none"
 		if o.BitcoinPayment != nil {
 			paymentStatus = string(o.BitcoinPayment.Status)
 		}
 
-		items := make([]ddashboard.AdminOrderItem, 0, len(o.Items))
+		items := make([]dashboard.AdminOrderItem, 0, len(o.Items))
 		for _, item := range o.Items {
 			sellerID := item.Product.SellerID.String()
 			sellerName := ""
 			if item.Product.SellerID != (item.Product.SellerID) {
 				sellerName = sellerID
 			}
-			items = append(items, ddashboard.AdminOrderItem{
+			items = append(items, dashboard.AdminOrderItem{
 				ProductID:   item.ProductID.String(),
 				ProductName: item.Product.Name,
 				SellerID:    sellerID,
@@ -285,7 +285,7 @@ func buildAdminOrders(orders []*entity.Order) []ddashboard.AdminOrder {
 			})
 		}
 
-		result = append(result, ddashboard.AdminOrder{
+		result = append(result, dashboard.AdminOrder{
 			OrderID:       o.ID.String(),
 			BuyerID:       o.UserID.String(),
 			BuyerName:     o.User.Name,
@@ -301,12 +301,12 @@ func buildAdminOrders(orders []*entity.Order) []ddashboard.AdminOrder {
 	return result
 }
 
-func paginate(page, size int, total int64) dothers.Pagination {
+func paginate(page, size int, total int64) others.Pagination {
 	totalPages := int64(math.Ceil(float64(total) / float64(size)))
 	if totalPages < 1 {
 		totalPages = 1
 	}
-	return dothers.Pagination{
+	return others.Pagination{
 		Page:       page,
 		Size:       size,
 		Total:      total,

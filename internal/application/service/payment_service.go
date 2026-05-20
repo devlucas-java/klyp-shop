@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dpayment"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/payment"
+	paymentDTO "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/payment"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/client/port"
@@ -45,7 +46,7 @@ func NewPaymentService(
 	}
 }
 
-func (s *PaymentService) CreateInvoice(auth *entity.User, orderID id.UUID) (*dpayment.InvoiceResponse, error) {
+func (s *PaymentService) CreateInvoice(auth *entity.User, orderID id.UUID) (*payment.InvoiceResponse, error) {
 	order, err := s.orderRepository.FindByID(orderID)
 	if err != nil {
 		return nil, errors.ErrNotFound("Order", err)
@@ -58,7 +59,7 @@ func (s *PaymentService) CreateInvoice(auth *entity.User, orderID id.UUID) (*dpa
 	// Retorna invoice existente sem criar duplicata
 	existing, _ := s.paymentRepository.FindByOrderID(orderID)
 	if existing != nil {
-		return &dpayment.InvoiceResponse{
+		return &payment.InvoiceResponse{
 			PaymentID:     existing.ID.String(),
 			OrderID:       existing.OrderID.String(),
 			AmountSats:    existing.AmountSats,
@@ -85,7 +86,7 @@ func (s *PaymentService) CreateInvoice(auth *entity.User, orderID id.UUID) (*dpa
 
 	s.metric.PaymentsCreated.Inc()
 
-	return &dpayment.InvoiceResponse{
+	return &paymentDTO.InvoiceResponse{
 		PaymentID:     saved.ID.String(),
 		OrderID:       saved.OrderID.String(),
 		AmountSats:    saved.AmountSats,
@@ -96,7 +97,7 @@ func (s *PaymentService) CreateInvoice(auth *entity.User, orderID id.UUID) (*dpa
 	}, nil
 }
 
-func (s *PaymentService) GetPaymentStatus(auth *entity.User, orderID id.UUID) (*dpayment.InvoiceResponse, error) {
+func (s *PaymentService) GetPaymentStatus(auth *entity.User, orderID id.UUID) (*payment.InvoiceResponse, error) {
 	order, err := s.orderRepository.FindByID(orderID)
 	if err != nil {
 		return nil, errors.ErrNotFound("Order", err)
@@ -118,7 +119,7 @@ func (s *PaymentService) GetPaymentStatus(auth *entity.User, orderID id.UUID) (*
 		}
 	}
 
-	return &dpayment.InvoiceResponse{
+	return &paymentDTO.InvoiceResponse{
 		PaymentID:     payment.ID.String(),
 		OrderID:       payment.OrderID.String(),
 		AmountSats:    payment.AmountSats,

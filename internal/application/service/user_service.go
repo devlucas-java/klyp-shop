@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/duser"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/user"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	domainErrors "github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/policy"
@@ -31,7 +31,7 @@ func NewUserService(
 	}
 }
 
-func (s *UserService) GetMe(auth *entity.User) (*duser.UserResponse, error) {
+func (s *UserService) GetMe(auth *entity.User) (*user.UserResponse, error) {
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
 		s.log.Errorf("Failed to find user by ID %s: %v", auth.ID, err)
@@ -43,7 +43,7 @@ func (s *UserService) GetMe(auth *entity.User) (*duser.UserResponse, error) {
 	return s.userMapper.ToResponse(user), nil
 }
 
-func (s *UserService) UpdateMe(auth *entity.User, req *duser.UpdateUserRequest) (*duser.UserResponse, error) {
+func (s *UserService) UpdateMe(auth *entity.User, req *user.UpdateUserRequest) (*user.UserResponse, error) {
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
 		s.log.Errorf("Failed to find user by ID %s: %v", auth.ID, err)

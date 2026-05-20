@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dproduct"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/product"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
@@ -30,7 +30,7 @@ func NewFeaturedProductService(
 	}
 }
 
-func (s *FeaturedProductService) AddFeatured(auth *entity.User, req *dproduct.AddFeaturedRequest) (*dproduct.FeaturedProductResponse, error) {
+func (s *FeaturedProductService) AddFeatured(auth *entity.User, req *product.AddFeaturedRequest) (*product.FeaturedProductResponse, error) {
 	user, err := s.userRepository.FindByIDWithSeller(auth.ID)
 	if err != nil {
 		return nil, errors.ErrNotFound("User", err)
@@ -91,7 +91,7 @@ func (s *FeaturedProductService) RemoveFeatured(auth *entity.User, productID id.
 	return s.featuredRepository.Remove(user.Seller.ID, productID)
 }
 
-func (s *FeaturedProductService) UpdatePosition(auth *entity.User, productID id.UUID, req *dproduct.UpdateFeaturedPositionRequest) error {
+func (s *FeaturedProductService) UpdatePosition(auth *entity.User, productID id.UUID, req *product.UpdateFeaturedPositionRequest) error {
 	user, err := s.userRepository.FindByIDWithSeller(auth.ID)
 	if err != nil {
 		return errors.ErrNotFound("User", err)
@@ -108,33 +108,33 @@ func (s *FeaturedProductService) UpdatePosition(auth *entity.User, productID id.
 	return s.featuredRepository.UpdatePosition(user.Seller.ID, productID, req.Position)
 }
 
-func (s *FeaturedProductService) GetAllFeatured() ([]*dproduct.FeaturedProductResponse, error) {
+func (s *FeaturedProductService) GetAllFeatured() ([]*product.FeaturedProductResponse, error) {
 	featured, err := s.featuredRepository.FindAll()
 	if err != nil {
 		return nil, errors.ErrDatabase("failed to fetch featured products", err)
 	}
 
-	result := make([]*dproduct.FeaturedProductResponse, 0, len(featured))
+	result := make([]*product.FeaturedProductResponse, 0, len(featured))
 	for _, f := range featured {
 		result = append(result, toFeaturedResponse(f, &f.Product))
 	}
 	return result, nil
 }
 
-func (s *FeaturedProductService) GetFeaturedBySeller(sellerID id.UUID) ([]*dproduct.FeaturedProductResponse, error) {
+func (s *FeaturedProductService) GetFeaturedBySeller(sellerID id.UUID) ([]*product.FeaturedProductResponse, error) {
 	featured, err := s.featuredRepository.FindBySellerID(sellerID)
 	if err != nil {
 		return nil, errors.ErrDatabase("failed to fetch featured products", err)
 	}
 
-	result := make([]*dproduct.FeaturedProductResponse, 0, len(featured))
+	result := make([]*product.FeaturedProductResponse, 0, len(featured))
 	for _, f := range featured {
 		result = append(result, toFeaturedResponse(f, &f.Product))
 	}
 	return result, nil
 }
 
-func (s *FeaturedProductService) GetMyFeatured(auth *entity.User) ([]*dproduct.FeaturedProductResponse, error) {
+func (s *FeaturedProductService) GetMyFeatured(auth *entity.User) ([]*product.FeaturedProductResponse, error) {
 	user, err := s.userRepository.FindByIDWithSeller(auth.ID)
 	if err != nil {
 		return nil, errors.ErrNotFound("User", err)
@@ -146,11 +146,11 @@ func (s *FeaturedProductService) GetMyFeatured(auth *entity.User) ([]*dproduct.F
 	return s.GetFeaturedBySeller(user.Seller.ID)
 }
 
-func toFeaturedResponse(f *entity.FeaturedProduct, p *entity.Product) *dproduct.FeaturedProductResponse {
-	return &dproduct.FeaturedProductResponse{
+func toFeaturedResponse(f *entity.FeaturedProduct, p *entity.Product) *product.FeaturedProductResponse {
+	return &product.FeaturedProductResponse{
 		ID:       f.ID.String(),
 		Position: f.Position,
-		Product: dproduct.ProductResponse{
+		Product: product.ProductResponse{
 			ID:          p.ID.String(),
 			Name:        p.Name,
 			Description: p.Description,

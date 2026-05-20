@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dseller"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/seller"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
@@ -26,7 +26,7 @@ func NewSellerHandler(sellerService *service.SellerService, log *logger.Logger) 
 
 func (h *SellerHandler) CreateSeller(w http.ResponseWriter, r *http.Request) error {
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
-	var dto dseller.CreateSeller
+	var dto seller.CreateSeller
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
 		return errors.ErrInvalidPayload(err)
 	}
@@ -56,7 +56,7 @@ func (h *SellerHandler) GetSellerByID(w http.ResponseWriter, r *http.Request) er
 
 func (h *SellerHandler) UpdateSeller(w http.ResponseWriter, r *http.Request) error {
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
-	var dto dseller.UpdateSeller
+	var dto seller.UpdateSeller
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
 		return errors.ErrInvalidPayload(err)
 	}

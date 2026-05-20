@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/coder/websocket"
+	"github.com/coder/websocket/wsjson"
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dchat"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/chat"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
-	"github.com/coder/websocket"
-	"github.com/coder/websocket/wsjson"
 )
 
 // messageProcessor handles reading, validating, persisting and routing messages.
@@ -30,7 +30,7 @@ func (p *messageProcessor) readPump(ctx context.Context, conn *websocket.Conn, a
 
 	for {
 		readCtx, readCancel := context.WithTimeout(ctx, readTimeout)
-		var req dchat.SendMessageRequest
+		var req chat.SendMessageRequest
 		err := wsjson.Read(readCtx, conn, &req)
 		readCancel()
 
@@ -55,7 +55,7 @@ func (p *messageProcessor) readPump(ctx context.Context, conn *websocket.Conn, a
 			continue
 		}
 
-		wsMsg := dchat.WSMessage{Type: "message", Payload: *msg}
+		wsMsg := chat.WSMessage{Type: "message", Payload: *msg}
 		data, err := json.Marshal(wsMsg)
 		if err != nil {
 			p.log.Errorf("message.go: marshal error: %v", err)

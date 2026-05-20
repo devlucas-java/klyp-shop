@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dcart"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/cart"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
@@ -26,7 +26,7 @@ func NewShoppingCartItemHandler(shoppingCartItemService *service.ShoppingCartIte
 
 func (h *ShoppingCartItemHandler) AddItem(w http.ResponseWriter, r *http.Request) error {
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
-	var req dcart.AddShoppingCartItemRequest
+	var req cart.AddShoppingCartItemRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return errors.ErrInvalidPayload(err)
 	}
@@ -44,7 +44,7 @@ func (h *ShoppingCartItemHandler) UpdateItem(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		return errors.ErrInvalidUUID(err)
 	}
-	var req dcart.UpdateShoppingCartItemRequest
+	var req cart.UpdateShoppingCartItemRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return errors.ErrInvalidPayload(err)
 	}

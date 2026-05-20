@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dproduct"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/product"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
@@ -26,7 +26,7 @@ func NewProductHandler(productService *service.ProductService, log *logger.Logge
 
 func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) error {
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
-	var dto dproduct.CreateProduct
+	var dto product.CreateProduct
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
 		return errors.ErrInvalidPayload(err)
 	}
@@ -60,7 +60,7 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) e
 	if err != nil {
 		return errors.ErrInvalidUUID(err)
 	}
-	var dto dproduct.UpdateProduct
+	var dto product.UpdateProduct
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
 		return errors.ErrInvalidPayload(err)
 	}

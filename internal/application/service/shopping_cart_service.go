@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dcart"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/cart"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
@@ -26,7 +26,7 @@ func NewShoppingCartService(
 	}
 }
 
-func (s *ShoppingCartService) GetCart(auth *entity.User) (*dcart.ShoppingCartResponse, error) {
+func (s *ShoppingCartService) GetCart(auth *entity.User) (*cart.ShoppingCartResponse, error) {
 	cart, err := s.cartRepository.FindByUserID(auth.ID)
 	if err != nil {
 		s.log.Errorf("Failed to get shopping cart for user %s: %v", auth.ID, err)

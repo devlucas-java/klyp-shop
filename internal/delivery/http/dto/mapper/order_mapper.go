@@ -1,8 +1,8 @@
 package mapper
 
 import (
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dorder"
-	dorderitem "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dorder_item"
+	orderDTO "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/order"
+	orderitemDTO "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/order_item"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 )
 
@@ -12,14 +12,14 @@ func NewOrderMapper() *OrderMapper {
 	return &OrderMapper{}
 }
 
-func (m *OrderMapper) OrderToResponse(order *entity.Order) *dorder.OrderResponse {
+func (m *OrderMapper) OrderToResponse(order *entity.Order) *orderDTO.OrderResponse {
 	if order == nil {
 		return nil
 	}
 
-	items := make([]dorderitem.OrderItemResponse, len(order.Items))
+	items := make([]orderitemDTO.OrderItemResponse, len(order.Items))
 	for i, item := range order.Items {
-		items[i] = dorderitem.OrderItemResponse{
+		items[i] = orderitemDTO.OrderItemResponse{
 			ID:        item.ID.String(),
 			ProductID: item.ProductID.String(),
 			Quantity:  item.Quantity,
@@ -28,7 +28,7 @@ func (m *OrderMapper) OrderToResponse(order *entity.Order) *dorder.OrderResponse
 		}
 	}
 
-	return &dorder.OrderResponse{
+	return &orderDTO.OrderResponse{
 		ID:        order.ID.String(),
 		UserID:    order.UserID.String(),
 		AddressID: order.AddressID.String(),
@@ -40,12 +40,12 @@ func (m *OrderMapper) OrderToResponse(order *entity.Order) *dorder.OrderResponse
 	}
 }
 
-func (m *OrderMapper) OrdersToResponses(orders []*entity.Order) []*dorder.OrderResponse {
+func (m *OrderMapper) OrdersToResponses(orders []*entity.Order) []*orderDTO.OrderResponse {
 	if orders == nil || len(orders) == 0 {
-		return []*dorder.OrderResponse{}
+		return []*orderDTO.OrderResponse{}
 	}
 
-	responses := make([]*dorder.OrderResponse, len(orders))
+	responses := make([]*orderDTO.OrderResponse, len(orders))
 	for i, order := range orders {
 		responses[i] = m.OrderToResponse(order)
 	}

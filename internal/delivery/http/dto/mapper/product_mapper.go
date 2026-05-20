@@ -1,7 +1,7 @@
 package mapper
 
 import (
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dproduct"
+	productDTO "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/product"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 )
 
@@ -11,8 +11,8 @@ func NewProductMapper() *ProductMaper {
 	return &ProductMaper{}
 }
 
-func (p *ProductMaper) ProductToProductResponse(product *entity.Product) *dproduct.ProductResponse {
-	return &dproduct.ProductResponse{
+func (p *ProductMaper) ProductToProductResponse(product *entity.Product) *productDTO.ProductResponse {
+	return &productDTO.ProductResponse{
 		ID:          product.ID.String(),
 		Name:        product.Name,
 		Description: product.Description,

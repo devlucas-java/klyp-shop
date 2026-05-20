@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/duser"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/user"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
@@ -36,7 +36,7 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) error {
 
 func (h *UserHandler) UpdateMe(w http.ResponseWriter, r *http.Request) error {
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
-	var dto duser.UpdateUserRequest
+	var dto user.UpdateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
 		return errors.ErrInvalidPayload(err)
 	}

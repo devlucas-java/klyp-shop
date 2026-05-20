@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/daddress"
+	addressDTO "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/address"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
@@ -34,7 +34,7 @@ func NewAddressService(
 	}
 }
 
-func (s *AddressService) CreateAddress(auth *entity.User, req *daddress.CreateAddressRequest) (*daddress.AddressResponse, error) {
+func (s *AddressService) CreateAddress(auth *entity.User, req *addressDTO.CreateAddressRequest) (*addressDTO.AddressResponse, error) {
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
 		return nil, errors.ErrNotFound("User", err)
@@ -59,7 +59,7 @@ func (s *AddressService) CreateAddress(auth *entity.User, req *daddress.CreateAd
 	return s.mapper.ToResponse(saved), nil
 }
 
-func (s *AddressService) GetAddresses(auth *entity.User) ([]*daddress.AddressResponse, error) {
+func (s *AddressService) GetAddresses(auth *entity.User) ([]*addressDTO.AddressResponse, error) {
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
 		return nil, errors.ErrNotFound("User", err)
@@ -70,7 +70,7 @@ func (s *AddressService) GetAddresses(auth *entity.User) ([]*daddress.AddressRes
 		return nil, errors.ErrDatabase("failed to fetch addresses", err)
 	}
 
-	responses := make([]*daddress.AddressResponse, len(addrs))
+	responses := make([]*addressDTO.AddressResponse, len(addrs))
 	for i, addr := range addrs {
 		responses[i] = s.mapper.ToResponse(addr)
 	}
@@ -78,7 +78,7 @@ func (s *AddressService) GetAddresses(auth *entity.User) ([]*daddress.AddressRes
 	return responses, nil
 }
 
-func (s *AddressService) UpdateAddress(auth *entity.User, req *daddress.UpdateAddressRequest, addrID id.UUID) (*daddress.AddressResponse, error) {
+func (s *AddressService) UpdateAddress(auth *entity.User, req *addressDTO.UpdateAddressRequest, addrID id.UUID) (*addressDTO.AddressResponse, error) {
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
 		return nil, errors.ErrNotFound("User", err)

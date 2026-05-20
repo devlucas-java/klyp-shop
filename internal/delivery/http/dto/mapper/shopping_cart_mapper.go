@@ -1,7 +1,7 @@
 package mapper
 
 import (
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dcart"
+	cartDTO "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/cart"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 )
 
@@ -11,14 +11,14 @@ func NewShoppingCartMapper() *ShoppingCartMapper {
 	return &ShoppingCartMapper{}
 }
 
-func (m *ShoppingCartMapper) ShoppingCartToResponse(cart *entity.ShoppingCart) *dcart.ShoppingCartResponse {
+func (m *ShoppingCartMapper) ShoppingCartToResponse(cart *entity.ShoppingCart) *cartDTO.ShoppingCartResponse {
 	if cart == nil {
 		return nil
 	}
 
-	items := make([]dcart.ShoppingCartItemResponse, len(cart.Items))
+	items := make([]cartDTO.ShoppingCartItemResponse, len(cart.Items))
 	for i, item := range cart.Items {
-		items[i] = dcart.ShoppingCartItemResponse{
+		items[i] = cartDTO.ShoppingCartItemResponse{
 			ID:        item.ID.String(),
 			ProductID: item.ProductID.String(),
 			Quantity:  item.Quantity,
@@ -27,7 +27,7 @@ func (m *ShoppingCartMapper) ShoppingCartToResponse(cart *entity.ShoppingCart) *
 		}
 	}
 
-	return &dcart.ShoppingCartResponse{
+	return &cartDTO.ShoppingCartResponse{
 		ID:        cart.ID.String(),
 		UserID:    cart.UserID.String(),
 		TotalBTC:  cart.TotalBTC,

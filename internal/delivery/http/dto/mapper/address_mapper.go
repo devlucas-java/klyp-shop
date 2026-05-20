@@ -1,7 +1,7 @@
 package mapper
 
 import (
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/daddress"
+	addressDTO "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/address"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 )
 
@@ -11,8 +11,8 @@ func NewAddressMapper() *AddressMapper {
 	return &AddressMapper{}
 }
 
-func (m *AddressMapper) ToResponse(addr *entity.Address) *daddress.AddressResponse {
-	return &daddress.AddressResponse{
+func (m *AddressMapper) ToResponse(addr *entity.Address) *addressDTO.AddressResponse {
+	return &addressDTO.AddressResponse{
 		ID:       addr.ID.String(),
 		Street:   addr.Street,
 		City:     addr.City,

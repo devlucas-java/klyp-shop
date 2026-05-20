@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dauth"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/auth"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
@@ -23,7 +23,7 @@ func NewAuthHandler(authService *service.AuthService, log *logger.Logger) *AuthH
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) error {
-	var req dauth.LoginRequest
+	var req auth.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return errors.ErrInvalidPayload(err)
 	}
@@ -39,7 +39,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) error {
-	var req dauth.RegisterDTO
+	var req auth.RegisterDTO
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return errors.ErrInvalidPayload(err)
 	}
@@ -55,7 +55,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) error {
-	var req dauth.UpdatePasswordRequest
+	var req auth.UpdatePasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return errors.ErrInvalidPayload(err)
 	}
@@ -71,7 +71,7 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) err
 }
 
 func (h *AuthHandler) VerifyPassword(w http.ResponseWriter, r *http.Request) error {
-	var req dauth.VerifyPasswordRequest
+	var req auth.VerifyPasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return errors.ErrInvalidPayload(err)
 	}

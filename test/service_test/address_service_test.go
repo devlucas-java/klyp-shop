@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/daddress"
+	addressDTO "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/address"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	domainErr "github.com/devlucas-java/klyp-shop/internal/domain/errors"
@@ -47,7 +47,7 @@ func TestAddressService_CreateAddress(t *testing.T) {
 	svc := newAddressService(addrRepo, userRepo)
 
 	user := newAddressUser()
-	req := &daddress.CreateAddressRequest{
+	req := &addressDTO.CreateAddressRequest{
 		Street: "Main St", City: "City", State: "State",
 		Country: "Country", PostCode: "12345", Number: 10,
 	}
@@ -77,7 +77,7 @@ func TestAddressService_CreateAddress_MaxLimit(t *testing.T) {
 	userRepo.On("FindByID", user.ID).Return(user, nil)
 	addrRepo.On("FindByUser", user.ID).Return(existing, nil)
 
-	req := &daddress.CreateAddressRequest{
+	req := &addressDTO.CreateAddressRequest{
 		Street: "Extra", City: "City", State: "State",
 		Country: "Country", PostCode: "00000", Number: 1,
 	}
@@ -140,7 +140,7 @@ func TestAddressService_UpdateAddress(t *testing.T) {
 	addrRepo.On("FindByID", addr.ID).Return(addr, nil)
 	addrRepo.On("Update", mock.AnythingOfType("*entity.Address")).Return(&updated, nil)
 
-	req := &daddress.UpdateAddressRequest{
+	req := &addressDTO.UpdateAddressRequest{
 		Street: "New Street", City: "City", State: "State",
 		Country: "Country", PostCode: "12345", Number: 10,
 	}
@@ -165,7 +165,7 @@ func TestAddressService_UpdateAddress_WrongOwner(t *testing.T) {
 	userRepo.On("FindByID", other.ID).Return(other, nil)
 	addrRepo.On("FindByID", addr.ID).Return(addr, nil)
 
-	req := &daddress.UpdateAddressRequest{Street: "Hacked"}
+	req := &addressDTO.UpdateAddressRequest{Street: "Hacked"}
 
 	_, err := svc.UpdateAddress(other, req, addr.ID)
 

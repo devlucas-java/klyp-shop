@@ -1,9 +1,9 @@
 package service
 
 import (
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dauth"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dothers"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/auth"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/others"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
@@ -24,7 +24,7 @@ func NewAuthService(userRepository repository.UserRepository, jwtService *jwt.JW
 	}
 }
 
-func (a *AuthService) Login(login *dauth.LoginRequest) (*dauth.JWTResponse, error) {
+func (a *AuthService) Login(login *auth.LoginRequest) (*auth.JWTResponse, error) {
 	user, err := a.userRepository.FindByEmailOrUsername(login.Login)
 	if err != nil {
 		return nil, errors.ErrInvalidCredentials(err)
@@ -44,10 +44,10 @@ func (a *AuthService) Login(login *dauth.LoginRequest) (*dauth.JWTResponse, erro
 		return nil, errors.ErrInternal("failed to generate token", err)
 	}
 
-	return dauth.NewJWTResponse(token, a.mapper.ToResponse(user)), nil
+	return auth.NewJWTResponse(token, a.mapper.ToResponse(user)), nil
 }
 
-func (a *AuthService) Register(dto *dauth.RegisterDTO) (*dauth.JWTResponse, error) {
+func (a *AuthService) Register(dto *auth.RegisterDTO) (*auth.JWTResponse, error) {
 
 	exists, err := a.userRepository.ExistsUserByEmail(dto.Email)
 	if err != nil {
@@ -80,10 +80,10 @@ func (a *AuthService) Register(dto *dauth.RegisterDTO) (*dauth.JWTResponse, erro
 		return nil, errors.ErrInternal("failed to generate token", err)
 	}
 
-	return dauth.NewJWTResponse(token, a.mapper.ToResponse(user)), nil
+	return auth.NewJWTResponse(token, a.mapper.ToResponse(user)), nil
 }
 
-func (a *AuthService) VerifyPassword(req *dauth.VerifyPasswordRequest, user *entity.User) (*dothers.BooleanDTO, error) {
+func (a *AuthService) VerifyPassword(req *auth.VerifyPasswordRequest, user *entity.User) (*others.BooleanDTO, error) {
 	stored, err := a.userRepository.FindByID(user.ID)
 	if err != nil {
 		return nil, errors.ErrInternal("failed to retrieve user", err)
@@ -94,10 +94,10 @@ func (a *AuthService) VerifyPassword(req *dauth.VerifyPasswordRequest, user *ent
 		return nil, err
 	}
 
-	return &dothers.BooleanDTO{Result: match}, nil
+	return &others.BooleanDTO{Result: match}, nil
 }
 
-func (a *AuthService) UpdatePassword(dto *dauth.UpdatePasswordRequest, user *entity.User) error {
+func (a *AuthService) UpdatePassword(dto *auth.UpdatePasswordRequest, user *entity.User) error {
 	stored, err := a.userRepository.FindByID(user.ID)
 	if err != nil {
 		return errors.ErrInternal("failed to retrieve user", err)

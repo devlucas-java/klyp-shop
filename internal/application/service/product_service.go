@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dproduct"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/product"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/policy"
@@ -37,7 +37,7 @@ func NewProductService(
 	}
 }
 
-func (s *ProductService) CreateProduct(auth *entity.User, req *dproduct.CreateProduct) (*dproduct.ProductResponse, error) {
+func (s *ProductService) CreateProduct(auth *entity.User, req *product.CreateProduct) (*product.ProductResponse, error) {
 	user, err := s.userRepository.FindByIDWithSeller(auth.ID)
 	if err != nil {
 		return nil, errors.ErrNotFound("User", err)
@@ -62,7 +62,7 @@ func (s *ProductService) CreateProduct(auth *entity.User, req *dproduct.CreatePr
 	return s.productMapper.ProductToProductResponse(saved), nil
 }
 
-func (s *ProductService) UpdateProduct(auth *entity.User, req *dproduct.UpdateProduct, productID id.UUID) (*dproduct.ProductResponse, error) {
+func (s *ProductService) UpdateProduct(auth *entity.User, req *product.UpdateProduct, productID id.UUID) (*product.ProductResponse, error) {
 	user, err := s.userRepository.FindByIDWithSeller(auth.ID)
 	if err != nil {
 		return nil, errors.ErrNotFound("User", err)
@@ -121,7 +121,7 @@ func (s *ProductService) DeleteProduct(auth *entity.User, productID id.UUID) err
 	return nil
 }
 
-func (s *ProductService) GetProductByID(productID id.UUID) (*dproduct.ProductResponse, error) {
+func (s *ProductService) GetProductByID(productID id.UUID) (*product.ProductResponse, error) {
 	product, err := s.productRepository.FindByID(productID)
 	if err != nil {
 		return nil, errors.ErrNotFound("Product", err)
@@ -130,39 +130,39 @@ func (s *ProductService) GetProductByID(productID id.UUID) (*dproduct.ProductRes
 	return s.productMapper.ProductToProductResponse(product), nil
 }
 
-func (s *ProductService) ListProducts(page, size int) ([]*dproduct.ProductResponse, error) {
+func (s *ProductService) ListProducts(page, size int) ([]*product.ProductResponse, error) {
 	products, err := s.productRepository.Search(page, size, "name", "", []string{})
 	if err != nil {
 		return nil, errors.ErrDatabase("failed to list products", err)
 	}
 
-	responses := make([]*dproduct.ProductResponse, len(products))
+	responses := make([]*product.ProductResponse, len(products))
 	for i, p := range products {
 		responses[i] = s.productMapper.ProductToProductResponse(p)
 	}
 	return responses, nil
 }
 
-func (s *ProductService) GetProductsBySeller(sellerID id.UUID, page, size int) ([]*dproduct.ProductResponse, error) {
+func (s *ProductService) GetProductsBySeller(sellerID id.UUID, page, size int) ([]*product.ProductResponse, error) {
 	products, err := s.productRepository.FindBySellerID(sellerID, page, size)
 	if err != nil {
 		return nil, errors.ErrDatabase("failed to get products for seller", err)
 	}
 
-	responses := make([]*dproduct.ProductResponse, len(products))
+	responses := make([]*product.ProductResponse, len(products))
 	for i, p := range products {
 		responses[i] = s.productMapper.ProductToProductResponse(p)
 	}
 	return responses, nil
 }
 
-func (s *ProductService) SearchProducts(page, size int, search string, categories []string) ([]*dproduct.ProductResponse, error) {
+func (s *ProductService) SearchProducts(page, size int, search string, categories []string) ([]*product.ProductResponse, error) {
 	products, err := s.productRepository.Search(page, size, "name", search, categories)
 	if err != nil {
 		return nil, errors.ErrDatabase("failed to search products", err)
 	}
 
-	responses := make([]*dproduct.ProductResponse, len(products))
+	responses := make([]*product.ProductResponse, len(products))
 	for i, p := range products {
 		responses[i] = s.productMapper.ProductToProductResponse(p)
 	}

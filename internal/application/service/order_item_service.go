@@ -1,8 +1,8 @@
 package service
 
 import (
-	dorderitem "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dorder_item"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
+	dorderitem "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/order_item"
 	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"

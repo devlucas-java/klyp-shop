@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dproduct"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/product"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
@@ -26,7 +26,7 @@ func NewFeaturedProductHandler(featuredService *service.FeaturedProductService, 
 
 func (h *FeaturedProductHandler) AddFeatured(w http.ResponseWriter, r *http.Request) error {
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
-	var req dproduct.AddFeaturedRequest
+	var req product.AddFeaturedRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return errors.ErrInvalidPayload(err)
 	}
@@ -62,7 +62,7 @@ func (h *FeaturedProductHandler) UpdatePosition(w http.ResponseWriter, r *http.R
 	if err != nil {
 		return errors.ErrInvalidUUID(err)
 	}
-	var req dproduct.UpdateFeaturedPositionRequest
+	var req product.UpdateFeaturedPositionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return errors.ErrInvalidPayload(err)
 	}

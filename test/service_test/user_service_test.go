@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/duser"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
+	userDTO "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/user"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/enums"
 	domainErr "github.com/devlucas-java/klyp-shop/internal/domain/errors"
@@ -71,7 +71,7 @@ func TestUpdateMe_Name(t *testing.T) {
 	userRepo.On("FindByEmailOrUsername", mock.Anything).Return(nil, domainErr.ErrNotFound("User", nil)).Maybe()
 	userRepo.On("Update", mock.AnythingOfType("*entity.User")).Return(&updated, nil)
 
-	res, err := svc.UpdateMe(user, &duser.UpdateUserRequest{Name: "Updated Name"})
+	res, err := svc.UpdateMe(user, &userDTO.UpdateUserRequest{Name: "Updated Name"})
 
 	assert.NoError(t, err)
 	assert.Equal(t, "Updated Name", res.Name)
@@ -87,7 +87,7 @@ func TestUpdateMe_EmailConflict(t *testing.T) {
 	userRepo.On("FindByID", user.ID).Return(user, nil)
 	userRepo.On("ExistsUserByEmail", "taken@test.com").Return(true, nil)
 
-	_, err := svc.UpdateMe(user, &duser.UpdateUserRequest{Email: "taken@test.com"})
+	_, err := svc.UpdateMe(user, &userDTO.UpdateUserRequest{Email: "taken@test.com"})
 
 	assert.Error(t, err)
 	userRepo.AssertExpectations(t)
@@ -102,7 +102,7 @@ func TestUpdateMe_UsernameConflict(t *testing.T) {
 	userRepo.On("FindByID", user.ID).Return(user, nil)
 	userRepo.On("ExistsUserByUserName", "takenuser").Return(true, nil)
 
-	_, err := svc.UpdateMe(user, &duser.UpdateUserRequest{Username: "takenuser"})
+	_, err := svc.UpdateMe(user, &userDTO.UpdateUserRequest{Username: "takenuser"})
 
 	assert.Error(t, err)
 	userRepo.AssertExpectations(t)

@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dorder"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/order"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
@@ -26,7 +26,7 @@ func NewOrderHandler(orderService *service.OrderService, log *logger.Logger) *Or
 
 func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) error {
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
-	var req dorder.CreateOrderRequest
+	var req order.CreateOrderRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return errors.ErrInvalidPayload(err)
 	}

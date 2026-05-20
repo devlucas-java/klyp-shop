@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dchat"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/chat"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/policy"
@@ -30,7 +30,7 @@ func NewChatService(
 	}
 }
 
-func (s *ChatService) SendMessage(sender *entity.User, req *dchat.SendMessageRequest) (*dchat.MessageResponse, error) {
+func (s *ChatService) SendMessage(sender *entity.User, req *chat.SendMessageRequest) (*chat.MessageResponse, error) {
 	receiverID, err := id.Parse(req.ReceiverID)
 	if err != nil {
 		return nil, errors.ErrInvalidUUID(err)
@@ -55,7 +55,7 @@ func (s *ChatService) SendMessage(sender *entity.User, req *dchat.SendMessageReq
 	return toMessageResponse(saved), nil
 }
 
-func (s *ChatService) GetConversation(auth *entity.User, peerID id.UUID, limit, offset int) ([]*dchat.MessageResponse, error) {
+func (s *ChatService) GetConversation(auth *entity.User, peerID id.UUID, limit, offset int) ([]*chat.MessageResponse, error) {
 	peer, err := s.userRepository.FindByID(peerID)
 	if err != nil {
 		return nil, errors.ErrNotFound("User", err)
@@ -76,15 +76,15 @@ func (s *ChatService) GetConversation(auth *entity.User, peerID id.UUID, limit, 
 
 	s.chatRepository.MarkAsRead(auth.ID, peerID)
 
-	result := make([]*dchat.MessageResponse, len(msgs))
+	result := make([]*chat.MessageResponse, len(msgs))
 	for i, m := range msgs {
 		result[i] = toMessageResponse(m)
 	}
 	return result, nil
 }
 
-func toMessageResponse(m *entity.ChatMessage) *dchat.MessageResponse {
-	return &dchat.MessageResponse{
+func toMessageResponse(m *entity.ChatMessage) *chat.MessageResponse {
+	return &chat.MessageResponse{
 		ID:         m.ID.String(),
 		SenderID:   m.SenderID.String(),
 		ReceiverID: m.ReceiverID.String(),

@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dcart"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/cart"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
@@ -31,7 +31,7 @@ func NewShoppingCartItemService(
 	}
 }
 
-func (s *ShoppingCartItemService) AddItem(auth *entity.User, req *dcart.AddShoppingCartItemRequest) (*dcart.ShoppingCartResponse, error) {
+func (s *ShoppingCartItemService) AddItem(auth *entity.User, req *cart.AddShoppingCartItemRequest) (*cart.ShoppingCartResponse, error) {
 	if req.Quantity <= 0 {
 		return nil, errors.ErrBadRequest("quantity must be greater than zero", nil)
 	}
@@ -80,7 +80,7 @@ func (s *ShoppingCartItemService) AddItem(auth *entity.User, req *dcart.AddShopp
 	return s.cartMapper.ShoppingCartToResponse(cart), nil
 }
 
-func (s *ShoppingCartItemService) UpdateItem(auth *entity.User, itemID id.UUID, req *dcart.UpdateShoppingCartItemRequest) (*dcart.ShoppingCartResponse, error) {
+func (s *ShoppingCartItemService) UpdateItem(auth *entity.User, itemID id.UUID, req *cart.UpdateShoppingCartItemRequest) (*cart.ShoppingCartResponse, error) {
 	if req.Quantity <= 0 {
 		return nil, errors.ErrBadRequest("quantity must be greater than zero", nil)
 	}

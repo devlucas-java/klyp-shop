@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dorder"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/order"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/policy"
@@ -44,7 +44,7 @@ func NewOrderService(
 	}
 }
 
-func (s *OrderService) CreateOrder(auth *entity.User, req *dorder.CreateOrderRequest) (*dorder.OrderResponse, error) {
+func (s *OrderService) CreateOrder(auth *entity.User, req *order.CreateOrderRequest) (*order.OrderResponse, error) {
 	s.log.Infof("Creating order for user %s", auth.ID)
 
 	user, err := s.userRepository.FindByID(auth.ID)
@@ -102,7 +102,7 @@ func (s *OrderService) CreateOrder(auth *entity.User, req *dorder.CreateOrderReq
 	return s.orderMapper.OrderToResponse(created), nil
 }
 
-func (s *OrderService) GetOrder(auth *entity.User, orderID id.UUID) (*dorder.OrderResponse, error) {
+func (s *OrderService) GetOrder(auth *entity.User, orderID id.UUID) (*order.OrderResponse, error) {
 	order, err := s.orderRepository.FindByID(orderID)
 	if err != nil {
 		return nil, errors.ErrNotFound("Order", err)
@@ -115,7 +115,7 @@ func (s *OrderService) GetOrder(auth *entity.User, orderID id.UUID) (*dorder.Ord
 	return s.orderMapper.OrderToResponse(order), nil
 }
 
-func (s *OrderService) ListUserOrders(auth *entity.User) ([]*dorder.OrderResponse, error) {
+func (s *OrderService) ListUserOrders(auth *entity.User) ([]*order.OrderResponse, error) {
 	orders, err := s.orderRepository.FindByUser(auth.ID)
 	if err != nil {
 		return nil, errors.ErrDatabase("failed to list orders", err)

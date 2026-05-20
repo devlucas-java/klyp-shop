@@ -4,8 +4,9 @@ import (
 	"testing"
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dseller"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/seller"
+	sellerDTO "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/seller"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	domainErr "github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
@@ -50,7 +51,7 @@ func TestSellerService_CreateSeller(t *testing.T) {
 	sellerRepo.On("Create", mock.AnythingOfType("*entity.Seller")).Return(seller, nil)
 	userRepo.On("Update", mock.AnythingOfType("*entity.User")).Return(user, nil)
 
-	res, err := svc.CreateSeller(user, &dseller.CreateSeller{DisplayName: "My Store", Bio: "Best store"})
+	res, err := svc.CreateSeller(user, &sellerDTO.CreateSeller{DisplayName: "My Store", Bio: "Best store"})
 
 	assert.NoError(t, err)
 	assert.Equal(t, seller.DisplayName, res.DisplayName)
@@ -67,7 +68,7 @@ func TestSellerService_CreateSeller_AlreadySeller(t *testing.T) {
 	user.IsSeller = true
 	userRepo.On("FindByID", user.ID).Return(user, nil)
 
-	_, err := svc.CreateSeller(user, &dseller.CreateSeller{DisplayName: "Store", Bio: "Bio"})
+	_, err := svc.CreateSeller(user, &seller.CreateSeller{DisplayName: "Store", Bio: "Bio"})
 
 	assert.Error(t, err)
 	userRepo.AssertExpectations(t)
@@ -119,7 +120,7 @@ func TestSellerService_UpdateSeller(t *testing.T) {
 	userRepo.On("FindByIDWithSeller", user.ID).Return(user, nil)
 	sellerRepo.On("Updates", mock.AnythingOfType("*entity.Seller")).Return(&updated, nil)
 
-	res, err := svc.UpdateSeller(user, &dseller.UpdateSeller{DisplayName: "New Name"})
+	res, err := svc.UpdateSeller(user, &sellerDTO.UpdateSeller{DisplayName: "New Name"})
 
 	assert.NoError(t, err)
 	assert.Equal(t, "New Name", res.DisplayName)
@@ -135,7 +136,7 @@ func TestSellerService_UpdateSeller_NotSeller(t *testing.T) {
 	user := newSellerUser()
 	userRepo.On("FindByIDWithSeller", user.ID).Return(user, nil)
 
-	_, err := svc.UpdateSeller(user, &dseller.UpdateSeller{DisplayName: "Name"})
+	_, err := svc.UpdateSeller(user, &seller.UpdateSeller{DisplayName: "Name"})
 
 	assert.Error(t, err)
 	userRepo.AssertExpectations(t)
