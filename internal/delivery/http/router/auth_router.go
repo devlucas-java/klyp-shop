@@ -15,24 +15,32 @@ type AuthRouter struct {
 	jwtService     *jwt.JWTService
 	log            *logger.Logger
 	userRepository repository.UserRepository
+	adapter        *adapter.Adapter
 }
 
-func NewAuthRouter(handler *handler.AuthHandler, jwtService *jwt.JWTService, log *logger.Logger, userRepository repository.UserRepository) *AuthRouter {
+func NewAuthRouter(
+	h *handler.AuthHandler,
+	jwt *jwt.JWTService,
+	l *logger.Logger,
+	ur repository.UserRepository,
+	a *adapter.Adapter,
+) *AuthRouter {
 	return &AuthRouter{
-		handler:        handler,
-		jwtService:     jwtService,
-		log:            log,
-		userRepository: userRepository,
+		handler:        h,
+		jwtService:     jwt,
+		log:            l,
+		userRepository: ur,
+		adapter:        a,
 	}
 }
 
 func (a *AuthRouter) RegisterAuthRoutes(r chi.Router) {
-	r.Post("/login", adapter.Adapt(a.handler.Login))
-	r.Post("/register", adapter.Adapt(a.handler.Register))
+	r.Post("/login", a.adapter.Adapt(a.handler.Login))
+	r.Post("/register", a.adapter.Adapt(a.handler.Register))
 
 	r.Route("/", func(protected chi.Router) {
 		protected.Use(middleware.JwtMiddleware(a.jwtService, a.log, a.userRepository))
-		protected.Put("/password", adapter.Adapt(a.handler.ChangePassword))
-		protected.Post("/password", adapter.Adapt(a.handler.VerifyPassword))
+		protected.Put("/password", a.adapter.Adapt(a.handler.ChangePassword))
+		protected.Post("/password", a.adapter.Adapt(a.handler.VerifyPassword))
 	})
 }

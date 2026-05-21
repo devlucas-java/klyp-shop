@@ -4,18 +4,23 @@ import (
 	"net/http"
 
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
+	"github.com/devlucas-java/klyp-shop/pkg/logger"
 )
 
 type AdapterHandler func(w http.ResponseWriter, r *http.Request) error
 
-func Adapt(h AdapterHandler) http.HandlerFunc {
+type Adapter struct {
+	log *logger.Logger
+}
+
+func NewAdapter(log *logger.Logger) *Adapter {
+	return &Adapter{log: log}
+}
+
+func (a *Adapter) Adapt(h AdapterHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
-		err := h(w, r)
-
-		if err != nil {
-			response.ResponseError(w, err)
-			return
+		if err := h(w, r); err != nil {
+			response.ResponseError(w, err, a.log)
 		}
 	}
 }

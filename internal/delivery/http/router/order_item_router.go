@@ -15,14 +15,21 @@ type OrderItemRouter struct {
 	jwtService       *jwt.JWTService
 	log              *logger.Logger
 	userRepository   repository.UserRepository
+	adapter          *adapter.Adapter
 }
 
-func NewOrderItemRouter(orderItemHandler *handler.OrderItemHandler, jwtService *jwt.JWTService, log *logger.Logger, userRepository repository.UserRepository) *OrderItemRouter {
+func NewOrderItemRouter(
+	oh *handler.OrderItemHandler,
+	jwt *jwt.JWTService,
+	log *logger.Logger,
+	ur repository.UserRepository,
+	a *adapter.Adapter) *OrderItemRouter {
 	return &OrderItemRouter{
-		orderItemHandler: orderItemHandler,
-		jwtService:       jwtService,
+		orderItemHandler: oh,
+		jwtService:       jwt,
 		log:              log,
-		userRepository:   userRepository,
+		userRepository:   ur,
+		adapter:          a,
 	}
 }
 
@@ -30,7 +37,7 @@ func (r *OrderItemRouter) RegisterOrderItemRoutes(mux chi.Router) {
 	mux.Group(func(protected chi.Router) {
 		protected.Use(middleware.JwtMiddleware(r.jwtService, r.log, r.userRepository))
 
-		protected.Get("/{id}/items", adapter.Adapt(r.orderItemHandler.GetOrderItems))
-		protected.Get("/{id}/items/{itemId}", adapter.Adapt(r.orderItemHandler.GetOrderItem))
+		protected.Get("/{id}/items", r.adapter.Adapt(r.orderItemHandler.GetOrderItems))
+		protected.Get("/{id}/items/{itemId}", r.adapter.Adapt(r.orderItemHandler.GetOrderItem))
 	})
 }

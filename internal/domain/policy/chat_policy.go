@@ -1,10 +1,12 @@
 package policy
 
 import (
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/enums"
-	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 )
+
+const chatPolicy = "chat_policy.ChatPolicy"
 
 type ChatPolicy struct{}
 
@@ -21,5 +23,5 @@ func (p *ChatPolicy) CanChat(sender, receiver *entity.User) error {
 		return nil
 	}
 
-	return errors.ErrForbidden(nil)
+	return apperrors.Forbidden(chatPolicy+".can_chat: users cannot chat with each other", nil)
 }

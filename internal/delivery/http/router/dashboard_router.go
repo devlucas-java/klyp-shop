@@ -16,19 +16,21 @@ type DashboardRouter struct {
 	dashboardHandler *handler.DashboardHandler
 	log              *logger.Logger
 	userRepository   repository.UserRepository
+	adapter          *adapter.Adapter
 }
 
 func NewDashboardRouter(
-	jwtService *jwt.JWTService,
+	jwt *jwt.JWTService,
 	h *handler.DashboardHandler,
 	log *logger.Logger,
-	userRepository repository.UserRepository,
+	ur repository.UserRepository,
+	a *adapter.Adapter,
 ) *DashboardRouter {
 	return &DashboardRouter{
-		jwtService:       jwtService,
+		jwtService:       jwt,
 		dashboardHandler: h,
 		log:              log,
-		userRepository:   userRepository,
+		userRepository:   ur,
 	}
 }
 
@@ -38,12 +40,12 @@ func (d *DashboardRouter) RegisterDashboardRoutes(r chi.Router) {
 
 		protected.Group(func(sellerOnly chi.Router) {
 			sellerOnly.Use(middleware.RoleMiddleware([]enums.Role{enums.SELLER, enums.ADMIN}))
-			sellerOnly.Get("/seller", adapter.Adapt(d.dashboardHandler.GetSellerDashboard))
+			sellerOnly.Get("/seller", d.adapter.Adapt(d.dashboardHandler.GetSellerDashboard))
 		})
 
 		protected.Group(func(adminOnly chi.Router) {
 			adminOnly.Use(middleware.RoleMiddleware([]enums.Role{enums.ADMIN}))
-			adminOnly.Get("/admin", adapter.Adapt(d.dashboardHandler.GetAdminDashboard))
+			adminOnly.Get("/admin", d.adapter.Adapt(d.dashboardHandler.GetAdminDashboard))
 		})
 	})
 }

@@ -28,7 +28,7 @@ func setupAddressDB(t *testing.T) {
 	require.NoError(t, err)
 
 	logAddress = logger.NewLogger(logger.TRACE)
-	addressRepo = database.NewAddressDB(dbAddress, logAddress).(*database.AddressDB)
+	addressRepo = database.NewAddressDB(dbAddress).(*database.AddressDB)
 }
 
 func createAddressUser(t *testing.T) *entity.User {

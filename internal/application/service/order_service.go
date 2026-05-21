@@ -1,16 +1,21 @@
 package service
 
 import (
+	"context"
+
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/order"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/policy"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/observability/metrics"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
+	"github.com/devlucas-java/klyp-shop/pkg/pagination"
 )
+
+const orderServiceTrace = "order_service.OrderService"
 
 type OrderService struct {
 	log               *logger.Logger
@@ -44,22 +49,20 @@ func NewOrderService(
 	}
 }
 
-func (s *OrderService) CreateOrder(auth *entity.User, req *order.CreateOrderRequest) (*order.OrderResponse, error) {
-	s.log.Infof("Creating order for user %s", auth.ID)
-
+func (s *OrderService) CreateOrder(ctx context.Context, auth *entity.User, req *order.CreateOrderRequest) (*order.OrderResponse, error) {
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
-		return nil, errors.ErrNotFound("User", err)
+		return nil, apperrors.NotFound(orderServiceTrace+".create_order: user not found", err)
 	}
 
 	addressID, err := id.Parse(req.AddressID)
 	if err != nil {
-		return nil, errors.ErrInvalidUUID(err)
+		return nil, apperrors.InvalidUUID(orderServiceTrace+".create_order: invalid address id", err)
 	}
 
 	address, err := s.addressRepository.FindByID(addressID)
 	if err != nil {
-		return nil, errors.ErrNotFound("Address", err)
+		return nil, apperrors.NotFound(orderServiceTrace+".create_order: address not found", err)
 	}
 
 	if err := s.orderPolicy.AddressBelongsToUser(address, user.ID); err != nil {
@@ -67,19 +70,19 @@ func (s *OrderService) CreateOrder(auth *entity.User, req *order.CreateOrderRequ
 	}
 
 	if len(req.Items) == 0 {
-		return nil, errors.ErrBadRequest("at least one item is required", nil)
+		return nil, apperrors.BadRequest(orderServiceTrace+".create_order: at least one item is required", nil)
 	}
 
 	items := make([]entity.OrderItem, 0, len(req.Items))
 	for _, itemReq := range req.Items {
 		productID, err := id.Parse(itemReq.ProductID)
 		if err != nil {
-			return nil, errors.ErrInvalidUUID(err)
+			return nil, apperrors.InvalidUUID(orderServiceTrace+".create_order: invalid product id", err)
 		}
 
 		product, err := s.productRepository.FindByID(productID)
 		if err != nil {
-			return nil, errors.ErrNotFound("Product", err)
+			return nil, apperrors.NotFound(orderServiceTrace+".create_order: product not found", err)
 		}
 
 		item, err := entity.NewOrderItem(productID, itemReq.Quantity, product.PriceBTC)
@@ -89,12 +92,12 @@ func (s *OrderService) CreateOrder(auth *entity.User, req *order.CreateOrderRequ
 		items = append(items, *item)
 	}
 
-	order := entity.NewOrder(user.ID, addressID, items)
-	order.SetOrderIDForItems()
+	newOrder := entity.NewOrder(user.ID, addressID, items)
+	newOrder.SetOrderIDForItems()
 
-	created, err := s.orderRepository.Create(order)
+	created, err := s.orderRepository.Create(ctx, newOrder)
 	if err != nil {
-		return nil, errors.ErrDatabase("failed to create order", err)
+		return nil, apperrors.Database(orderServiceTrace+".create_order: failed to create order", err)
 	}
 
 	s.metric.OrdersCreated.Inc()
@@ -102,44 +105,61 @@ func (s *OrderService) CreateOrder(auth *entity.User, req *order.CreateOrderRequ
 	return s.orderMapper.OrderToResponse(created), nil
 }
 
-func (s *OrderService) GetOrder(auth *entity.User, orderID id.UUID) (*order.OrderResponse, error) {
-	order, err := s.orderRepository.FindByID(orderID)
+func (s *OrderService) GetOrder(ctx context.Context, auth *entity.User, orderID id.UUID) (*order.OrderResponse, error) {
+	ord, err := s.orderRepository.FindByID(ctx, orderID)
 	if err != nil {
-		return nil, errors.ErrNotFound("Order", err)
+		return nil, apperrors.NotFound(orderServiceTrace+".get_order: order not found", err)
 	}
 
-	if err := s.orderPolicy.CanView(order, auth.ID); err != nil {
+	if err := s.orderPolicy.CanView(ord, auth.ID); err != nil {
 		return nil, err
 	}
 
-	return s.orderMapper.OrderToResponse(order), nil
+	return s.orderMapper.OrderToResponse(ord), nil
 }
 
-func (s *OrderService) ListUserOrders(auth *entity.User) ([]*order.OrderResponse, error) {
-	orders, err := s.orderRepository.FindByUser(auth.ID)
+func (s *OrderService) ListUserOrders(ctx context.Context, auth *entity.User, inputPagination pagination.InputPagination) (*order.OrdersPageResponse, error) {
+	orders, total, err := s.orderRepository.FindByUserIDPaginated(ctx, auth.ID, inputPagination.Page, inputPagination.Size, inputPagination.Search)
 	if err != nil {
-		return nil, errors.ErrDatabase("failed to list orders", err)
+		return nil, apperrors.Database(orderServiceTrace+".list_user_orders: failed to list orders", err)
 	}
 
-	return s.orderMapper.OrdersToResponses(orders), nil
+	return &order.OrdersPageResponse{
+		Pagination: buildPagination(inputPagination.Page, inputPagination.Size, total),
+		Items:      s.orderMapper.OrdersToResponses(orders),
+	}, nil
 }
 
-func (s *OrderService) CancelOrder(auth *entity.User, orderID id.UUID) error {
-	order, err := s.orderRepository.FindByID(orderID)
-	if err != nil {
-		return errors.ErrNotFound("Order", err)
+func buildPagination(page, size int, total int64) pagination.OutPutPagination {
+	totalPages := int64((total + int64(size) - 1) / int64(size))
+	if totalPages < 1 {
+		totalPages = 1
 	}
 
-	if err := s.orderPolicy.CanCancel(order, auth.ID); err != nil {
+	return pagination.OutPutPagination{
+		Page:       page,
+		Size:       size,
+		Total:      total,
+		TotalPages: totalPages,
+	}
+}
+
+func (s *OrderService) CancelOrder(ctx context.Context, auth *entity.User, orderID id.UUID) error {
+	ord, err := s.orderRepository.FindByID(ctx, orderID)
+	if err != nil {
+		return apperrors.NotFound(orderServiceTrace+".cancel_order: order not found", err)
+	}
+
+	if err := s.orderPolicy.CanCancel(ord, auth.ID); err != nil {
 		return err
 	}
 
-	if err := order.CancelPending(); err != nil {
+	if err := ord.CancelPending(); err != nil {
 		return err
 	}
 
-	if _, err := s.orderRepository.Updates(order); err != nil {
-		return errors.ErrDatabase("failed to cancel order", err)
+	if _, err := s.orderRepository.Updates(ctx, ord); err != nil {
+		return apperrors.Database(orderServiceTrace+".cancel_order: failed to cancel order", err)
 	}
 
 	s.metric.OrdersCancelled.Inc()

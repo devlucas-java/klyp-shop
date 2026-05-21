@@ -3,9 +3,11 @@ package entity
 import (
 	"time"
 
-	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 )
+
+const shoppingCartEntity = "shopping_cart_entity.ShoppingCart"
 
 type ShoppingCart struct {
 	ID        id.UUID             `gorm:"type:uuid;primaryKey"`
@@ -29,10 +31,10 @@ func NewShoppingCart(userID id.UUID) *ShoppingCart {
 
 func (c *ShoppingCart) AddItem(item *ShoppingCartItem) error {
 	if item == nil {
-		return errors.ErrBadRequest("invalid shopping cart item", nil)
+		return apperrors.BadRequest(shoppingCartEntity+".add_item: invalid shopping cart item", nil)
 	}
 	if item.CartID != c.ID {
-		return errors.ErrBadRequest("shopping cart item cart mismatch", nil)
+		return apperrors.BadRequest(shoppingCartEntity+".add_item: shopping cart item cart mismatch", nil)
 	}
 
 	c.Items = append(c.Items, item)
@@ -42,12 +44,12 @@ func (c *ShoppingCart) AddItem(item *ShoppingCartItem) error {
 
 func (c *ShoppingCart) UpdateItemQuantity(itemID id.UUID, quantity int) error {
 	if quantity <= 0 {
-		return errors.ErrBadRequest("quantity must be greater than zero", nil)
+		return apperrors.BadRequest(shoppingCartEntity+".update_item_quantity: quantity must be greater than zero", nil)
 	}
 
 	item := c.FindItem(itemID)
 	if item == nil {
-		return errors.ErrNotFound("ShoppingCartItem", nil)
+		return apperrors.NotFound(shoppingCartEntity+".update_item_quantity: shopping cart item not found", nil)
 	}
 
 	if err := item.SetQuantity(quantity); err != nil {
@@ -70,7 +72,7 @@ func (c *ShoppingCart) RemoveItem(itemID id.UUID) error {
 	}
 
 	if !removed {
-		return errors.ErrNotFound("ShoppingCartItem", nil)
+		return apperrors.NotFound(shoppingCartEntity+".remove_item: shopping cart item not found", nil)
 	}
 
 	c.Items = updatedItems

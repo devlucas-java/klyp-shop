@@ -6,8 +6,8 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
 	addressDTO "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/address"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	domainErr "github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/devlucas-java/klyp-shop/test/mocks"
@@ -221,7 +221,7 @@ func TestAddressService_DeleteAddress_NotFound(t *testing.T) {
 	ghostID := id.NewUUID()
 
 	userRepo.On("FindByID", user.ID).Return(user, nil)
-	addrRepo.On("FindByID", ghostID).Return(nil, domainErr.ErrNotFound("Address", nil))
+	addrRepo.On("FindByID", ghostID).Return(nil, apperrors.NotFound("Address", nil))
 
 	err := svc.DeleteAddress(user, ghostID)
 

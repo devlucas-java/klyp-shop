@@ -16,21 +16,24 @@ type SellerRouter struct {
 	log              *logger.Logger
 	userRepository   repository.UserRepository
 	sellerRepository repository.SellerRepository
+	adapter          *adapter.Adapter
 }
 
 func NewSellerRouter(
-	jwtService *jwt.JWTService,
-	sellerHandler *handler.SellerHandler,
+	jwt *jwt.JWTService,
+	sh *handler.SellerHandler,
 	log *logger.Logger,
-	userRepository repository.UserRepository,
-	sellerRepository repository.SellerRepository,
+	ur repository.UserRepository,
+	sr repository.SellerRepository,
+	a *adapter.Adapter,
 ) *SellerRouter {
 	return &SellerRouter{
-		jwtService:       jwtService,
-		sellerHandler:    sellerHandler,
+		jwtService:       jwt,
+		sellerHandler:    sh,
 		log:              log,
-		userRepository:   userRepository,
-		sellerRepository: sellerRepository,
+		userRepository:   ur,
+		sellerRepository: sr,
+		adapter:          a,
 	}
 }
 
@@ -38,9 +41,9 @@ func (s *SellerRouter) RegisterSellerRoutes(mux chi.Router) {
 	mux.Group(func(protected chi.Router) {
 		protected.Use(middleware.JwtMiddleware(s.jwtService, s.log, s.userRepository))
 
-		protected.Post("/seller", adapter.Adapt(s.sellerHandler.CreateSeller))
-		protected.Patch("/seller", adapter.Adapt(s.sellerHandler.UpdateSeller))
-		protected.Delete("/seller", adapter.Adapt(s.sellerHandler.DeleteSeller))
-		protected.Get("/seller/{id}", adapter.Adapt(s.sellerHandler.GetSellerByID))
+		protected.Post("/seller", s.adapter.Adapt(s.sellerHandler.CreateSeller))
+		protected.Patch("/seller", s.adapter.Adapt(s.sellerHandler.UpdateSeller))
+		protected.Delete("/seller", s.adapter.Adapt(s.sellerHandler.DeleteSeller))
+		protected.Get("/seller/{id}", s.adapter.Adapt(s.sellerHandler.GetSellerByID))
 	})
 }

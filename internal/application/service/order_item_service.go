@@ -1,13 +1,17 @@
 package service
 
 import (
+	"context"
+
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	dorderitem "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/order_item"
-	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 )
+
+const orderItemServiceTrace = "order_item_service.OrderItemService"
 
 type OrderItemService struct {
 	log                 *logger.Logger
@@ -33,19 +37,15 @@ func NewOrderItemService(
 	}
 }
 
-func (s *OrderItemService) GetOrderItems(orderID id.UUID) ([]*dorderitem.OrderItemResponse, error) {
-	s.log.Infof("Getting items for order %s", orderID)
-
-	_, err := s.orderRepository.FindByID(orderID)
+func (s *OrderItemService) GetOrderItems(ctx context.Context, orderID id.UUID) ([]*dorderitem.OrderItemResponse, error) {
+	_, err := s.orderRepository.FindByID(ctx, orderID)
 	if err != nil {
-		s.log.Errorf("Failed to find order %s: %v", orderID, err)
-		return nil, errors.ErrNotFound("Order", err)
+		return nil, apperrors.NotFound(orderItemServiceTrace+".get_order_items: order not found", err)
 	}
 
 	items, err := s.orderItemRepository.FindByOrder(orderID)
 	if err != nil {
-		s.log.Errorf("Failed to find items for order %s: %v", orderID, err)
-		return nil, err
+		return nil, apperrors.Database(orderItemServiceTrace+".get_order_items: failed to find order items", err)
 	}
 
 	if len(items) == 0 {
@@ -66,24 +66,19 @@ func (s *OrderItemService) GetOrderItems(orderID id.UUID) ([]*dorderitem.OrderIt
 	return responses, nil
 }
 
-func (s *OrderItemService) GetOrderItem(orderID, itemID id.UUID) (*dorderitem.OrderItemResponse, error) {
-	s.log.Infof("Getting item %s from order %s", itemID, orderID)
-
-	_, err := s.orderRepository.FindByID(orderID)
+func (s *OrderItemService) GetOrderItem(ctx context.Context, orderID, itemID id.UUID) (*dorderitem.OrderItemResponse, error) {
+	_, err := s.orderRepository.FindByID(ctx, orderID)
 	if err != nil {
-		s.log.Errorf("Failed to find order %s: %v", orderID, err)
-		return nil, errors.ErrNotFound("Order", err)
+		return nil, apperrors.NotFound(orderItemServiceTrace+".get_order_item: order not found", err)
 	}
 
 	item, err := s.orderItemRepository.FindByID(itemID)
 	if err != nil {
-		s.log.Errorf("Failed to find item %s: %v", itemID, err)
-		return nil, errors.ErrNotFound("OrderItem", err)
+		return nil, apperrors.NotFound(orderItemServiceTrace+".get_order_item: order item not found", err)
 	}
 
 	if item.OrderID != orderID {
-		s.log.Warnf("Item %s does not belong to order %s", itemID, orderID)
-		return nil, errors.ErrForbidden(nil)
+		return nil, apperrors.Forbidden(orderItemServiceTrace+".get_order_item: item does not belong to order", nil)
 	}
 
 	return &dorderitem.OrderItemResponse{
@@ -96,12 +91,9 @@ func (s *OrderItemService) GetOrderItem(orderID, itemID id.UUID) (*dorderitem.Or
 }
 
 func (s *OrderItemService) CalculateOrderTotal(orderID id.UUID) (float64, error) {
-	s.log.Infof("Calculating total for order %s", orderID)
-
 	items, err := s.orderItemRepository.FindByOrder(orderID)
 	if err != nil {
-		s.log.Errorf("Failed to find items for order %s: %v", orderID, err)
-		return 0, err
+		return 0, apperrors.Database(orderItemServiceTrace+".calculate_order_total: failed to find order items", err)
 	}
 
 	var total float64

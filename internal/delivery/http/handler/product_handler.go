@@ -8,12 +8,14 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/product"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/go-chi/chi"
 )
+
+const productHandlerTrace = "product_handler.ProductHandler"
 
 type ProductHandler struct {
 	productService *service.ProductService
@@ -28,7 +30,7 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) e
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
 	var dto product.CreateProduct
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		return errors.ErrInvalidPayload(err)
+		return apperrors.BadRequest(productHandlerTrace+".create_product: invalid request payload", err)
 	}
 	if err := dto.Validate(); err != nil {
 		return err
@@ -44,7 +46,7 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) e
 func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) error {
 	uuid, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		return errors.ErrInvalidUUID(err)
+		return apperrors.InvalidUUID(productHandlerTrace+".get_product_by_id: invalid product id", err)
 	}
 	res, err := h.productService.GetProductByID(uuid)
 	if err != nil {
@@ -58,11 +60,11 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) e
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
 	uuid, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		return errors.ErrInvalidUUID(err)
+		return apperrors.InvalidUUID(productHandlerTrace+".update_product: invalid product id", err)
 	}
 	var dto product.UpdateProduct
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		return errors.ErrInvalidPayload(err)
+		return apperrors.BadRequest(productHandlerTrace+".update_product: invalid request payload", err)
 	}
 	if err := dto.Validate(); err != nil {
 		return err
@@ -79,11 +81,25 @@ func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) e
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
 	uuid, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		return errors.ErrInvalidUUID(err)
+		return apperrors.InvalidUUID(productHandlerTrace+".delete_product: invalid product id", err)
 	}
 	if err := h.productService.DeleteProduct(auth, uuid); err != nil {
 		return err
 	}
 	response.ResponseEntity(w, http.StatusOK, nil)
+	return nil
+}
+
+func (h *ProductHandler) SetTop10(w http.ResponseWriter, r *http.Request) error {
+	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	uuid, err := id.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		return apperrors.InvalidUUID(productHandlerTrace+".set_top10: invalid product id", err)
+	}
+	res, err := h.productService.SetTop10(r.Context(), auth, uuid)
+	if err != nil {
+		return err
+	}
+	response.ResponseEntity(w, http.StatusOK, res)
 	return nil
 }

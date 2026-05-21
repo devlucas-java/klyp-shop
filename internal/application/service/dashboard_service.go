@@ -1,15 +1,18 @@
 package service
 
 import (
+	"context"
 	"math"
 
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/dashboard"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/others"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
+	"github.com/devlucas-java/klyp-shop/pkg/pagination"
 )
+
+const dashboardServiceTrace = "dashboard_service.DashboardService"
 
 type DashboardService struct {
 	log                 *logger.Logger
@@ -32,10 +35,10 @@ func NewDashboardService(
 	}
 }
 
-func (s *DashboardService) GetSellerDashboard(auth *entity.User, page, size int, statusFilter string) (*dashboard.SellerDashboardResponse, error) {
+func (s *DashboardService) GetSellerDashboard(ctx context.Context, auth *entity.User, inputPagination pagination.InputPagination) (*dashboard.SellerDashboardResponse, error) {
 	user, err := s.userRepository.FindByIDWithSeller(auth.ID)
 	if err != nil {
-		return nil, errors.ErrNotFound("User", err)
+		return nil, apperrors.NotFound(dashboardServiceTrace+".get_seller_dashboard: user not found", err)
 	}
 	if err := user.EnsureSeller(); err != nil {
 		return nil, err
@@ -45,32 +48,32 @@ func (s *DashboardService) GetSellerDashboard(auth *entity.User, page, size int,
 
 	statusCounts, err := s.dashboardRepository.CountOrdersByStatusForSeller(sellerID)
 	if err != nil {
-		return nil, errors.ErrDatabase("failed to count orders", err)
+		return nil, apperrors.Database(dashboardServiceTrace+".get_seller_dashboard: failed to count orders", err)
 	}
 
 	revenue, err := s.dashboardRepository.SumRevenueForSeller(sellerID)
 	if err != nil {
-		return nil, errors.ErrDatabase("failed to sum revenue", err)
+		return nil, apperrors.Database(dashboardServiceTrace+".get_seller_dashboard: failed to sum revenue", err)
 	}
 
 	productCount, err := s.dashboardRepository.CountProductsForSeller(sellerID)
 	if err != nil {
-		return nil, errors.ErrDatabase("failed to count products", err)
+		return nil, apperrors.Database(dashboardServiceTrace+".get_seller_dashboard: failed to count products", err)
 	}
 
 	avgRating, totalReviews, err := s.dashboardRepository.AvgRatingForSeller(sellerID)
 	if err != nil {
-		return nil, errors.ErrDatabase("failed to get rating", err)
+		return nil, apperrors.Database(dashboardServiceTrace+".get_seller_dashboard: failed to get rating", err)
 	}
 
 	topProductRows, err := s.dashboardRepository.TopProductsForSeller(sellerID, 10)
 	if err != nil {
-		return nil, errors.ErrDatabase("failed to get top products", err)
+		return nil, apperrors.Database(dashboardServiceTrace+".get_seller_dashboard: failed to get top products", err)
 	}
 
-	orders, total, err := s.orderRepository.FindBySellerIDPaginated(sellerID, page, size, statusFilter)
+	orders, total, err := s.orderRepository.FindBySellerIDPaginated(ctx, sellerID, inputPagination.Page, inputPagination.Size, inputPagination.Search)
 	if err != nil {
-		return nil, errors.ErrDatabase("failed to fetch orders", err)
+		return nil, apperrors.Database(dashboardServiceTrace+".get_seller_dashboard: failed to fetch orders", err)
 	}
 
 	stats := buildSellerStats(statusCounts, revenue, productCount, avgRating, totalReviews)
@@ -96,47 +99,47 @@ func (s *DashboardService) GetSellerDashboard(auth *entity.User, page, size int,
 		},
 		Stats: stats,
 		Orders: dashboard.SellerOrdersPage{
-			Pagination: paginate(page, size, total),
+			Pagination: paginate(inputPagination.Page, inputPagination.Size, total),
 			Items:      orderItems,
 		},
 		TopProducts: topProducts,
 	}, nil
 }
 
-func (s *DashboardService) GetAdminDashboard(page, size int, statusFilter string) (*dashboard.AdminDashboardResponse, error) {
+func (s *DashboardService) GetAdminDashboard(ctx context.Context, inputPagination pagination.InputPagination) (*dashboard.AdminDashboardResponse, error) {
 	totalUsers, err := s.dashboardRepository.CountAllUsers()
 	if err != nil {
-		return nil, errors.ErrDatabase("failed to count users", err)
+		return nil, apperrors.Database(dashboardServiceTrace+".get_admin_dashboard: failed to count users", err)
 	}
 
 	totalSellers, err := s.dashboardRepository.CountAllSellers()
 	if err != nil {
-		return nil, errors.ErrDatabase("failed to count sellers", err)
+		return nil, apperrors.Database(dashboardServiceTrace+".get_admin_dashboard: failed to count sellers", err)
 	}
 
 	totalProducts, err := s.dashboardRepository.CountAllProducts()
 	if err != nil {
-		return nil, errors.ErrDatabase("failed to count products", err)
+		return nil, apperrors.Database(dashboardServiceTrace+".get_admin_dashboard: failed to count products", err)
 	}
 
 	statusCounts, err := s.dashboardRepository.CountAllOrdersByStatus()
 	if err != nil {
-		return nil, errors.ErrDatabase("failed to count orders by status", err)
+		return nil, apperrors.Database(dashboardServiceTrace+".get_admin_dashboard: failed to count orders by status", err)
 	}
 
 	totalRevenue, err := s.dashboardRepository.SumTotalRevenue()
 	if err != nil {
-		return nil, errors.ErrDatabase("failed to sum revenue", err)
+		return nil, apperrors.Database(dashboardServiceTrace+".get_admin_dashboard: failed to sum revenue", err)
 	}
 
 	topSellerRows, err := s.dashboardRepository.TopSellersByRevenue(10)
 	if err != nil {
-		return nil, errors.ErrDatabase("failed to get top sellers", err)
+		return nil, apperrors.Database(dashboardServiceTrace+".get_admin_dashboard: failed to get top sellers", err)
 	}
 
-	orders, total, err := s.orderRepository.FindAllPaginated(page, size, statusFilter)
+	orders, total, err := s.orderRepository.FindAllPaginated(ctx, inputPagination.Page, inputPagination.Size, inputPagination.Search)
 	if err != nil {
-		return nil, errors.ErrDatabase("failed to fetch orders", err)
+		return nil, apperrors.Database(dashboardServiceTrace+".get_admin_dashboard: failed to fetch orders", err)
 	}
 
 	ordersByStatus := buildOrdersByStatus(statusCounts)
@@ -167,7 +170,7 @@ func (s *DashboardService) GetAdminDashboard(page, size int, statusFilter string
 			OrdersByStatus:  ordersByStatus,
 		},
 		Orders: dashboard.AdminOrdersPage{
-			Pagination: paginate(page, size, total),
+			Pagination: paginate(inputPagination.Page, inputPagination.Size, total),
 			Items:      adminOrders,
 		},
 		TopSellers: topSellers,
@@ -301,12 +304,12 @@ func buildAdminOrders(orders []*entity.Order) []dashboard.AdminOrder {
 	return result
 }
 
-func paginate(page, size int, total int64) others.Pagination {
+func paginate(page, size int, total int64) pagination.OutPutPagination {
 	totalPages := int64(math.Ceil(float64(total) / float64(size)))
 	if totalPages < 1 {
 		totalPages = 1
 	}
-	return others.Pagination{
+	return pagination.OutPutPagination{
 		Page:       page,
 		Size:       size,
 		Total:      total,

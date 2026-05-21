@@ -1,12 +1,13 @@
 package entity
 
 import (
-	"fmt"
 	"time"
 
-	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 )
+
+const orderEntity = "order_entity.Order"
 
 type OrderStatus string
 
@@ -61,7 +62,7 @@ func (o *Order) IsOwnedBy(userID id.UUID) bool {
 
 func (o *Order) EnsureOwnedBy(userID id.UUID) error {
 	if !o.IsOwnedBy(userID) {
-		return errors.ErrForbidden(fmt.Errorf("order does not belong to user"))
+		return apperrors.Forbidden(orderEntity+".ensure_owned_by: order does not belong to user", nil)
 	}
 	return nil
 }
@@ -75,7 +76,7 @@ func (o *Order) CanBePaidBy(userID id.UUID) error {
 		return err
 	}
 	if o.Status != OrderStatusPending {
-		return errors.ErrConflict("Order", fmt.Errorf("order is not in pending status"))
+		return apperrors.Conflict(orderEntity+".can_be_paid_by: order is not in pending status", nil)
 	}
 	return nil
 }
@@ -97,7 +98,7 @@ func (o *Order) MarkAsDelivered() {
 
 func (o *Order) CancelPending() error {
 	if o.Status != OrderStatusPending {
-		return errors.ErrConflict("Order", fmt.Errorf("only pending orders can be cancelled"))
+		return apperrors.Conflict(orderEntity+".cancel_pending: only pending orders can be cancelled", nil)
 	}
 	o.Status = OrderStatusCancelled
 	o.UpdatedAt = time.Now()

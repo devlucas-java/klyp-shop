@@ -16,15 +16,24 @@ type ProductRouter struct {
 	log            *logger.Logger
 	userRepository repository.UserRepository
 	productService repository.ProductRepository
+	adapter        *adapter.Adapter
 }
 
-func NewProductRouter(jwtService *jwt.JWTService, productHandler *handler.ProductHandler, log *logger.Logger, userRepository repository.UserRepository, productService repository.ProductRepository) *ProductRouter {
+func NewProductRouter(
+	jwt *jwt.JWTService,
+	ph *handler.ProductHandler,
+	log *logger.Logger,
+	ur repository.UserRepository,
+	pr repository.ProductRepository,
+	a *adapter.Adapter,
+) *ProductRouter {
 	return &ProductRouter{
-		jwtService:     jwtService,
-		productHandler: productHandler,
+		jwtService:     jwt,
+		productHandler: ph,
 		log:            log,
-		userRepository: userRepository,
-		productService: productService,
+		userRepository: ur,
+		productService: pr,
+		adapter:        a,
 	}
 }
 
@@ -32,9 +41,9 @@ func (p *ProductRouter) RegisterProductRoutes(mux chi.Router) {
 	mux.Group(func(protected chi.Router) {
 		protected.Use(middleware.JwtMiddleware(p.jwtService, p.log, p.userRepository))
 
-		protected.Post("/product", adapter.Adapt(p.productHandler.CreateProduct))
-		protected.Get("/product/{id}", adapter.Adapt(p.productHandler.GetProductByID))
-		protected.Patch("/product/{id}", adapter.Adapt(p.productHandler.UpdateProduct))
-		protected.Delete("/product/{id}", adapter.Adapt(p.productHandler.DeleteProduct))
+		protected.Post("/product", p.adapter.Adapt(p.productHandler.CreateProduct))
+		protected.Get("/product/{id}", p.adapter.Adapt(p.productHandler.GetProductByID))
+		protected.Patch("/product/{id}", p.adapter.Adapt(p.productHandler.UpdateProduct))
+		protected.Delete("/product/{id}", p.adapter.Adapt(p.productHandler.DeleteProduct))
 	})
 }

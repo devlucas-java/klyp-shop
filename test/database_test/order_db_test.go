@@ -1,6 +1,7 @@
 package database_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
@@ -16,6 +17,7 @@ import (
 var dbOrder *gorm.DB
 var orderRepo *database.OrderDB
 var logOrder *logger.Logger
+var ctxOrder context.Context
 
 func setupOrderDB(t *testing.T) {
 	t.Helper()
@@ -76,30 +78,12 @@ func TestCreateOrder(t *testing.T) {
 		TotalBTC:  0.5,
 	}
 
-	res, err := orderRepo.Create(order)
+	res, err := orderRepo.Create(ctxOrder, order)
 	require.NoError(t, err)
 
 	assert.Equal(t, order.TotalBTC, res.TotalBTC)
 	assert.Equal(t, order.UserID, res.UserID)
 	assert.Equal(t, order.AddressID, res.AddressID)
-}
-
-func TestGetOrderByUser(t *testing.T) {
-	setupOrderDB(t)
-
-	user := createOrderUser(t)
-	address := createOrderAddress(t, user.ID)
-
-	require.NoError(t, dbOrder.Create(&entity.Order{
-		UserID:    user.ID,
-		AddressID: address.ID,
-		Status:    entity.OrderStatusPending,
-		TotalBTC:  0.5,
-	}).Error)
-
-	res, err := orderRepo.FindByUser(user.ID)
-	require.NoError(t, err)
-	assert.NotEmpty(t, res)
 }
 
 func TestUpdateOrder(t *testing.T) {
@@ -119,7 +103,7 @@ func TestUpdateOrder(t *testing.T) {
 
 	order.Status = entity.OrderStatusPaid
 
-	res, err := orderRepo.Update(order)
+	res, err := orderRepo.Update(ctxOrder, order)
 	require.NoError(t, err)
 	assert.Equal(t, entity.OrderStatusPaid, res.Status)
 }
@@ -138,7 +122,7 @@ func TestDeleteOrder(t *testing.T) {
 	}
 	require.NoError(t, dbOrder.Create(order).Error)
 
-	err := orderRepo.DeleteByID(order.ID)
+	err := orderRepo.DeleteByID(ctxOrder, order.ID)
 	require.NoError(t, err)
 
 	var count int64

@@ -8,12 +8,14 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/product"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/go-chi/chi"
 )
+
+const featuredProductHandlerTrace = "featured_product_handler.FeaturedProductHandler"
 
 type FeaturedProductHandler struct {
 	featuredService *service.FeaturedProductService
@@ -28,7 +30,7 @@ func (h *FeaturedProductHandler) AddFeatured(w http.ResponseWriter, r *http.Requ
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
 	var req product.AddFeaturedRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return errors.ErrInvalidPayload(err)
+		return apperrors.BadRequest(featuredProductHandlerTrace+".add_featured: invalid request payload", err)
 	}
 	if err := req.Validate(); err != nil {
 		return err
@@ -46,7 +48,7 @@ func (h *FeaturedProductHandler) RemoveFeatured(w http.ResponseWriter, r *http.R
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
 	productID, err := id.Parse(chi.URLParam(r, "productID"))
 	if err != nil {
-		return errors.ErrInvalidUUID(err)
+		return apperrors.InvalidUUID(featuredProductHandlerTrace+".remove_featured: invalid product id", err)
 	}
 	if err := h.featuredService.RemoveFeatured(auth, productID); err != nil {
 		return err
@@ -60,11 +62,11 @@ func (h *FeaturedProductHandler) UpdatePosition(w http.ResponseWriter, r *http.R
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
 	productID, err := id.Parse(chi.URLParam(r, "productID"))
 	if err != nil {
-		return errors.ErrInvalidUUID(err)
+		return apperrors.InvalidUUID(featuredProductHandlerTrace+".update_position: invalid product id", err)
 	}
 	var req product.UpdateFeaturedPositionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return errors.ErrInvalidPayload(err)
+		return apperrors.BadRequest(featuredProductHandlerTrace+".update_position: invalid request payload", err)
 	}
 	if err := req.Validate(); err != nil {
 		return err
@@ -101,7 +103,7 @@ func (h *FeaturedProductHandler) GetAllFeatured(w http.ResponseWriter, r *http.R
 func (h *FeaturedProductHandler) GetFeaturedBySeller(w http.ResponseWriter, r *http.Request) error {
 	sellerID, err := id.Parse(chi.URLParam(r, "sellerID"))
 	if err != nil {
-		return errors.ErrInvalidUUID(err)
+		return apperrors.InvalidUUID(featuredProductHandlerTrace+".get_featured_by_seller: invalid seller id", err)
 	}
 	res, err := h.featuredService.GetFeaturedBySeller(sellerID)
 	if err != nil {

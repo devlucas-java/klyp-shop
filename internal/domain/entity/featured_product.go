@@ -3,11 +3,14 @@ package entity
 import (
 	"time"
 
-	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 )
 
-const MaxFeaturedProducts = 10
+const (
+	MaxFeaturedProducts   = 10
+	featuredProductEntity = "featured_product_entity.FeaturedProduct"
+)
 
 type FeaturedProduct struct {
 	ID        id.UUID   `gorm:"type:uuid;primaryKey"`
@@ -24,7 +27,7 @@ type FeaturedProduct struct {
 
 func NewFeaturedProduct(sellerID, productID id.UUID, position int) (*FeaturedProduct, error) {
 	if position < 1 || position > 10 {
-		return nil, errors.ErrBadRequest("position must be between 1 and 10", nil)
+		return nil, apperrors.BadRequest(featuredProductEntity+".new_featured_product: position must be between 1 and 10", nil)
 	}
 
 	now := time.Now()
@@ -40,7 +43,7 @@ func NewFeaturedProduct(sellerID, productID id.UUID, position int) (*FeaturedPro
 
 func (f *FeaturedProduct) SetPosition(position int) error {
 	if position < 1 || position > 10 {
-		return errors.ErrBadRequest("position must be between 1 and 10", nil)
+		return apperrors.BadRequest(featuredProductEntity+".set_position: position must be between 1 and 10", nil)
 	}
 	f.Position = position
 	f.UpdatedAt = time.Now()

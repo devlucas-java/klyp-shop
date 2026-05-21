@@ -15,28 +15,31 @@ type PaymentRouter struct {
 	handler        *handler.PaymentHandler
 	log            *logger.Logger
 	userRepository repository.UserRepository
+	adapter        *adapter.Adapter
 }
 
 func NewPaymentRouter(
-	jwtService *jwt.JWTService,
+	jwt *jwt.JWTService,
 	h *handler.PaymentHandler,
 	log *logger.Logger,
-	userRepository repository.UserRepository,
+	ur repository.UserRepository,
+	a *adapter.Adapter,
 ) *PaymentRouter {
 	return &PaymentRouter{
-		jwtService:     jwtService,
+		jwtService:     jwt,
 		handler:        h,
 		log:            log,
-		userRepository: userRepository,
+		userRepository: ur,
+		adapter:        a,
 	}
 }
 
 func (p *PaymentRouter) RegisterPaymentRoutes(r chi.Router) {
-	r.Post("/webhook", adapter.Adapt(p.handler.Webhook))
+	r.Post("/webhook", p.adapter.Adapt(p.handler.Webhook))
 
 	r.Group(func(protected chi.Router) {
 		protected.Use(middleware.JwtMiddleware(p.jwtService, p.log, p.userRepository))
-		protected.Post("/orders/{orderID}/invoice", adapter.Adapt(p.handler.CreateInvoice))
-		protected.Get("/orders/{orderID}/status", adapter.Adapt(p.handler.GetPaymentStatus))
+		protected.Post("/orders/{orderID}/invoice", p.adapter.Adapt(p.handler.CreateInvoice))
+		protected.Get("/orders/{orderID}/status", p.adapter.Adapt(p.handler.GetPaymentStatus))
 	})
 }

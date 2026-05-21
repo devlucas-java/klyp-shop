@@ -13,17 +13,25 @@ import (
 
 type AddressRouter struct {
 	handler        *handler.AddressHandler
-	log            *logger.Logger
+	adapter        *adapter.Adapter
 	jwtService     *jwt.JWTService
 	userRepository repository.UserRepository
+	log            *logger.Logger
 }
 
-func NewAddressRouter(h *handler.AddressHandler, l *logger.Logger, js *jwt.JWTService, ur repository.UserRepository) *AddressRouter {
+func NewAddressRouter(
+	h *handler.AddressHandler,
+	js *jwt.JWTService,
+	ur repository.UserRepository,
+	l *logger.Logger,
+	a *adapter.Adapter,
+) *AddressRouter {
 	return &AddressRouter{
 		handler:        h,
-		log:            l,
+		adapter:        a,
 		jwtService:     js,
 		userRepository: ur,
+		log:            l,
 	}
 }
 
@@ -32,9 +40,9 @@ func (a *AddressRouter) Handle(mux chi.Router) {
 		protected.Use(middleware.JwtMiddleware(a.jwtService, a.log, a.userRepository))
 		protected.Use(middleware.RoleMiddleware([]enums.Role{enums.USER}))
 
-		protected.Get("/", adapter.Adapt(a.handler.GetAddresses))
-		protected.Post("/", adapter.Adapt(a.handler.CreateAddress))
-		protected.Put("/{id}", adapter.Adapt(a.handler.UpdateAddress))
-		protected.Delete("/{id}", adapter.Adapt(a.handler.DeleteAddress))
+		protected.Get("/", a.adapter.Adapt(a.handler.GetAddresses))
+		protected.Post("/", a.adapter.Adapt(a.handler.CreateAddress))
+		protected.Put("/{id}", a.adapter.Adapt(a.handler.UpdateAddress))
+		protected.Delete("/{id}", a.adapter.Adapt(a.handler.DeleteAddress))
 	})
 }

@@ -15,14 +15,21 @@ type OrderRouter struct {
 	orderHandler   *handler.OrderHandler
 	log            *logger.Logger
 	userRepository repository.UserRepository
+	adapter        *adapter.Adapter
 }
 
-func NewOrderRouter(jwtService *jwt.JWTService, orderHandler *handler.OrderHandler, log *logger.Logger, userRepository repository.UserRepository) *OrderRouter {
+func NewOrderRouter(
+	jwt *jwt.JWTService,
+	oh *handler.OrderHandler,
+	log *logger.Logger,
+	ur repository.UserRepository,
+	a *adapter.Adapter) *OrderRouter {
 	return &OrderRouter{
-		jwtService:     jwtService,
-		orderHandler:   orderHandler,
+		jwtService:     jwt,
+		orderHandler:   oh,
 		log:            log,
-		userRepository: userRepository,
+		userRepository: ur,
+		adapter:        a,
 	}
 }
 
@@ -30,9 +37,9 @@ func (r *OrderRouter) RegisterOrderRoutes(mux chi.Router) {
 	mux.Group(func(protected chi.Router) {
 		protected.Use(middleware.JwtMiddleware(r.jwtService, r.log, r.userRepository))
 
-		protected.Post("/", adapter.Adapt(r.orderHandler.CreateOrder))
-		protected.Get("/", adapter.Adapt(r.orderHandler.ListOrders))
-		protected.Get("/{id}", adapter.Adapt(r.orderHandler.GetOrderByID))
-		protected.Delete("/{id}", adapter.Adapt(r.orderHandler.CancelOrder))
+		protected.Post("/", r.adapter.Adapt(r.orderHandler.CreateOrder))
+		protected.Get("/", r.adapter.Adapt(r.orderHandler.ListOrders))
+		protected.Get("/{id}", r.adapter.Adapt(r.orderHandler.GetOrderByID))
+		protected.Delete("/{id}", r.adapter.Adapt(r.orderHandler.CancelOrder))
 	})
 }

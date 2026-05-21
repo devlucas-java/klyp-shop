@@ -16,34 +16,37 @@ type FeaturedProductRouter struct {
 	featuredHandler *handler.FeaturedProductHandler
 	log             *logger.Logger
 	userRepository  repository.UserRepository
+	adapter         *adapter.Adapter
 }
 
 func NewFeaturedProductRouter(
-	jwtService *jwt.JWTService,
-	featuredHandler *handler.FeaturedProductHandler,
+	jwt *jwt.JWTService,
+	fh *handler.FeaturedProductHandler,
 	log *logger.Logger,
-	userRepository repository.UserRepository,
+	ur repository.UserRepository,
+	a *adapter.Adapter,
 ) *FeaturedProductRouter {
 	return &FeaturedProductRouter{
-		jwtService:      jwtService,
-		featuredHandler: featuredHandler,
+		jwtService:      jwt,
+		featuredHandler: fh,
 		log:             log,
-		userRepository:  userRepository,
+		userRepository:  ur,
+		adapter:         a,
 	}
 }
 
 func (f *FeaturedProductRouter) RegisterFeaturedRoutes(r chi.Router) {
-	// Public — anyone can browse featured products
-	r.Get("/", adapter.Adapt(f.featuredHandler.GetAllFeatured))
-	r.Get("/seller/{sellerID}", adapter.Adapt(f.featuredHandler.GetFeaturedBySeller))
+
+	r.Get("/", f.adapter.Adapt(f.featuredHandler.GetAllFeatured))
+	r.Get("/seller/{sellerID}", f.adapter.Adapt(f.featuredHandler.GetFeaturedBySeller))
 
 	r.Group(func(protected chi.Router) {
 		protected.Use(middleware.JwtMiddleware(f.jwtService, f.log, f.userRepository))
 		protected.Use(middleware.RoleMiddleware([]enums.Role{enums.SELLER, enums.ADMIN}))
 
-		protected.Get("/me", adapter.Adapt(f.featuredHandler.GetMyFeatured))
-		protected.Post("/", adapter.Adapt(f.featuredHandler.AddFeatured))
-		protected.Delete("/{productID}", adapter.Adapt(f.featuredHandler.RemoveFeatured))
-		protected.Patch("/{productID}/position", adapter.Adapt(f.featuredHandler.UpdatePosition))
+		protected.Get("/me", f.adapter.Adapt(f.featuredHandler.GetMyFeatured))
+		protected.Post("/", f.adapter.Adapt(f.featuredHandler.AddFeatured))
+		protected.Delete("/{productID}", f.adapter.Adapt(f.featuredHandler.RemoveFeatured))
+		protected.Patch("/{productID}/position", f.adapter.Adapt(f.featuredHandler.UpdatePosition))
 	})
 }

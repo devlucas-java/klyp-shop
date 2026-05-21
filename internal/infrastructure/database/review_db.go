@@ -3,40 +3,40 @@ package database
 import (
 	"context"
 
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
-	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"gorm.io/gorm"
 )
 
+const reviewDB = "review_db.ReviewDB"
+
 type ReviewDB struct {
-	db  *gorm.DB
-	log *logger.Logger
+	db *gorm.DB
 }
 
-func NewReviewDB(db *gorm.DB, log *logger.Logger) repository.ReviewRepository {
-	return &ReviewDB{db: db, log: log}
+func NewReviewDB(db *gorm.DB) repository.ReviewRepository {
+	return &ReviewDB{db: db}
 }
 
 func (r *ReviewDB) Create(review *entity.Review) (*entity.Review, error) {
 	if err := r.db.WithContext(context.Background()).Create(review).Error; err != nil {
-		return nil, errors.HandlePgError(r.log, err, "failed to create review")
+		return nil, apperrors.HandlePgError(reviewDB+".create", err)
 	}
 	return review, nil
 }
 
 func (r *ReviewDB) Save(review *entity.Review) (*entity.Review, error) {
 	if err := r.db.WithContext(context.Background()).Where("id = ?", review.ID).Save(review).Error; err != nil {
-		return nil, errors.HandlePgError(r.log, err, "failed to save review")
+		return nil, apperrors.HandlePgError(reviewDB+".save", err)
 	}
 	return review, nil
 }
 
 func (r *ReviewDB) Updates(review *entity.Review) (*entity.Review, error) {
 	if err := r.db.WithContext(context.Background()).Model(review).Where("id = ?", review.ID).Updates(review).Error; err != nil {
-		return nil, errors.HandlePgError(r.log, err, "failed to update review")
+		return nil, apperrors.HandlePgError(reviewDB+".updates", err)
 	}
 	return review, nil
 }
@@ -49,7 +49,7 @@ func (r *ReviewDB) FindByID(reviewID id.UUID) (*entity.Review, error) {
 	var review entity.Review
 	err := r.db.WithContext(context.Background()).First(&review, "id = ?", reviewID).Error
 	if err != nil {
-		return nil, errors.HandlePgError(r.log, err, "failed to find review")
+		return nil, apperrors.HandlePgError(reviewDB+".find_by_id", err)
 	}
 	return &review, nil
 }
@@ -57,7 +57,7 @@ func (r *ReviewDB) FindByID(reviewID id.UUID) (*entity.Review, error) {
 func (r *ReviewDB) FindByUser(userID id.UUID) ([]*entity.Review, error) {
 	var reviews []*entity.Review
 	if err := r.db.WithContext(context.Background()).Where("user_id = ?", userID).Find(&reviews).Error; err != nil {
-		return nil, errors.HandlePgError(r.log, err, "failed to find reviews")
+		return nil, apperrors.HandlePgError(reviewDB+".find_by_user", err)
 	}
 	return reviews, nil
 }
@@ -65,14 +65,14 @@ func (r *ReviewDB) FindByUser(userID id.UUID) ([]*entity.Review, error) {
 func (r *ReviewDB) FindByProductID(productID id.UUID) ([]*entity.Review, error) {
 	var reviews []*entity.Review
 	if err := r.db.WithContext(context.Background()).Where("product_id = ?", productID).Find(&reviews).Error; err != nil {
-		return nil, errors.HandlePgError(r.log, err, "failed to find reviews")
+		return nil, apperrors.HandlePgError(reviewDB+".find_by_product_id", err)
 	}
 	return reviews, nil
 }
 
 func (r *ReviewDB) DeleteByID(reviewID id.UUID) error {
 	if err := r.db.WithContext(context.Background()).Delete(&entity.Review{}, "id = ?", reviewID).Error; err != nil {
-		return errors.HandlePgError(r.log, err, "failed to delete review")
+		return apperrors.HandlePgError(reviewDB+".delete_by_id", err)
 	}
 	return nil
 }

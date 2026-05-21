@@ -15,19 +15,22 @@ type ShoppingCartRouter struct {
 	shoppingCartHandler *handler.ShoppingCartHandler
 	log                 *logger.Logger
 	userRepository      repository.UserRepository
+	adapter             *adapter.Adapter
 }
 
 func NewShoppingCartRouter(
-	jwtService *jwt.JWTService,
-	shoppingCartHandler *handler.ShoppingCartHandler,
+	jwt *jwt.JWTService,
+	sh *handler.ShoppingCartHandler,
 	log *logger.Logger,
-	userRepository repository.UserRepository,
+	ur repository.UserRepository,
+	a *adapter.Adapter,
 ) *ShoppingCartRouter {
 	return &ShoppingCartRouter{
-		jwtService:          jwtService,
-		shoppingCartHandler: shoppingCartHandler,
+		jwtService:          jwt,
+		shoppingCartHandler: sh,
 		log:                 log,
-		userRepository:      userRepository,
+		userRepository:      ur,
+		adapter:             a,
 	}
 }
 
@@ -35,7 +38,7 @@ func (r *ShoppingCartRouter) RegisterShoppingCartRoutes(mux chi.Router) {
 	mux.Group(func(protected chi.Router) {
 		protected.Use(middleware.JwtMiddleware(r.jwtService, r.log, r.userRepository))
 
-		protected.Get("/", adapter.Adapt(r.shoppingCartHandler.GetCart))
-		protected.Delete("/", adapter.Adapt(r.shoppingCartHandler.ClearCart))
+		protected.Get("/", r.adapter.Adapt(r.shoppingCartHandler.GetCart))
+		protected.Delete("/", r.adapter.Adapt(r.shoppingCartHandler.ClearCart))
 	})
 }

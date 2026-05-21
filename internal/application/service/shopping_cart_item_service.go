@@ -3,12 +3,14 @@ package service
 import (
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/cart"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 )
+
+const shoppingCartItemServiceTrace = "shopping_cart_item_service.ShoppingCartItemService"
 
 type ShoppingCartItemService struct {
 	log            *logger.Logger
@@ -32,108 +34,104 @@ func NewShoppingCartItemService(
 }
 
 func (s *ShoppingCartItemService) AddItem(auth *entity.User, req *cart.AddShoppingCartItemRequest) (*cart.ShoppingCartResponse, error) {
-
-	err := req.Validate()
-	if err != nil {
-		return nil, errors.ErrBadRequest("quantity must be greater than zero", nil)
+	if err := req.Validate(); err != nil {
+		return nil, apperrors.BadRequest(shoppingCartItemServiceTrace+".add_item: quantity must be greater than zero", nil)
 	}
 
 	productID, err := id.Parse(req.ProductID)
 	if err != nil {
-		return nil, errors.ErrInvalidUUID(err)
+		return nil, apperrors.InvalidUUID(shoppingCartItemServiceTrace+".add_item: invalid product id", err)
 	}
 
 	product, err := s.productRepo.FindByID(productID)
 	if err != nil {
-		s.log.Errorf("Failed to find product %s: %v", productID, err)
-		return nil, err
+		return nil, apperrors.NotFound(shoppingCartItemServiceTrace+".add_item: product not found", err)
 	}
 
-	cart, err := s.cartRepository.FindByUserID(auth.ID)
+	c, err := s.cartRepository.FindByUserID(auth.ID)
 	if err != nil {
-		s.log.Errorf("Failed to get shopping cart for user %s: %v", auth.ID, err)
-		return nil, err
+		var de *apperrors.DomainError
+		if !errAs(err, &de) || de.Kind != apperrors.KindNotFound {
+			return nil, apperrors.Database(shoppingCartItemServiceTrace+".add_item: failed to get shopping cart", err)
+		}
+		c = nil
 	}
 
-	isNewCart := cart == nil
+	isNewCart := c == nil
 	if isNewCart {
-		cart = entity.NewShoppingCart(auth.ID)
+		c = entity.NewShoppingCart(auth.ID)
 	}
 
-	item, err := entity.NewShoppingCartItem(cart.ID, product.ID, req.Quantity, product.PriceBTC)
+	item, err := entity.NewShoppingCartItem(c.ID, product.ID, req.Quantity, product.PriceBTC)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := cart.AddItem(item); err != nil {
+	if err := c.AddItem(item); err != nil {
 		return nil, err
 	}
 
 	if isNewCart {
-		cart, err = s.cartRepository.Create(cart)
+		c, err = s.cartRepository.Create(c)
 	} else {
-		cart, err = s.cartRepository.Save(cart)
+		c, err = s.cartRepository.Save(c)
 	}
 	if err != nil {
-		s.log.Errorf("Failed to save shopping cart for user %s: %v", auth.ID, err)
-		return nil, err
+		return nil, apperrors.Database(shoppingCartItemServiceTrace+".add_item: failed to save shopping cart", err)
 	}
 
-	return s.cartMapper.ShoppingCartToResponse(cart), nil
+	return s.cartMapper.ShoppingCartToResponse(c), nil
 }
 
 func (s *ShoppingCartItemService) UpdateItem(auth *entity.User, itemID id.UUID, req *cart.UpdateShoppingCartItemRequest) (*cart.ShoppingCartResponse, error) {
+	if err := req.Validate(); err != nil {
+		return nil, err
+	}
 
-	err := req.Validate()
+	c, err := s.cartRepository.FindByUserID(auth.ID)
 	if err != nil {
+		return nil, apperrors.Database(shoppingCartItemServiceTrace+".update_item: failed to get shopping cart", err)
+	}
+	if c == nil {
+		return nil, apperrors.NotFound(shoppingCartItemServiceTrace+".update_item: shopping cart not found", nil)
+	}
+
+	if err := c.UpdateItemQuantity(itemID, req.Quantity); err != nil {
 		return nil, err
 	}
 
-	cart, err := s.cartRepository.FindByUserID(auth.ID)
-
+	c, err = s.cartRepository.Save(c)
 	if err != nil {
-		s.log.Errorf("Failed to get shopping cart for user %s: %v", auth.ID, err)
-		return nil, err
-	}
-	if cart == nil {
-		return nil, errors.ErrNotFound("ShoppingCart", nil)
+		return nil, apperrors.Database(shoppingCartItemServiceTrace+".update_item: failed to update shopping cart", err)
 	}
 
-	if err := cart.UpdateItemQuantity(itemID, req.Quantity); err != nil {
-		return nil, err
-	}
-
-	cart, err = s.cartRepository.Save(cart)
-	if err != nil {
-		s.log.Errorf("Failed to update shopping cart item %s: %v", itemID, err)
-		return nil, err
-	}
-
-	return s.cartMapper.ShoppingCartToResponse(cart), nil
+	return s.cartMapper.ShoppingCartToResponse(c), nil
 }
 
 func (s *ShoppingCartItemService) RemoveItem(auth *entity.User, itemID id.UUID) error {
-	cart, err := s.cartRepository.FindByUserID(auth.ID)
+	c, err := s.cartRepository.FindByUserID(auth.ID)
 	if err != nil {
-		s.log.Errorf("Failed to get shopping cart for user %s: %v", auth.ID, err)
-		return err
+		var de *apperrors.DomainError
+		if !errAs(err, &de) || de.Kind != apperrors.KindNotFound {
+			return apperrors.Database(shoppingCartItemServiceTrace+".remove_item: failed to get shopping cart", err)
+		}
+		return nil
 	}
-	if cart == nil {
+	if c == nil {
+		return nil
+	}
+
+	if err := c.RemoveItem(itemID); err != nil {
 		return err
 	}
 
-	if err := cart.RemoveItem(itemID); err != nil {
-		return err
+	if len(c.Items) == 0 {
+		return s.cartRepository.DeleteByID(c.ID)
 	}
 
-	if len(cart.Items) == 0 {
-		return s.cartRepository.DeleteByID(cart.ID)
-	}
-
-	_, err = s.cartRepository.Save(cart)
+	_, err = s.cartRepository.Save(c)
 	if err != nil {
-		s.log.Errorf("Failed to save shopping cart after removing item %s: %v", itemID, err)
-		return err
+		return apperrors.Database(shoppingCartItemServiceTrace+".remove_item: failed to save shopping cart", err)
 	}
 
 	return nil

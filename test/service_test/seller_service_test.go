@@ -7,8 +7,8 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/seller"
 	sellerDTO "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/seller"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	domainErr "github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/devlucas-java/klyp-shop/test/mocks"
@@ -96,7 +96,7 @@ func TestSellerService_GetSellerByID_NotFound(t *testing.T) {
 	svc := newSellerService(userRepo, sellerRepo)
 
 	ghostID := id.NewUUID()
-	sellerRepo.On("FindByID", ghostID).Return(nil, domainErr.ErrNotFound("Seller", nil))
+	sellerRepo.On("FindByID", ghostID).Return(nil, apperrors.NotFound("Seller", nil))
 
 	_, err := svc.GetSellerByID(ghostID)
 

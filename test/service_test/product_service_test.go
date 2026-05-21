@@ -6,8 +6,8 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	productDTO "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/product"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	domainErr "github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/devlucas-java/klyp-shop/test/mocks"
@@ -112,7 +112,7 @@ func TestProductService_GetProductByID_NotFound(t *testing.T) {
 	svc := newProductService(productRepo, userRepo, sellerRepo)
 
 	ghostID := id.NewUUID()
-	productRepo.On("FindByID", ghostID).Return(nil, domainErr.ErrNotFound("Product", nil))
+	productRepo.On("FindByID", ghostID).Return(nil, apperrors.NotFound("Product", nil))
 
 	_, err := svc.GetProductByID(ghostID)
 

@@ -1,6 +1,6 @@
 package product
 
-import "github.com/devlucas-java/klyp-shop/internal/domain/errors"
+import "github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 
 type AddFeaturedRequest struct {
 	ProductID string `json:"product_id"`
@@ -9,10 +9,10 @@ type AddFeaturedRequest struct {
 
 func (r *AddFeaturedRequest) Validate() error {
 	if r.ProductID == "" {
-		return errors.ErrBadRequest("product_id is required", nil)
+		return apperrors.BadRequest("product_id is required", nil)
 	}
 	if r.Position < 1 || r.Position > 10 {
-		return errors.ErrBadRequest("position must be between 1 and 10", nil)
+		return apperrors.BadRequest("position must be between 1 and 10", nil)
 	}
 	return nil
 }
@@ -23,7 +23,7 @@ type UpdateFeaturedPositionRequest struct {
 
 func (r *UpdateFeaturedPositionRequest) Validate() error {
 	if r.Position < 1 || r.Position > 10 {
-		return errors.ErrBadRequest("position must be between 1 and 10", nil)
+		return apperrors.BadRequest("position must be between 1 and 10", nil)
 	}
 	return nil
 }

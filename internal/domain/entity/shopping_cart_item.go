@@ -3,9 +3,11 @@ package entity
 import (
 	"time"
 
-	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 )
+
+const shoppingCartItemEntity = "shopping_cart_item_entity.ShoppingCartItem"
 
 type ShoppingCartItem struct {
 	ID        id.UUID `gorm:"type:uuid;primaryKey"`
@@ -22,7 +24,7 @@ type ShoppingCartItem struct {
 
 func NewShoppingCartItem(cartID, productID id.UUID, quantity int, priceBTC float64) (*ShoppingCartItem, error) {
 	if quantity <= 0 {
-		return nil, errors.ErrBadRequest("quantity must be greater than zero", nil)
+		return nil, apperrors.BadRequest(shoppingCartItemEntity+".new_shopping_cart_item: quantity must be greater than zero", nil)
 	}
 
 	now := time.Now()
@@ -39,7 +41,7 @@ func NewShoppingCartItem(cartID, productID id.UUID, quantity int, priceBTC float
 
 func (item *ShoppingCartItem) SetQuantity(quantity int) error {
 	if quantity <= 0 {
-		return errors.ErrBadRequest("quantity must be greater than zero", nil)
+		return apperrors.BadRequest(shoppingCartItemEntity+".set_quantity: quantity must be greater than zero", nil)
 	}
 	item.Quantity = quantity
 	item.UpdatedAt = time.Now()

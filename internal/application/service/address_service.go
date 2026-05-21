@@ -3,13 +3,15 @@ package service
 import (
 	addressDTO "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/address"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/policy"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 )
+
+const addressService = "address_service"
 
 type AddressService struct {
 	addressRepository repository.AddressRepository
@@ -21,28 +23,29 @@ type AddressService struct {
 
 func NewAddressService(
 	addressRepository repository.AddressRepository,
+	userRepository repository.UserRepository,
 	log *logger.Logger,
 	mapper *mapper.AddressMapper,
-	userRepository repository.UserRepository,
+	ap *policy.AddressPolicy,
 ) *AddressService {
 	return &AddressService{
 		addressRepository: addressRepository,
 		userRepository:    userRepository,
 		log:               log,
 		mapper:            mapper,
-		addressPolicy:     policy.NewAddressPolicy(),
+		addressPolicy:     ap,
 	}
 }
 
 func (s *AddressService) CreateAddress(auth *entity.User, req *addressDTO.CreateAddressRequest) (*addressDTO.AddressResponse, error) {
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
-		return nil, errors.ErrNotFound("User", err)
+		return nil, apperrors.NotFound(addressService+".create_address: user not found", err)
 	}
 
 	existing, err := s.addressRepository.FindByUser(user.ID)
 	if err != nil {
-		return nil, errors.ErrDatabase("failed to fetch addresses", err)
+		return nil, apperrors.Database(addressService+".create_address: failed to fetch addresses", err)
 	}
 
 	if err := s.addressPolicy.CanCreate(existing); err != nil {
@@ -53,7 +56,7 @@ func (s *AddressService) CreateAddress(auth *entity.User, req *addressDTO.Create
 
 	saved, err := s.addressRepository.Create(address)
 	if err != nil {
-		return nil, errors.ErrDatabase("failed to create address", err)
+		return nil, apperrors.Database(addressService+".create_address: failed to create address", err)
 	}
 
 	return s.mapper.ToResponse(saved), nil
@@ -62,12 +65,12 @@ func (s *AddressService) CreateAddress(auth *entity.User, req *addressDTO.Create
 func (s *AddressService) GetAddresses(auth *entity.User) ([]*addressDTO.AddressResponse, error) {
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
-		return nil, errors.ErrNotFound("User", err)
+		return nil, apperrors.NotFound(addressService+".get_addresses: user not found", err)
 	}
 
 	addrs, err := s.addressRepository.FindByUser(user.ID)
 	if err != nil {
-		return nil, errors.ErrDatabase("failed to fetch addresses", err)
+		return nil, apperrors.Database(addressService+".get_addresses: failed to fetch addresses", err)
 	}
 
 	responses := make([]*addressDTO.AddressResponse, len(addrs))
@@ -81,19 +84,18 @@ func (s *AddressService) GetAddresses(auth *entity.User) ([]*addressDTO.AddressR
 func (s *AddressService) UpdateAddress(auth *entity.User, req *addressDTO.UpdateAddressRequest, addrID id.UUID) (*addressDTO.AddressResponse, error) {
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
-		return nil, errors.ErrNotFound("User", err)
+		return nil, apperrors.NotFound(addressService+".update_address: user not found", err)
 	}
 
 	addr, err := s.addressRepository.FindByID(addrID)
 	if err != nil {
-		return nil, errors.ErrNotFound("Address", err)
+		return nil, apperrors.NotFound(addressService+".update_address: address not found", err)
 	}
 
 	if err := s.addressPolicy.CanModify(addr, user.ID); err != nil {
 		return nil, err
 	}
 
-	// Aplica os campos do request diretamente na entidade existente
 	if req.Street != "" {
 		addr.Street = req.Street
 	}
@@ -115,7 +117,7 @@ func (s *AddressService) UpdateAddress(auth *entity.User, req *addressDTO.Update
 
 	saved, err := s.addressRepository.Update(addr)
 	if err != nil {
-		return nil, errors.ErrDatabase("failed to update address", err)
+		return nil, apperrors.Database(addressService+".update_address: failed to update address", err)
 	}
 
 	return s.mapper.ToResponse(saved), nil
@@ -124,12 +126,12 @@ func (s *AddressService) UpdateAddress(auth *entity.User, req *addressDTO.Update
 func (s *AddressService) DeleteAddress(auth *entity.User, addrID id.UUID) error {
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
-		return errors.ErrNotFound("User", err)
+		return apperrors.NotFound(addressService+".delete_address: user not found", err)
 	}
 
 	addr, err := s.addressRepository.FindByID(addrID)
 	if err != nil {
-		return errors.ErrNotFound("Address", err)
+		return apperrors.NotFound(addressService+".delete_address: address not found", err)
 	}
 
 	if err := s.addressPolicy.CanModify(addr, user.ID); err != nil {
@@ -137,7 +139,7 @@ func (s *AddressService) DeleteAddress(auth *entity.User, addrID id.UUID) error 
 	}
 
 	if err := s.addressRepository.DeleteByID(addr.ID); err != nil {
-		return errors.ErrDatabase("failed to delete address", err)
+		return apperrors.Database(addressService+".delete_address: failed to delete address", err)
 	}
 
 	return nil

@@ -1,6 +1,6 @@
 package seller
 
-import "github.com/devlucas-java/klyp-shop/internal/domain/errors"
+import "github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 
 type UpdateSeller struct {
 	DisplayName string `json:"display_name"`
@@ -9,13 +9,13 @@ type UpdateSeller struct {
 
 func (r *UpdateSeller) Validate() error {
 	if r.DisplayName == "" && r.Bio == "" {
-		return errors.ErrBadRequest("at least one field (display_name or bio) must be provided", nil)
+		return apperrors.BadRequest("at least one field (display_name or bio) must be provided", nil)
 	}
 	if r.DisplayName != "" && (len(r.DisplayName) < 3 || len(r.DisplayName) > 120) {
-		return errors.ErrBadRequest("display_name must be between 3 and 120 characters", nil)
+		return apperrors.BadRequest("display_name must be between 3 and 120 characters", nil)
 	}
 	if len(r.Bio) > 500 {
-		return errors.ErrBadRequest("bio must not exceed 500 characters", nil)
+		return apperrors.BadRequest("bio must not exceed 500 characters", nil)
 	}
 	return nil
 }

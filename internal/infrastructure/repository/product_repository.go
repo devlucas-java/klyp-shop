@@ -13,4 +13,5 @@ type ProductRepository interface {
 	FindBySellerID(sellerID id.UUID, page, size int) ([]*entity.Product, error)
 	Search(page, size int, order, search string, categories []string) ([]*entity.Product, error)
 	DeleteByID(id id.UUID) error
+	CountTop10BySellerID(sellerID id.UUID) (int64, error)
 }

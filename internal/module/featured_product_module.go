@@ -2,6 +2,7 @@ package module
 
 import (
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/adapter"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/handler"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/router"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/database"
@@ -12,13 +13,14 @@ import (
 )
 
 func InitFeaturedProductModule(db *gorm.DB, log *logger.Logger, jwtService *jwt.JWTService) chi.Router {
-	userRepository := database.NewUserDB(db, log)
-	productRepository := database.NewProductDB(db, log)
-	featuredRepository := database.NewFeaturedProductDB(db, log)
+	userRepository := database.NewUserDB(db)
+	productRepository := database.NewProductDB(db)
+	featuredRepository := database.NewFeaturedProductDB(db)
 
 	featuredService := service.NewFeaturedProductService(log, featuredRepository, productRepository, userRepository)
 	featuredHandler := handler.NewFeaturedProductHandler(featuredService, log)
-	featuredRouter := router.NewFeaturedProductRouter(jwtService, featuredHandler, log, userRepository)
+	adapter := adapter.NewAdapter(log)
+	featuredRouter := router.NewFeaturedProductRouter(jwtService, featuredHandler, log, userRepository, adapter)
 
 	r := chi.NewRouter()
 	featuredRouter.RegisterFeaturedRoutes(r)

@@ -6,9 +6,9 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	userDTO "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/user"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/enums"
-	domainErr "github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/devlucas-java/klyp-shop/test/mocks"
@@ -51,7 +51,7 @@ func TestGetMe_NotFound(t *testing.T) {
 	svc := newUserService(userRepo)
 
 	ghost := &entity.User{ID: id.NewUUID()}
-	userRepo.On("FindByID", ghost.ID).Return(nil, domainErr.ErrNotFound("User", nil))
+	userRepo.On("FindByID", ghost.ID).Return(nil, apperrors.NotFound("User", nil))
 
 	_, err := svc.GetMe(ghost)
 
@@ -68,7 +68,7 @@ func TestUpdateMe_Name(t *testing.T) {
 	updated.Name = "Updated Name"
 
 	userRepo.On("FindByID", user.ID).Return(user, nil)
-	userRepo.On("FindByEmailOrUsername", mock.Anything).Return(nil, domainErr.ErrNotFound("User", nil)).Maybe()
+	userRepo.On("FindByEmailOrUsername", mock.Anything).Return(nil, apperrors.NotFound("User", nil)).Maybe()
 	userRepo.On("Update", mock.AnythingOfType("*entity.User")).Return(&updated, nil)
 
 	res, err := svc.UpdateMe(user, &userDTO.UpdateUserRequest{Name: "Updated Name"})
@@ -127,7 +127,7 @@ func TestDeleteMe_NotFound(t *testing.T) {
 	svc := newUserService(userRepo)
 
 	ghost := &entity.User{ID: id.NewUUID()}
-	userRepo.On("FindByID", ghost.ID).Return(nil, domainErr.ErrNotFound("User", nil))
+	userRepo.On("FindByID", ghost.ID).Return(nil, apperrors.NotFound("User", nil))
 
 	err := svc.DeleteMe(ghost)
 

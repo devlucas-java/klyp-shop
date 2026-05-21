@@ -1,6 +1,6 @@
 package auth
 
-import "github.com/devlucas-java/klyp-shop/internal/domain/errors"
+import "github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 
 type VerifyPasswordRequest struct {
 	Password string `json:"password"`
@@ -8,7 +8,7 @@ type VerifyPasswordRequest struct {
 
 func (r *VerifyPasswordRequest) Validate() error {
 	if r.Password == "" {
-		return errors.ErrBadRequest("password is required", nil)
+		return apperrors.BadRequest("password is required", nil)
 	}
 	return nil
 }

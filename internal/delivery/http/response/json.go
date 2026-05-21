@@ -5,15 +5,20 @@ import (
 	"net/http"
 )
 
-func ResponseEntity(w http.ResponseWriter, code int, payload interface{}) {
-	response, err := json.Marshal(payload)
+func ResponseEntity(w http.ResponseWriter, code int, payload any) {
+	if payload == nil {
+		w.WriteHeader(code)
+		return
+	}
+
+	data, err := json.Marshal(payload)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"code":"INTERNAL_ERROR","message":"error marshaling response"}`))
+		w.Write([]byte(`{"status":500,"message":"internal server error"}`))
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	w.Write(response)
+	w.Write(data)
 }

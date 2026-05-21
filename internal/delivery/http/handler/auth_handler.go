@@ -8,10 +8,12 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/auth"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 )
+
+const authHandler = "auth_handler.AuthHandler"
 
 type AuthHandler struct {
 	authService *service.AuthService
@@ -25,7 +27,7 @@ func NewAuthHandler(authService *service.AuthService, log *logger.Logger) *AuthH
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) error {
 	var req auth.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return errors.ErrInvalidPayload(err)
+		return apperrors.BadRequest(authHandler+".login: invalid request payload", err)
 	}
 	if err := req.Validate(); err != nil {
 		return err
@@ -41,7 +43,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) error {
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) error {
 	var req auth.RegisterDTO
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return errors.ErrInvalidPayload(err)
+		return apperrors.BadRequest(authHandler+".register: invalid request payload", err)
 	}
 	if err := req.Validate(); err != nil {
 		return err
@@ -57,7 +59,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) error {
 func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) error {
 	var req auth.UpdatePasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return errors.ErrInvalidPayload(err)
+		return apperrors.BadRequest(authHandler+".change_password: invalid request payload", err)
 	}
 	if err := req.Validate(); err != nil {
 		return err
@@ -73,7 +75,7 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) err
 func (h *AuthHandler) VerifyPassword(w http.ResponseWriter, r *http.Request) error {
 	var req auth.VerifyPasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return errors.ErrInvalidPayload(err)
+		return apperrors.BadRequest(authHandler+".verify_password: invalid request payload", err)
 	}
 	if err := req.Validate(); err != nil {
 		return err

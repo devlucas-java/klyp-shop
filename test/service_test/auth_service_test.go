@@ -6,9 +6,9 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/auth"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/enums"
-	domainErr "github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/security/jwt"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/password_encoder"
@@ -69,7 +69,7 @@ func TestAuthService_Register_DBError(t *testing.T) {
 	userRepo.On("ExistsUserByEmail", dto.Email).Return(false, nil)
 	userRepo.On("ExistsUserByUserName", dto.Username).Return(false, nil)
 	userRepo.On("Create", mock.AnythingOfType("*entity.User")).
-		Return(nil, domainErr.ErrDatabase("duplicate email", nil))
+		Return(nil, apperrors.Database("duplicate email", nil))
 
 	_, err := svc.Register(dto)
 
@@ -123,7 +123,7 @@ func TestAuthService_Login_UserNotFound(t *testing.T) {
 	svc := newAuthService(userRepo)
 
 	userRepo.On("FindByEmailOrUsername", "ghost@test.com").
-		Return(nil, domainErr.ErrNotFound("User", nil))
+		Return(nil, apperrors.NotFound("User", nil))
 
 	_, err := svc.Login(&auth.LoginRequest{Login: "ghost@test.com", Password: "pass"})
 

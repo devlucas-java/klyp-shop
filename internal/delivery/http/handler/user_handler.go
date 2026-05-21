@@ -8,12 +8,14 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/user"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/go-chi/chi"
 )
+
+const userHandlerTrace = "user_handler.UserHandler"
 
 type UserHandler struct {
 	userService *service.UserService
@@ -38,7 +40,7 @@ func (h *UserHandler) UpdateMe(w http.ResponseWriter, r *http.Request) error {
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
 	var dto user.UpdateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		return errors.ErrInvalidPayload(err)
+		return apperrors.BadRequest(userHandlerTrace+".update_me: invalid request payload", err)
 	}
 	if err := dto.Validate(); err != nil {
 		return err
@@ -63,7 +65,7 @@ func (h *UserHandler) DeleteMe(w http.ResponseWriter, r *http.Request) error {
 func (h *UserHandler) PromoteUser(w http.ResponseWriter, r *http.Request) error {
 	uuid, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		return errors.ErrInvalidUUID(err)
+		return apperrors.InvalidUUID(userHandlerTrace+".promote_user: invalid user id", err)
 	}
 	if err := h.userService.PromoteToAdmin(uuid); err != nil {
 		return err
@@ -75,7 +77,7 @@ func (h *UserHandler) PromoteUser(w http.ResponseWriter, r *http.Request) error 
 func (h *UserHandler) DemoteUser(w http.ResponseWriter, r *http.Request) error {
 	uuid, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		return errors.ErrInvalidUUID(err)
+		return apperrors.InvalidUUID(userHandlerTrace+".demote_user: invalid user id", err)
 	}
 	if err := h.userService.DemoteToUser(uuid); err != nil {
 		return err

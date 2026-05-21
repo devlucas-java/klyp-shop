@@ -2,6 +2,7 @@ package module
 
 import (
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/adapter"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/handler"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/router"
@@ -14,14 +15,15 @@ import (
 
 func InitProductModule(db *gorm.DB, log *logger.Logger, jwtService *jwt.JWTService) chi.Router {
 
-	userRepository := database.NewUserDB(db, log)
-	productRepository := database.NewProductDB(db, log)
-	sellerRepository := database.NewSellerDB(db, log)
+	userRepository := database.NewUserDB(db)
+	productRepository := database.NewProductDB(db)
+	sellerRepository := database.NewSellerDB(db)
 	productMapper := mapper.NewProductMapper()
 
 	productService := service.NewProductService(log, productRepository, userRepository, sellerRepository, productMapper)
 	productHandler := handler.NewProductHandler(productService, log)
-	productRouter := router.NewProductRouter(jwtService, productHandler, log, userRepository, productRepository)
+	adapter := adapter.NewAdapter(log)
+	productRouter := router.NewProductRouter(jwtService, productHandler, log, userRepository, productRepository, adapter)
 
 	r := chi.NewRouter()
 	productRouter.RegisterProductRoutes(r)

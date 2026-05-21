@@ -1,6 +1,6 @@
 package auth
 
-import "github.com/devlucas-java/klyp-shop/internal/domain/errors"
+import "github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 
 type LoginRequest struct {
 	Login    string `json:"login"`
@@ -9,10 +9,10 @@ type LoginRequest struct {
 
 func (r *LoginRequest) Validate() error {
 	if r.Login == "" {
-		return errors.ErrBadRequest("login is required", nil)
+		return apperrors.BadRequest("login is required", nil)
 	}
 	if r.Password == "" {
-		return errors.ErrBadRequest("password is required", nil)
+		return apperrors.BadRequest("password is required", nil)
 	}
 	return nil
 }

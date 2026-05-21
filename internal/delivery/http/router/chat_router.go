@@ -17,29 +17,32 @@ type ChatRouter struct {
 	wsHandler      *socket.ChatWSHandler
 	log            *logger.Logger
 	userRepository repository.UserRepository
+	adapter        *adapter.Adapter
 }
 
 func NewChatRouter(
-	jwtService *jwt.JWTService,
-	chatHandler *handler.ChatHandler,
-	wsHandler *socket.ChatWSHandler,
-	log *logger.Logger,
-	userRepository repository.UserRepository,
+	jwt *jwt.JWTService,
+	ch *handler.ChatHandler,
+	ws *socket.ChatWSHandler,
+	l *logger.Logger,
+	ur repository.UserRepository,
+	a *adapter.Adapter,
 ) *ChatRouter {
 	return &ChatRouter{
-		jwtService:     jwtService,
-		chatHandler:    chatHandler,
-		wsHandler:      wsHandler,
-		log:            log,
-		userRepository: userRepository,
+		jwtService:     jwt,
+		chatHandler:    ch,
+		wsHandler:      ws,
+		log:            l,
+		userRepository: ur,
+		adapter:        a,
 	}
 }
 
 func (c *ChatRouter) RegisterChatRoutes(r chi.Router) {
 	r.Group(func(protected chi.Router) {
 		protected.Use(middleware.JwtMiddleware(c.jwtService, c.log, c.userRepository))
-		protected.Post("/messages", adapter.Adapt(c.chatHandler.SendMessage))
-		protected.Get("/messages/{peerID}", adapter.Adapt(c.chatHandler.GetConversation))
+		protected.Post("/messages", c.adapter.Adapt(c.chatHandler.SendMessage))
+		protected.Get("/messages/{peerID}", c.adapter.Adapt(c.chatHandler.GetConversation))
 		protected.Handle("/ws", c.wsHandler)
 	})
 }

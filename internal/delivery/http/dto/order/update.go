@@ -1,6 +1,6 @@
 package order
 
-import "github.com/devlucas-java/klyp-shop/internal/domain/errors"
+import "github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 
 type UpdateOrderStatusRequest struct {
 	Status string `json:"status"`
@@ -8,7 +8,7 @@ type UpdateOrderStatusRequest struct {
 
 func (r *UpdateOrderStatusRequest) Validate() error {
 	if r.Status == "" {
-		return errors.ErrBadRequest("status is required", nil)
+		return apperrors.BadRequest("status is required", nil)
 	}
 
 	validStatuses := map[string]bool{
@@ -20,7 +20,7 @@ func (r *UpdateOrderStatusRequest) Validate() error {
 	}
 
 	if !validStatuses[r.Status] {
-		return errors.ErrBadRequest("invalid status value", nil)
+		return apperrors.BadRequest("invalid status value", nil)
 	}
 
 	return nil

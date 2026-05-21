@@ -8,12 +8,14 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/seller"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/go-chi/chi"
 )
+
+const sellerHandlerTrace = "seller_handler.SellerHandler"
 
 type SellerHandler struct {
 	sellerService *service.SellerService
@@ -28,7 +30,7 @@ func (h *SellerHandler) CreateSeller(w http.ResponseWriter, r *http.Request) err
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
 	var dto seller.CreateSeller
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		return errors.ErrInvalidPayload(err)
+		return apperrors.BadRequest(sellerHandlerTrace+".create_seller: invalid request payload", err)
 	}
 	if err := dto.Validate(); err != nil {
 		return err
@@ -44,7 +46,7 @@ func (h *SellerHandler) CreateSeller(w http.ResponseWriter, r *http.Request) err
 func (h *SellerHandler) GetSellerByID(w http.ResponseWriter, r *http.Request) error {
 	uuid, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		return errors.ErrInvalidUUID(err)
+		return apperrors.InvalidUUID(sellerHandlerTrace+".get_seller_by_id: invalid seller id", err)
 	}
 	res, err := h.sellerService.GetSellerByID(uuid)
 	if err != nil {
@@ -58,7 +60,7 @@ func (h *SellerHandler) UpdateSeller(w http.ResponseWriter, r *http.Request) err
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
 	var dto seller.UpdateSeller
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		return errors.ErrInvalidPayload(err)
+		return apperrors.BadRequest(sellerHandlerTrace+".update_seller: invalid request payload", err)
 	}
 	if err := dto.Validate(); err != nil {
 		return err

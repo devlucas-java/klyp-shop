@@ -2,99 +2,104 @@ package database
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
-	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"gorm.io/gorm"
 )
 
+const orderDB = "order_db.OrderDB"
+
 type OrderDB struct {
-	db  *gorm.DB
-	log *logger.Logger
+	db *gorm.DB
 }
 
-func NewOrderDB(db *gorm.DB, log *logger.Logger) repository.OrderRepository {
-	return &OrderDB{db: db, log: log}
+func NewOrderDB(db *gorm.DB) repository.OrderRepository {
+	return &OrderDB{db: db}
 }
 
-func (o *OrderDB) Create(order *entity.Order) (*entity.Order, error) {
-	if err := o.db.WithContext(context.Background()).Create(order).Error; err != nil {
-		return nil, errors.HandlePgError(o.log, err, "failed to create order")
+func (o *OrderDB) Create(ctx context.Context, order *entity.Order) (*entity.Order, error) {
+	tx := o.db.WithContext(ctx).Begin()
+	if tx.Error != nil {
+		return nil, apperrors.HandlePgError(orderDB+".create", tx.Error)
 	}
+
+	if err := tx.Create(order).Error; err != nil {
+		tx.Rollback()
+		return nil, apperrors.HandlePgError(orderDB+".create", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return nil, apperrors.HandlePgError(orderDB+".create", err)
+	}
+
 	return order, nil
 }
 
-func (o *OrderDB) Save(order *entity.Order) (*entity.Order, error) {
-	if err := o.db.WithContext(context.Background()).Where("id = ?", order.ID).Save(order).Error; err != nil {
-		return nil, errors.HandlePgError(o.log, err, "failed to save order")
+func (o *OrderDB) Save(ctx context.Context, order *entity.Order) (*entity.Order, error) {
+	tx := o.db.WithContext(ctx).Begin()
+	if tx.Error != nil {
+		return nil, apperrors.HandlePgError(orderDB+".save", tx.Error)
 	}
+
+	if err := tx.Where("id = ?", order.ID).Save(order).Error; err != nil {
+		tx.Rollback()
+		return nil, apperrors.HandlePgError(orderDB+".save", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return nil, apperrors.HandlePgError(orderDB+".save", err)
+	}
+
 	return order, nil
 }
 
-func (o *OrderDB) Updates(order *entity.Order) (*entity.Order, error) {
-	if err := o.db.WithContext(context.Background()).Model(order).Where("id = ?", order.ID).Updates(order).Error; err != nil {
-		return nil, errors.HandlePgError(o.log, err, "failed to update order")
+func (o *OrderDB) Updates(ctx context.Context, order *entity.Order) (*entity.Order, error) {
+	tx := o.db.WithContext(ctx).Begin()
+	if tx.Error != nil {
+		return nil, apperrors.HandlePgError(orderDB+".updates", tx.Error)
 	}
+
+	if err := tx.Model(order).Where("id = ?", order.ID).Updates(order).Error; err != nil {
+		tx.Rollback()
+		return nil, apperrors.HandlePgError(orderDB+".updates", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return nil, apperrors.HandlePgError(orderDB+".updates", err)
+	}
+
 	return order, nil
 }
 
-func (o *OrderDB) Update(order *entity.Order) (*entity.Order, error) {
-	saved, err := o.Save(order)
+func (o *OrderDB) Update(ctx context.Context, order *entity.Order) (*entity.Order, error) {
+	saved, err := o.Save(ctx, order)
 	if err != nil {
-		return nil, errors.HandlePgError(o.log, err, "erros in update order")
+		return nil, err
 	}
 	return saved, nil
 }
 
-func (o *OrderDB) FindByID(orderID id.UUID) (*entity.Order, error) {
+func (o *OrderDB) FindByID(ctx context.Context, orderID id.UUID) (*entity.Order, error) {
 	var order entity.Order
-	err := o.db.WithContext(context.Background()).Preload("Items").Preload("User").Preload("Address").Preload("BitcoinPayment").First(&order, "id = ?", orderID).Error
-	if err != nil {
-		return nil, errors.HandlePgError(o.log, err, "failed to find order")
-	}
-	return &order, nil
-}
-
-func (o *OrderDB) FindByUser(userID id.UUID) ([]*entity.Order, error) {
-	var orders []*entity.Order
-	if err := o.db.WithContext(context.Background()).Preload("Items").Preload("User").Preload("Address").Preload("BitcoinPayment").Where("user_id = ?", userID).Find(&orders).Error; err != nil {
-		return nil, errors.HandlePgError(o.log, err, "failed to find orders")
-	}
-	return orders, nil
-}
-
-func (o *OrderDB) FindAll() ([]*entity.Order, error) {
-	var orders []*entity.Order
-	if err := o.db.WithContext(context.Background()).
+	err := o.db.WithContext(ctx).
 		Preload("Items").
 		Preload("User").
 		Preload("Address").
 		Preload("BitcoinPayment").
-		Find(&orders).Error; err != nil {
-		return nil, errors.HandlePgError(o.log, err, "failed to find orders")
+		First(&order, "id = ?", orderID).Error
+	if err != nil {
+		return nil, apperrors.HandlePgError(orderDB+".find_by_id", err)
 	}
-	return orders, nil
+	return &order, nil
 }
 
-func (o *OrderDB) FindAllWithDetails() ([]*entity.Order, error) {
-	var orders []*entity.Order
-	if err := o.db.WithContext(context.Background()).
-		Preload("Items.Product.Seller").
-		Preload("User").
-		Preload("Address").
-		Preload("BitcoinPayment").
-		Order("created_at desc").
-		Find(&orders).Error; err != nil {
-		return nil, errors.HandlePgError(o.log, err, "failed to find orders with details")
-	}
-	return orders, nil
-}
-
-func (o *OrderDB) FindAllPaginated(page, size int, status string) ([]*entity.Order, int64, error) {
+func (o *OrderDB) FindAllPaginated(ctx context.Context, page, size int, status string) ([]*entity.Order, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -103,16 +108,16 @@ func (o *OrderDB) FindAllPaginated(page, size int, status string) ([]*entity.Ord
 	}
 
 	var total int64
-	countQ := o.db.WithContext(context.Background()).Model(&entity.Order{})
+	countQ := o.db.WithContext(ctx).Model(&entity.Order{})
 	if status != "" {
 		countQ = countQ.Where("status = ?", status)
 	}
 	if err := countQ.Count(&total).Error; err != nil {
-		return nil, 0, fmt.Errorf("OrderDB.FindAllPaginated count: %w", err)
+		return nil, 0, apperrors.HandlePgError(orderDB+".find_all_paginated", err)
 	}
 
 	var orders []*entity.Order
-	q := o.db.WithContext(context.Background()).
+	q := o.db.WithContext(ctx).
 		Preload("Items.Product.Seller").
 		Preload("User").
 		Preload("Address").
@@ -124,12 +129,12 @@ func (o *OrderDB) FindAllPaginated(page, size int, status string) ([]*entity.Ord
 		q = q.Where("status = ?", status)
 	}
 	if err := q.Find(&orders).Error; err != nil {
-		return nil, 0, fmt.Errorf("failed to find paginated orders: %w", err)
+		return nil, 0, apperrors.HandlePgError(orderDB+".find_all_paginated", err)
 	}
 	return orders, total, nil
 }
 
-func (o *OrderDB) FindBySellerIDPaginated(sellerID id.UUID, page, size int, status string) ([]*entity.Order, int64, error) {
+func (o *OrderDB) FindBySellerIDPaginated(ctx context.Context, sellerID id.UUID, page, size int, status string) ([]*entity.Order, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -137,7 +142,7 @@ func (o *OrderDB) FindBySellerIDPaginated(sellerID id.UUID, page, size int, stat
 		size = 20
 	}
 
-	baseQ := o.db.WithContext(context.Background()).
+	baseQ := o.db.WithContext(ctx).
 		Joins("JOIN order_items ON order_items.order_id = orders.id").
 		Joins("JOIN products ON products.id = order_items.product_id").
 		Where("products.seller_id = ?", sellerID)
@@ -147,11 +152,11 @@ func (o *OrderDB) FindBySellerIDPaginated(sellerID id.UUID, page, size int, stat
 
 	var total int64
 	if err := baseQ.Model(&entity.Order{}).Distinct("orders.id").Count(&total).Error; err != nil {
-		return nil, 0, fmt.Errorf("OrderDB.FindBySellerIDPaginated count: %w", err)
+		return nil, 0, apperrors.HandlePgError(orderDB+".find_by_seller_id_paginated", err)
 	}
 
 	var orders []*entity.Order
-	q := o.db.WithContext(context.Background()).
+	q := o.db.WithContext(ctx).
 		Preload("Items.Product").
 		Preload("User").
 		Preload("Address").
@@ -167,32 +172,67 @@ func (o *OrderDB) FindBySellerIDPaginated(sellerID id.UUID, page, size int, stat
 		q = q.Where("orders.status = ?", status)
 	}
 	if err := q.Find(&orders).Error; err != nil {
-		return nil, 0, fmt.Errorf("failed to find paginated seller orders: %w", err)
+		return nil, 0, apperrors.HandlePgError(orderDB+".find_by_seller_id_paginated", err)
 	}
 	return orders, total, nil
 }
 
-func (o *OrderDB) FindBySellerID(sellerID id.UUID) ([]*entity.Order, error) {
+func (o *OrderDB) FindByUserIDPaginated(ctx context.Context, userID id.UUID, page, size int, status string) ([]*entity.Order, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if size < 1 || size > 100 {
+		size = 20
+	}
+
+	baseQ := o.db.WithContext(ctx).
+		Model(&entity.Order{}).
+		Distinct("orders.id").
+		Where("orders.users_id = ?", userID)
+	if status != "" {
+		baseQ = baseQ.Where("orders.status = ?", status)
+	}
+
+	var total int64
+	if err := baseQ.Count(&total).Error; err != nil {
+		return nil, 0, apperrors.HandlePgError(orderDB+".find_by_user_id_paginated", err)
+	}
+
 	var orders []*entity.Order
-	if err := o.db.WithContext(context.Background()).
+	q := o.db.WithContext(ctx).
 		Preload("Items.Product").
 		Preload("User").
 		Preload("Address").
 		Preload("BitcoinPayment").
-		Joins("JOIN order_items ON order_items.order_id = orders.id").
-		Joins("JOIN products ON products.id = order_items.product_id").
-		Where("products.seller_id = ?", sellerID).
+		Where("orders.users_id = ?", userID).
 		Group("orders.id").
 		Order("orders.created_at desc").
-		Find(&orders).Error; err != nil {
-		return nil, errors.HandlePgError(o.log, err, "failed to find orders by seller")
+		Limit(size).
+		Offset((page - 1) * size)
+	if status != "" {
+		q = q.Where("orders.status = ?", status)
 	}
-	return orders, nil
+	if err := q.Find(&orders).Error; err != nil {
+		return nil, 0, apperrors.HandlePgError(orderDB+".find_by_user_id_paginated", err)
+	}
+	return orders, total, nil
 }
 
-func (o *OrderDB) DeleteByID(orderID id.UUID) error {
-	if err := o.db.WithContext(context.Background()).Delete(&entity.Order{}, "id = ?", orderID).Error; err != nil {
-		return errors.HandlePgError(o.log, err, "failed to delete order")
+func (o *OrderDB) DeleteByID(ctx context.Context, orderID id.UUID) error {
+	tx := o.db.WithContext(ctx).Begin()
+	if tx.Error != nil {
+		return apperrors.HandlePgError(orderDB+".delete_by_id", tx.Error)
 	}
+
+	if err := tx.Delete(&entity.Order{}, "id = ?", orderID).Error; err != nil {
+		tx.Rollback()
+		return apperrors.HandlePgError(orderDB+".delete_by_id", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return apperrors.HandlePgError(orderDB+".delete_by_id", err)
+	}
+
 	return nil
 }

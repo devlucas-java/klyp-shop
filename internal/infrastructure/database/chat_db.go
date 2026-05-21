@@ -3,26 +3,26 @@ package database
 import (
 	"context"
 
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
-	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"gorm.io/gorm"
 )
 
+const chatDB = "chat_db.ChatDB"
+
 type ChatDB struct {
-	db  *gorm.DB
-	log *logger.Logger
+	db *gorm.DB
 }
 
-func NewChatDB(db *gorm.DB, log *logger.Logger) repository.ChatRepository {
-	return &ChatDB{db: db, log: log}
+func NewChatDB(db *gorm.DB) repository.ChatRepository {
+	return &ChatDB{db: db}
 }
 
 func (c *ChatDB) Save(msg *entity.ChatMessage) (*entity.ChatMessage, error) {
 	if err := c.db.WithContext(context.Background()).Create(msg).Error; err != nil {
-		return nil, errors.HandlePgError(c.log, err, "failed to save message")
+		return nil, apperrors.HandlePgError(chatDB+".save", err)
 	}
 	return msg, nil
 }
@@ -37,7 +37,7 @@ func (c *ChatDB) FindConversation(userA, userB id.UUID, limit, offset int) ([]*e
 		Offset(offset).
 		Find(&msgs).Error
 	if err != nil {
-		return nil, errors.HandlePgError(c.log, err, "failed to find conversation")
+		return nil, apperrors.HandlePgError(chatDB+".find_conversation", err)
 	}
 	return msgs, nil
 }

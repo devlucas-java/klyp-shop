@@ -8,16 +8,21 @@ import (
 
 type ShoppingCartItemRouter struct {
 	shoppingCartItemHandler *handler.ShoppingCartItemHandler
+	adapter                 *adapter.Adapter
 }
 
-func NewShoppingCartItemRouter(shoppingCartItemHandler *handler.ShoppingCartItemHandler) *ShoppingCartItemRouter {
+func NewShoppingCartItemRouter(
+	sh *handler.ShoppingCartItemHandler,
+	adapter *adapter.Adapter,
+) *ShoppingCartItemRouter {
 	return &ShoppingCartItemRouter{
-		shoppingCartItemHandler: shoppingCartItemHandler,
+		shoppingCartItemHandler: sh,
+		adapter:                 adapter,
 	}
 }
 
-func (r *ShoppingCartItemRouter) RegisterShoppingCartItemRoutes(protect chi.Router) {
-	protect.Post("/items", adapter.Adapt(r.shoppingCartItemHandler.AddItem))
-	protect.Patch("/items/{id}", adapter.Adapt(r.shoppingCartItemHandler.UpdateItem))
-	protect.Delete("/items/{id}", adapter.Adapt(r.shoppingCartItemHandler.RemoveItem))
+func (s *ShoppingCartItemRouter) RegisterShoppingCartItemRoutes(r chi.Router) {
+	r.Post("/items", s.adapter.Adapt(s.shoppingCartItemHandler.AddItem))
+	r.Patch("/items/{id}", s.adapter.Adapt(s.shoppingCartItemHandler.UpdateItem))
+	r.Delete("/items/{id}", s.adapter.Adapt(s.shoppingCartItemHandler.RemoveItem))
 }

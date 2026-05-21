@@ -1,6 +1,8 @@
 package dashboard
 
-import "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/others"
+import (
+	"github.com/devlucas-java/klyp-shop/pkg/pagination"
+)
 
 type SellerDashboardResponse struct {
 	Seller      SellerInfo       `json:"seller"`
@@ -29,8 +31,8 @@ type SellerStats struct {
 }
 
 type SellerOrdersPage struct {
-	Pagination others.Pagination `json:"pagination"`
-	Items      []SellerOrder     `json:"items"`
+	Pagination pagination.OutPutPagination `json:"pagination"`
+	Items      []SellerOrder               `json:"items"`
 }
 
 type SellerOrder struct {

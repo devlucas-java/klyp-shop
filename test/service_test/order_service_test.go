@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
@@ -50,14 +51,14 @@ func TestOrderService_CreateOrder(t *testing.T) {
 
 	orderItem, _ := entity.NewOrderItem(product.ID, 2, product.PriceBTC)
 	createdOrder := entity.NewOrder(user.ID, address.ID, []entity.OrderItem{*orderItem})
-	orderRepo.On("Create", mock.AnythingOfType("*entity.Order")).Return(createdOrder, nil)
+	orderRepo.On("Create", mock.Anything, mock.AnythingOfType("*entity.Order")).Return(createdOrder, nil)
 
 	req := &order.CreateOrderRequest{
 		AddressID: address.ID.String(),
 		Items:     []dorderitem.OrderItemRequest{{ProductID: product.ID.String(), Quantity: 2}},
 	}
 
-	res, err := svc.CreateOrder(user, req)
+	res, err := svc.CreateOrder(context.Background(), user, req)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, res)
@@ -88,9 +89,9 @@ func TestOrderService_GetOrder(t *testing.T) {
 		Items:     []entity.OrderItem{},
 	}
 
-	orderRepo.On("FindByID", order.ID).Return(order, nil)
+	orderRepo.On("FindByID", mock.Anything, order.ID).Return(order, nil)
 
-	res, err := svc.GetOrder(user, order.ID)
+	res, err := svc.GetOrder(context.Background(), user, order.ID)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, res)

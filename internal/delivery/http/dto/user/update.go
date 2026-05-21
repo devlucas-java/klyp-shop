@@ -1,6 +1,6 @@
 package user
 
-import "github.com/devlucas-java/klyp-shop/internal/domain/errors"
+import "github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 
 type UpdateUserRequest struct {
 	Name     string `json:"name"`
@@ -10,16 +10,16 @@ type UpdateUserRequest struct {
 
 func (r *UpdateUserRequest) Validate() error {
 	if r.Name == "" && r.Email == "" && r.Username == "" {
-		return errors.ErrBadRequest("at least one field (name, email or username) must be provided", nil)
+		return apperrors.Validation("at least one field (name, email or username) must be provided")
 	}
 	if r.Name != "" && len(r.Name) > 120 {
-		return errors.ErrBadRequest("name must not exceed 120 characters", nil)
+		return apperrors.Validation("name must not exceed 120 characters")
 	}
 	if r.Email != "" && len(r.Email) > 120 {
-		return errors.ErrBadRequest("email must not exceed 120 characters", nil)
+		return apperrors.Validation("email must not exceed 120 characters")
 	}
 	if r.Username != "" && len(r.Username) > 120 {
-		return errors.ErrBadRequest("username must not exceed 120 characters", nil)
+		return apperrors.Validation("username must not exceed 120 characters")
 	}
 	return nil
 }

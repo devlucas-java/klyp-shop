@@ -3,9 +3,11 @@ package entity
 import (
 	"time"
 
-	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 )
+
+const orderItemEntity = "order_item_entity.OrderItem"
 
 type OrderItem struct {
 	ID        id.UUID `gorm:"type:uuid;primaryKey"`
@@ -22,7 +24,7 @@ type OrderItem struct {
 
 func NewOrderItem(productID id.UUID, quantity int, priceBTC float64) (*OrderItem, error) {
 	if quantity <= 0 {
-		return nil, errors.ErrBadRequest("quantity must be greater than zero", nil)
+		return nil, apperrors.BadRequest(orderItemEntity+".new_order_item: quantity must be greater than zero", nil)
 	}
 
 	now := time.Now()

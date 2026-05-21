@@ -2,6 +2,7 @@ package module
 
 import (
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/adapter"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/handler"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/router"
@@ -14,18 +15,19 @@ import (
 )
 
 func InitOrderModule(db *gorm.DB, log *logger.Logger, jwtService *jwt.JWTService, metric *metrics.Metric) chi.Router {
-	orderRepository := database.NewOrderDB(db, log)
-	orderItemRepository := database.NewOrderItemDB(db, log)
-	productRepository := database.NewProductDB(db, log)
-	userRepository := database.NewUserDB(db, log)
-	addressRepository := database.NewAddressDB(db, log)
+	orderRepository := database.NewOrderDB(db)
+	orderItemRepository := database.NewOrderItemDB(db)
+	productRepository := database.NewProductDB(db)
+	userRepository := database.NewUserDB(db)
+	addressRepository := database.NewAddressDB(db)
 
 	orderService := service.NewOrderService(log, orderRepository, userRepository, addressRepository, productRepository, mapper.NewOrderMapper(), metric)
 	orderItemService := service.NewOrderItemService(log, orderItemRepository, orderRepository, productRepository, mapper.NewOrderMapper())
 	orderHandler := handler.NewOrderHandler(orderService, log)
 	orderItemHandler := handler.NewOrderItemHandler(orderItemService, log)
-	orderRouter := router.NewOrderRouter(jwtService, orderHandler, log, userRepository)
-	orderItemRouter := router.NewOrderItemRouter(orderItemHandler, jwtService, log, userRepository)
+	adapter := adapter.NewAdapter(log)
+	orderRouter := router.NewOrderRouter(jwtService, orderHandler, log, userRepository, adapter)
+	orderItemRouter := router.NewOrderItemRouter(orderItemHandler, jwtService, log, userRepository, adapter)
 
 	r := chi.NewRouter()
 	orderRouter.RegisterOrderRoutes(r)

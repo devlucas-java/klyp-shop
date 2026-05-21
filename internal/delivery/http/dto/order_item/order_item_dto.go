@@ -1,6 +1,6 @@
 package dorderitem
 
-import "github.com/devlucas-java/klyp-shop/internal/domain/errors"
+import "github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 
 type OrderItemRequest struct {
 	ProductID string `json:"product_id"`
@@ -17,10 +17,10 @@ type OrderItemResponse struct {
 
 func (r *OrderItemRequest) Validate() error {
 	if r.ProductID == "" {
-		return errors.ErrBadRequest("product_id is required", nil)
+		return apperrors.Validation("product_id is required")
 	}
 	if r.Quantity <= 0 {
-		return errors.ErrBadRequest("quantity must be greater than 0", nil)
+		return apperrors.Validation("quantity must be greater than 0")
 	}
 	return nil
 }

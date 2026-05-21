@@ -8,12 +8,14 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/cart"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/go-chi/chi"
 )
+
+const shoppingCartItemHandlerTrace = "shopping_cart_item_handler.ShoppingCartItemHandler"
 
 type ShoppingCartItemHandler struct {
 	shoppingCartItemService *service.ShoppingCartItemService
@@ -28,7 +30,7 @@ func (h *ShoppingCartItemHandler) AddItem(w http.ResponseWriter, r *http.Request
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
 	var req cart.AddShoppingCartItemRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return errors.ErrInvalidPayload(err)
+		return apperrors.BadRequest(shoppingCartItemHandlerTrace+".add_item: invalid request payload", err)
 	}
 	res, err := h.shoppingCartItemService.AddItem(auth, &req)
 	if err != nil {
@@ -42,11 +44,11 @@ func (h *ShoppingCartItemHandler) UpdateItem(w http.ResponseWriter, r *http.Requ
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
 	itemID, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		return errors.ErrInvalidUUID(err)
+		return apperrors.InvalidUUID(shoppingCartItemHandlerTrace+".update_item: invalid item id", err)
 	}
 	var req cart.UpdateShoppingCartItemRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return errors.ErrInvalidPayload(err)
+		return apperrors.BadRequest(shoppingCartItemHandlerTrace+".update_item: invalid request payload", err)
 	}
 	res, err := h.shoppingCartItemService.UpdateItem(auth, itemID, &req)
 	if err != nil {
@@ -60,7 +62,7 @@ func (h *ShoppingCartItemHandler) RemoveItem(w http.ResponseWriter, r *http.Requ
 	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
 	itemID, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		return errors.ErrInvalidUUID(err)
+		return apperrors.InvalidUUID(shoppingCartItemHandlerTrace+".remove_item: invalid item id", err)
 	}
 	if err := h.shoppingCartItemService.RemoveItem(auth, itemID); err != nil {
 		return err

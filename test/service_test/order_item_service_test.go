@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
@@ -10,6 +11,7 @@ import (
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/devlucas-java/klyp-shop/test/mocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func newOrderItemService(
@@ -35,10 +37,10 @@ func TestOrderItemService_GetOrderItems(t *testing.T) {
 	orderID := id.NewUUID()
 	items := []*entity.OrderItem{{ID: id.NewUUID(), OrderID: orderID, ProductID: id.NewUUID(), Quantity: 2, PriceBTC: 0.1}}
 
-	orderRepo.On("FindByID", orderID).Return(&entity.Order{ID: orderID}, nil)
+	orderRepo.On("FindByID", mock.Anything, orderID).Return(&entity.Order{ID: orderID}, nil)
 	orderItemRepo.On("FindByOrder", orderID).Return(items, nil)
 
-	res, err := svc.GetOrderItems(orderID)
+	res, err := svc.GetOrderItems(context.Background(), orderID)
 
 	assert.NoError(t, err)
 	assert.Len(t, res, 1)
@@ -57,10 +59,10 @@ func TestOrderItemService_GetOrderItem(t *testing.T) {
 	itemID := id.NewUUID()
 	item := &entity.OrderItem{ID: itemID, OrderID: orderID, ProductID: id.NewUUID(), Quantity: 3, PriceBTC: 0.2}
 
-	orderRepo.On("FindByID", orderID).Return(&entity.Order{ID: orderID}, nil)
+	orderRepo.On("FindByID", mock.Anything, orderID).Return(&entity.Order{ID: orderID}, nil)
 	orderItemRepo.On("FindByID", itemID).Return(item, nil)
 
-	res, err := svc.GetOrderItem(orderID, itemID)
+	res, err := svc.GetOrderItem(context.Background(), orderID, itemID)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, res)

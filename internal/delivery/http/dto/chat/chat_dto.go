@@ -1,6 +1,6 @@
 package chat
 
-import "github.com/devlucas-java/klyp-shop/internal/domain/errors"
+import "github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 
 type SendMessageRequest struct {
 	ReceiverID string `json:"receiver_id"`
@@ -9,13 +9,13 @@ type SendMessageRequest struct {
 
 func (r *SendMessageRequest) Validate() error {
 	if r.ReceiverID == "" {
-		return errors.ErrBadRequest("receiver_id is required", nil)
+		return apperrors.Validation("receiver_id is required")
 	}
 	if len(r.Content) == 0 {
-		return errors.ErrBadRequest("content is required", nil)
+		return apperrors.Validation("content is required")
 	}
 	if len(r.Content) > 4000 {
-		return errors.ErrBadRequest("content must not exceed 4000 characters", nil)
+		return apperrors.Validation("content must not exceed 4000 characters")
 	}
 	return nil
 }

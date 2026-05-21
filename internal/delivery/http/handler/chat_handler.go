@@ -9,12 +9,14 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/chat"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
-	"github.com/devlucas-java/klyp-shop/internal/domain/errors"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/go-chi/chi"
 )
+
+const chatHandlerTrace = "chat_handler.ChatHandler"
 
 type ChatHandler struct {
 	chatService *service.ChatService
@@ -30,10 +32,10 @@ func (h *ChatHandler) SendMessage(w http.ResponseWriter, r *http.Request) error 
 
 	var req chat.SendMessageRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return errors.ErrInvalidPayload(err)
+		return apperrors.BadRequest(chatHandlerTrace+".send_message: invalid request payload", err)
 	}
 	if err := req.Validate(); err != nil {
-		return errors.ErrBadRequest(err.Error(), nil)
+		return apperrors.BadRequest(chatHandlerTrace+".send_message: "+err.Error(), nil)
 	}
 
 	res, err := h.chatService.SendMessage(auth, &req)
@@ -50,7 +52,7 @@ func (h *ChatHandler) GetConversation(w http.ResponseWriter, r *http.Request) er
 
 	peerID, err := id.Parse(chi.URLParam(r, "peerID"))
 	if err != nil {
-		return errors.ErrInvalidUUID(err)
+		return apperrors.InvalidUUID(chatHandlerTrace+".get_conversation: invalid peer id", err)
 	}
 
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))

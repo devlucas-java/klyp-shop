@@ -2,6 +2,7 @@ package module
 
 import (
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/adapter"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/handler"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/router"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/database"
@@ -12,13 +13,14 @@ import (
 )
 
 func InitDashboardModule(db *gorm.DB, log *logger.Logger, jwtService *jwt.JWTService) chi.Router {
-	userRepository := database.NewUserDB(db, log)
-	orderRepository := database.NewOrderDB(db, log)
-	dashboardRepository := database.NewDashboardDB(db, log)
+	userRepository := database.NewUserDB(db)
+	orderRepository := database.NewOrderDB(db)
+	dashboardRepository := database.NewDashboardDB(db)
 
 	dashboardService := service.NewDashboardService(log, userRepository, orderRepository, dashboardRepository)
 	dashboardHandler := handler.NewDashboardHandler(dashboardService, log)
-	dashboardRouter := router.NewDashboardRouter(jwtService, dashboardHandler, log, userRepository)
+	adapter := adapter.NewAdapter(log)
+	dashboardRouter := router.NewDashboardRouter(jwtService, dashboardHandler, log, userRepository, adapter)
 
 	r := chi.NewRouter()
 	dashboardRouter.RegisterDashboardRoutes(r)
