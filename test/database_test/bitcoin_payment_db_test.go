@@ -37,8 +37,7 @@ func setupBitcoinDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	logBitcoin = logger.NewLogger(logger.TRACE)
-	bitcoinRepo = database.NewBitcoinPaymentDB(dbBitcoin, logBitcoin).(*database.BitcoinPaymentDB)
+	bitcoinRepo = database.NewBitcoinPaymentDB(dbBitcoin).(*database.BitcoinPaymentDB)
 }
 
 func createOrderForPayment(t *testing.T) *entity.Order {

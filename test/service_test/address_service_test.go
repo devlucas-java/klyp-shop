@@ -8,6 +8,7 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
 	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
+	"github.com/devlucas-java/klyp-shop/internal/domain/policy"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/devlucas-java/klyp-shop/test/mocks"
@@ -16,7 +17,7 @@ import (
 )
 
 func newAddressService(addrRepo *mocks.AddressRepositoryMock, userRepo *mocks.UserRepositoryMock) *service.AddressService {
-	return service.NewAddressService(addrRepo, logger.NewLogger(logger.TRACE), mapper.NewAddressMapper(), userRepo)
+	return service.NewAddressService(addrRepo, userRepo, logger.NewLogger(logger.TRACE), mapper.NewAddressMapper(), policy.NewAddressPolicy())
 }
 
 func newAddressUser() *entity.User {

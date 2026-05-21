@@ -27,8 +27,7 @@ func setupReviewDB(t *testing.T) {
 	err = dbReview.AutoMigrate(&entity.User{}, &entity.Seller{}, &entity.Product{}, &entity.Review{})
 	require.NoError(t, err)
 
-	logReview = logger.NewLogger(logger.TRACE)
-	reviewRepo = database.NewReviewDB(dbReview, logReview).(*database.ReviewDB)
+	reviewRepo = database.NewReviewDB(dbReview).(*database.ReviewDB)
 }
 
 func createReviewProduct(t *testing.T) (*entity.User, *entity.Product) {

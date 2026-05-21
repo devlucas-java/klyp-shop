@@ -6,7 +6,6 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/database"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
-	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
@@ -25,10 +24,7 @@ func setupProductDB(t *testing.T) {
 
 	err = dbProduct.AutoMigrate(&entity.User{}, &entity.Seller{}, &entity.Product{}, &entity.Review{})
 	require.NoError(t, err)
-
-	log := logger.NewLogger(logger.TRACE)
-
-	productRepo = database.NewProductDB(dbProduct, log).(*database.ProductDB)
+	productRepo = database.NewProductDB(dbProduct).(*database.ProductDB)
 }
 
 func createProductSeller(t *testing.T) *entity.Seller {

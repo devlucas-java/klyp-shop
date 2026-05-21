@@ -35,8 +35,7 @@ func setupOrderDB(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	logOrder = logger.NewLogger(logger.TRACE)
-	orderRepo = database.NewOrderDB(dbOrder, logOrder).(*database.OrderDB)
+	orderRepo = database.NewOrderDB(dbOrder).(*database.OrderDB)
 }
 
 func createOrderUser(t *testing.T) *entity.User {

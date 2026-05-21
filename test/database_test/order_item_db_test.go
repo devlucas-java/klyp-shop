@@ -27,8 +27,7 @@ func setupOrderItemDB(t *testing.T) {
 	err = dbOrderItem.AutoMigrate(&entity.Order{}, &entity.Product{}, &entity.OrderItem{})
 	require.NoError(t, err)
 
-	logOrderItem = logger.NewLogger(logger.TRACE)
-	orderItemRepo = database.NewOrderItemDB(dbOrderItem, logOrderItem).(*database.OrderItemDB)
+	orderItemRepo = database.NewOrderItemDB(dbOrderItem).(*database.OrderItemDB)
 }
 
 func createOrderItemOrder(t *testing.T) *entity.Order {

@@ -58,6 +58,11 @@ func (m *ProductRepositoryMock) Search(page, size int, order, search string, cat
 	return args.Get(0).([]*entity.Product), args.Error(1)
 }
 
+func (m *ProductRepositoryMock) CountTop10BySellerID(sellerID id.UUID) (int64, error) {
+	args := m.Called(sellerID)
+	return args.Get(0).(int64), args.Error(1)
+}
+
 func (m *ProductRepositoryMock) DeleteByID(productID id.UUID) error {
 	args := m.Called(productID)
 	return args.Error(0)

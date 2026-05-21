@@ -6,7 +6,6 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/database"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
-	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -28,9 +27,7 @@ func setupSellerDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	log := logger.NewLogger(logger.TRACE)
-
-	sellerRepo = database.NewSellerDB(dbSeller, log).(*database.SellerDB)
+	sellerRepo = database.NewSellerDB(dbSeller).(*database.SellerDB)
 }
 
 func createSellerUser(t *testing.T) *entity.User {

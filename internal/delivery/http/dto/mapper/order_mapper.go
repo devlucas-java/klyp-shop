@@ -41,7 +41,7 @@ func (m *OrderMapper) OrderToResponse(order *entity.Order) *orderDTO.OrderRespon
 }
 
 func (m *OrderMapper) OrdersToResponses(orders []*entity.Order) []*orderDTO.OrderResponse {
-	if orders == nil || len(orders) == 0 {
+	if len(orders) == 0 {
 		return []*orderDTO.OrderResponse{}
 	}
 

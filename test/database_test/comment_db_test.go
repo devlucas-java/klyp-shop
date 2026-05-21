@@ -27,8 +27,7 @@ func setupCommentDB(t *testing.T) {
 	err = dbComment.AutoMigrate(&entity.User{}, &entity.Product{}, &entity.Comment{})
 	require.NoError(t, err)
 
-	logComment = logger.NewLogger(logger.TRACE)
-	commentRepo = database.NewCommentDB(dbComment, logComment).(*database.CommentDB)
+	commentRepo = database.NewCommentDB(dbComment).(*database.CommentDB)
 }
 
 func createCommentUser(t *testing.T) *entity.User {

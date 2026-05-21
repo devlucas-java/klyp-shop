@@ -27,8 +27,7 @@ func setupUserDB(t *testing.T) {
 	err = dbUser.AutoMigrate(&entity.User{})
 	require.NoError(t, err)
 
-	logUser = logger.NewLogger(logger.TRACE)
-	userRepo = database.NewUserDB(dbUser, logUser).(*database.UserDB)
+	userRepo = database.NewUserDB(dbUser).(*database.UserDB)
 }
 
 func TestCreateUser(t *testing.T) {
