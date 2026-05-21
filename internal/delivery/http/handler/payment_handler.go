@@ -5,10 +5,9 @@ import (
 	"net/http"
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/utils"
 	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
-	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/go-chi/chi"
@@ -26,7 +25,10 @@ func NewPaymentHandler(paymentService *service.PaymentService, log *logger.Logge
 }
 
 func (h *PaymentHandler) CreateInvoice(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
 
 	orderID, err := id.Parse(chi.URLParam(r, "orderID"))
 	if err != nil {
@@ -43,7 +45,10 @@ func (h *PaymentHandler) CreateInvoice(w http.ResponseWriter, r *http.Request) e
 }
 
 func (h *PaymentHandler) GetPaymentStatus(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
 
 	orderID, err := id.Parse(chi.URLParam(r, "orderID"))
 	if err != nil {

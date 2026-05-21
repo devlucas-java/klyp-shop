@@ -6,10 +6,9 @@ import (
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/order"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/utils"
 	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
-	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/devlucas-java/klyp-shop/pkg/pagination"
@@ -28,7 +27,11 @@ func NewOrderHandler(orderService *service.OrderService, log *logger.Logger) *Or
 }
 
 func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
+
 	var req order.CreateOrderRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return apperrors.BadRequest(orderHandlerTrace+".create_order: invalid request payload", err)
@@ -42,7 +45,11 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) error
 }
 
 func (h *OrderHandler) GetOrderByID(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
+
 	orderID, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
 		return apperrors.InvalidUUID(orderHandlerTrace+".get_order_by_id: invalid order id", err)
@@ -56,7 +63,11 @@ func (h *OrderHandler) GetOrderByID(w http.ResponseWriter, r *http.Request) erro
 }
 
 func (h *OrderHandler) ListOrders(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
+
 	p := pagination.ParsePagination(r)
 
 	res, err := h.orderService.ListUserOrders(r.Context(), auth, p)
@@ -68,7 +79,11 @@ func (h *OrderHandler) ListOrders(w http.ResponseWriter, r *http.Request) error 
 }
 
 func (h *OrderHandler) CancelOrder(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
+
 	orderID, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
 		return apperrors.InvalidUUID(orderHandlerTrace+".cancel_order: invalid order id", err)

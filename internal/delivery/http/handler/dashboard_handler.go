@@ -4,9 +4,8 @@ import (
 	"net/http"
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
-	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/utils"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/devlucas-java/klyp-shop/pkg/pagination"
 )
@@ -21,7 +20,10 @@ func NewDashboardHandler(dashboardService *service.DashboardService, log *logger
 }
 
 func (h *DashboardHandler) GetSellerDashboard(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
 
 	inputPagination := pagination.ParsePagination(r)
 

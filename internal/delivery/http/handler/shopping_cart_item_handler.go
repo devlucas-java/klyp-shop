@@ -6,10 +6,10 @@ import (
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/cart"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
+
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/utils"
 	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
-	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/go-chi/chi"
@@ -27,7 +27,11 @@ func NewShoppingCartItemHandler(shoppingCartItemService *service.ShoppingCartIte
 }
 
 func (h *ShoppingCartItemHandler) AddItem(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
+
 	var req cart.AddShoppingCartItemRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return apperrors.BadRequest(shoppingCartItemHandlerTrace+".add_item: invalid request payload", err)
@@ -41,7 +45,11 @@ func (h *ShoppingCartItemHandler) AddItem(w http.ResponseWriter, r *http.Request
 }
 
 func (h *ShoppingCartItemHandler) UpdateItem(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
+
 	itemID, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
 		return apperrors.InvalidUUID(shoppingCartItemHandlerTrace+".update_item: invalid item id", err)
@@ -59,7 +67,10 @@ func (h *ShoppingCartItemHandler) UpdateItem(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *ShoppingCartItemHandler) RemoveItem(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
 	itemID, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
 		return apperrors.InvalidUUID(shoppingCartItemHandlerTrace+".remove_item: invalid item id", err)

@@ -25,7 +25,7 @@ func InitShoppingCartModule(db *gorm.DB, log *logger.Logger, jwtService *jwt.JWT
 
 	adapter := adapter.NewAdapter(log)
 	shoppingCartRouter := router.NewShoppingCartRouter(jwtService, shoppingCartHandler, log, userRepository, adapter)
-	shoppingCartItemRouter := router.NewShoppingCartItemRouter(shoppingCartItemHandler, adapter)
+	shoppingCartItemRouter := router.NewShoppingCartItemRouter(jwtService, shoppingCartItemHandler, log, userRepository, adapter)
 
 	r := chi.NewRouter()
 	shoppingCartRouter.RegisterShoppingCartRoutes(r)

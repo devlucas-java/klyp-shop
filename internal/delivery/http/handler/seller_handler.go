@@ -6,10 +6,9 @@ import (
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/seller"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/utils"
 	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
-	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/go-chi/chi"
@@ -27,7 +26,10 @@ func NewSellerHandler(sellerService *service.SellerService, log *logger.Logger) 
 }
 
 func (h *SellerHandler) CreateSeller(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
 	var dto seller.CreateSeller
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
 		return apperrors.BadRequest(sellerHandlerTrace+".create_seller: invalid request payload", err)
@@ -57,7 +59,10 @@ func (h *SellerHandler) GetSellerByID(w http.ResponseWriter, r *http.Request) er
 }
 
 func (h *SellerHandler) UpdateSeller(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
 	var dto seller.UpdateSeller
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
 		return apperrors.BadRequest(sellerHandlerTrace+".update_seller: invalid request payload", err)
@@ -74,7 +79,10 @@ func (h *SellerHandler) UpdateSeller(w http.ResponseWriter, r *http.Request) err
 }
 
 func (h *SellerHandler) DeleteSeller(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
 	if err := h.sellerService.DeleteSeller(auth); err != nil {
 		return err
 	}

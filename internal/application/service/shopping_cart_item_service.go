@@ -50,11 +50,7 @@ func (s *ShoppingCartItemService) AddItem(auth *entity.User, req *cart.AddShoppi
 
 	c, err := s.cartRepository.FindByUserID(auth.ID)
 	if err != nil {
-		var de *apperrors.DomainError
-		if !errAs(err, &de) || de.Kind != apperrors.KindNotFound {
-			return nil, apperrors.Database(shoppingCartItemServiceTrace+".add_item: failed to get shopping cart", err)
-		}
-		c = nil
+		return nil, apperrors.Database(shoppingCartItemServiceTrace+".add_item: failed to get shopping cart", err)
 	}
 
 	isNewCart := c == nil
@@ -92,9 +88,6 @@ func (s *ShoppingCartItemService) UpdateItem(auth *entity.User, itemID id.UUID, 
 	if err != nil {
 		return nil, apperrors.Database(shoppingCartItemServiceTrace+".update_item: failed to get shopping cart", err)
 	}
-	if c == nil {
-		return nil, apperrors.NotFound(shoppingCartItemServiceTrace+".update_item: shopping cart not found", nil)
-	}
 
 	if err := c.UpdateItemQuantity(itemID, req.Quantity); err != nil {
 		return nil, err
@@ -111,14 +104,7 @@ func (s *ShoppingCartItemService) UpdateItem(auth *entity.User, itemID id.UUID, 
 func (s *ShoppingCartItemService) RemoveItem(auth *entity.User, itemID id.UUID) error {
 	c, err := s.cartRepository.FindByUserID(auth.ID)
 	if err != nil {
-		var de *apperrors.DomainError
-		if !errAs(err, &de) || de.Kind != apperrors.KindNotFound {
-			return apperrors.Database(shoppingCartItemServiceTrace+".remove_item: failed to get shopping cart", err)
-		}
-		return nil
-	}
-	if c == nil {
-		return nil
+		return apperrors.Database(shoppingCartItemServiceTrace+".remove_item: failed to get shopping cart", err)
 	}
 
 	if err := c.RemoveItem(itemID); err != nil {

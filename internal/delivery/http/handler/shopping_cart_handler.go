@@ -4,9 +4,8 @@ import (
 	"net/http"
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
-	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/utils"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 )
 
@@ -20,7 +19,10 @@ func NewShoppingCartHandler(shoppingCartService *service.ShoppingCartService, lo
 }
 
 func (h *ShoppingCartHandler) GetCart(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
 	res, err := h.shoppingCartService.GetCart(auth)
 	if err != nil {
 		return err
@@ -30,7 +32,10 @@ func (h *ShoppingCartHandler) GetCart(w http.ResponseWriter, r *http.Request) er
 }
 
 func (h *ShoppingCartHandler) ClearCart(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
 	if err := h.shoppingCartService.ClearCart(auth); err != nil {
 		return err
 	}

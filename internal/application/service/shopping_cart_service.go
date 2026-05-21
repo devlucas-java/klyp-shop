@@ -32,16 +32,7 @@ func NewShoppingCartService(
 func (s *ShoppingCartService) GetCart(auth *entity.User) (*cart.ShoppingCartResponse, error) {
 	c, err := s.cartRepository.FindByUserID(auth.ID)
 	if err != nil {
-		// NotFound means no cart yet — return an empty one
-		var domainErr *apperrors.DomainError
-		if ok := isNotFound(err, &domainErr); ok {
-			c = entity.NewShoppingCart(auth.ID)
-			return s.cartMapper.ShoppingCartToResponse(c), nil
-		}
 		return nil, apperrors.Database(shoppingCartServiceTrace+".get_cart: failed to get shopping cart", err)
-	}
-	if c == nil {
-		c = entity.NewShoppingCart(auth.ID)
 	}
 	return s.cartMapper.ShoppingCartToResponse(c), nil
 }
@@ -49,38 +40,7 @@ func (s *ShoppingCartService) GetCart(auth *entity.User) (*cart.ShoppingCartResp
 func (s *ShoppingCartService) ClearCart(auth *entity.User) error {
 	c, err := s.cartRepository.FindByUserID(auth.ID)
 	if err != nil {
-		var domainErr *apperrors.DomainError
-		if ok := isNotFound(err, &domainErr); ok {
-			return nil
-		}
 		return apperrors.Database(shoppingCartServiceTrace+".clear_cart: failed to get shopping cart", err)
 	}
-	if c == nil {
-		return nil
-	}
 	return s.cartRepository.DeleteByID(c.ID)
-}
-
-// isNotFound checks whether err is a DomainError with KindNotFound.
-func isNotFound(err error, target **apperrors.DomainError) bool {
-	var de *apperrors.DomainError
-	if !errAs(err, &de) {
-		return false
-	}
-	if target != nil {
-		*target = de
-	}
-	return de.Kind == apperrors.KindNotFound
-}
-
-func errAs(err error, target **apperrors.DomainError) bool {
-	if err == nil {
-		return false
-	}
-	de, ok := err.(*apperrors.DomainError)
-	if ok {
-		*target = de
-		return true
-	}
-	return false
 }

@@ -6,10 +6,9 @@ import (
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/product"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/utils"
 	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
-	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/go-chi/chi"
@@ -27,7 +26,11 @@ func NewProductHandler(productService *service.ProductService, log *logger.Logge
 }
 
 func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
+
 	var dto product.CreateProduct
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
 		return apperrors.BadRequest(productHandlerTrace+".create_product: invalid request payload", err)
@@ -57,7 +60,11 @@ func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
+
 	uuid, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
 		return apperrors.InvalidUUID(productHandlerTrace+".update_product: invalid product id", err)
@@ -78,7 +85,11 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) e
 }
 
 func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
+
 	uuid, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
 		return apperrors.InvalidUUID(productHandlerTrace+".delete_product: invalid product id", err)
@@ -91,7 +102,11 @@ func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) e
 }
 
 func (h *ProductHandler) SetTop10(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
+
 	uuid, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
 		return apperrors.InvalidUUID(productHandlerTrace+".set_top10: invalid product id", err)

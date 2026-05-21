@@ -6,10 +6,9 @@ import (
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/auth"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/utils"
 	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
-	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 )
 
@@ -64,8 +63,11 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) err
 	if err := req.Validate(); err != nil {
 		return err
 	}
-	user := r.Context().Value(middleware.AuthKey).(*entity.User)
-	if err := h.authService.UpdatePassword(&req, user); err != nil {
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
+	if err := h.authService.UpdatePassword(&req, auth); err != nil {
 		return err
 	}
 	response.ResponseEntity(w, http.StatusOK, map[string]string{"message": "password updated successfully"})
@@ -80,8 +82,11 @@ func (h *AuthHandler) VerifyPassword(w http.ResponseWriter, r *http.Request) err
 	if err := req.Validate(); err != nil {
 		return err
 	}
-	user := r.Context().Value(middleware.AuthKey).(*entity.User)
-	res, err := h.authService.VerifyPassword(&req, user)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
+	res, err := h.authService.VerifyPassword(&req, auth)
 	if err != nil {
 		return err
 	}

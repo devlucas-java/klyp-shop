@@ -6,10 +6,9 @@ import (
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/user"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/utils"
 	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
-	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/go-chi/chi"
@@ -27,7 +26,10 @@ func NewUserHandler(userService *service.UserService, log *logger.Logger) *UserH
 }
 
 func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
 	res, err := h.userService.GetMe(auth)
 	if err != nil {
 		return err
@@ -37,7 +39,10 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (h *UserHandler) UpdateMe(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
 	var dto user.UpdateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
 		return apperrors.BadRequest(userHandlerTrace+".update_me: invalid request payload", err)
@@ -54,7 +59,10 @@ func (h *UserHandler) UpdateMe(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (h *UserHandler) DeleteMe(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
 	if err := h.userService.DeleteMe(auth); err != nil {
 		return err
 	}

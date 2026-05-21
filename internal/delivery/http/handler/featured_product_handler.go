@@ -6,10 +6,9 @@ import (
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/product"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/utils"
 	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
-	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/go-chi/chi"
@@ -27,7 +26,11 @@ func NewFeaturedProductHandler(featuredService *service.FeaturedProductService, 
 }
 
 func (h *FeaturedProductHandler) AddFeatured(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
+
 	var req product.AddFeaturedRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return apperrors.BadRequest(featuredProductHandlerTrace+".add_featured: invalid request payload", err)
@@ -43,9 +46,12 @@ func (h *FeaturedProductHandler) AddFeatured(w http.ResponseWriter, r *http.Requ
 	return nil
 }
 
-// DELETE /featured/{productID}  — seller removes a product from their top 10
 func (h *FeaturedProductHandler) RemoveFeatured(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
+
 	productID, err := id.Parse(chi.URLParam(r, "productID"))
 	if err != nil {
 		return apperrors.InvalidUUID(featuredProductHandlerTrace+".remove_featured: invalid product id", err)
@@ -57,9 +63,12 @@ func (h *FeaturedProductHandler) RemoveFeatured(w http.ResponseWriter, r *http.R
 	return nil
 }
 
-// PATCH /featured/{productID}/position  — seller reorders a featured product
 func (h *FeaturedProductHandler) UpdatePosition(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
+
 	productID, err := id.Parse(chi.URLParam(r, "productID"))
 	if err != nil {
 		return apperrors.InvalidUUID(featuredProductHandlerTrace+".update_position: invalid product id", err)
@@ -78,9 +87,12 @@ func (h *FeaturedProductHandler) UpdatePosition(w http.ResponseWriter, r *http.R
 	return nil
 }
 
-// GET /featured/me  — seller sees their own top 10
 func (h *FeaturedProductHandler) GetMyFeatured(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
+
 	res, err := h.featuredService.GetMyFeatured(auth)
 	if err != nil {
 		return err
@@ -89,7 +101,6 @@ func (h *FeaturedProductHandler) GetMyFeatured(w http.ResponseWriter, r *http.Re
 	return nil
 }
 
-// GET /featured/  — public: lista todos os produtos em destaque de todos os sellers
 func (h *FeaturedProductHandler) GetAllFeatured(w http.ResponseWriter, r *http.Request) error {
 	res, err := h.featuredService.GetAllFeatured()
 	if err != nil {
@@ -99,7 +110,6 @@ func (h *FeaturedProductHandler) GetAllFeatured(w http.ResponseWriter, r *http.R
 	return nil
 }
 
-// GET /featured/seller/{sellerID}  — public: anyone sees a seller's top 10
 func (h *FeaturedProductHandler) GetFeaturedBySeller(w http.ResponseWriter, r *http.Request) error {
 	sellerID, err := id.Parse(chi.URLParam(r, "sellerID"))
 	if err != nil {

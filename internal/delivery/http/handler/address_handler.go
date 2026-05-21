@@ -6,10 +6,9 @@ import (
 
 	"github.com/devlucas-java/klyp-shop/internal/application/service"
 	addressDTO "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/address"
-	"github.com/devlucas-java/klyp-shop/internal/delivery/http/middleware"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/utils"
 	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
-	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 	"github.com/go-chi/chi"
@@ -35,7 +34,10 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) e
 		return err
 	}
 
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
 
 	res, err := h.addressService.CreateAddress(auth, &req)
 	if err != nil {
@@ -60,7 +62,10 @@ func (h *AddressHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) e
 		return apperrors.InvalidUUID(addressHandler+".update_address: invalid uuid", err)
 	}
 
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
 
 	res, err := h.addressService.UpdateAddress(auth, &req, uuid)
 	if err != nil {
@@ -77,7 +82,10 @@ func (h *AddressHandler) DeleteAddress(w http.ResponseWriter, r *http.Request) e
 		return apperrors.InvalidUUID(addressHandler+".delete_address: invalid uuid", err)
 	}
 
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
 
 	if err := h.addressService.DeleteAddress(auth, uuid); err != nil {
 		return err
@@ -88,7 +96,10 @@ func (h *AddressHandler) DeleteAddress(w http.ResponseWriter, r *http.Request) e
 }
 
 func (h *AddressHandler) GetAddresses(w http.ResponseWriter, r *http.Request) error {
-	auth := r.Context().Value(middleware.AuthKey).(*entity.User)
+	auth, err := utils.GetAuth(r)
+	if err != nil {
+		return err
+	}
 
 	res, err := h.addressService.GetAddresses(auth)
 	if err != nil {
