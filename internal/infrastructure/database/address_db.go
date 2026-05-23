@@ -10,8 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const addressDB = "address_db"
-
 type AddressDB struct {
 	db *gorm.DB
 }
@@ -22,21 +20,21 @@ func NewAddressDB(db *gorm.DB) repository.AddressRepository {
 
 func (a *AddressDB) Create(address *entity.Address) (*entity.Address, error) {
 	if err := a.db.WithContext(context.Background()).Create(address).Error; err != nil {
-		return nil, apperrors.HandlePgError(addressDB+".create", err)
+		return nil, apperrors.HandlePgError("address", err)
 	}
 	return address, nil
 }
 
 func (a *AddressDB) Save(address *entity.Address) (*entity.Address, error) {
 	if err := a.db.WithContext(context.Background()).Where("id = ?", address.ID).Save(address).Error; err != nil {
-		return nil, apperrors.HandlePgError(addressDB+".save", err)
+		return nil, apperrors.HandlePgError("address", err)
 	}
 	return address, nil
 }
 
 func (a *AddressDB) Updates(address *entity.Address) (*entity.Address, error) {
 	if err := a.db.WithContext(context.Background()).Model(address).Where("id = ?", address.ID).Updates(address).Error; err != nil {
-		return nil, apperrors.HandlePgError(addressDB+".updates", err)
+		return nil, apperrors.HandlePgError("address", err)
 	}
 	return address, nil
 }
@@ -44,7 +42,7 @@ func (a *AddressDB) Updates(address *entity.Address) (*entity.Address, error) {
 func (a *AddressDB) Update(address *entity.Address) (*entity.Address, error) {
 	saved, err := a.Save(address)
 	if err != nil {
-		return nil, apperrors.HandlePgError(addressDB+".update", err)
+		return nil, apperrors.HandlePgError("address", err)
 	}
 	return saved, nil
 }
@@ -52,7 +50,7 @@ func (a *AddressDB) Update(address *entity.Address) (*entity.Address, error) {
 func (a *AddressDB) FindByID(addressID id.UUID) (*entity.Address, error) {
 	var address entity.Address
 	if err := a.db.WithContext(context.Background()).First(&address, "id = ?", addressID).Error; err != nil {
-		return nil, apperrors.HandlePgError(addressDB+".find_by_id", err)
+		return nil, apperrors.HandlePgError("address", err)
 	}
 	return &address, nil
 }
@@ -60,14 +58,14 @@ func (a *AddressDB) FindByID(addressID id.UUID) (*entity.Address, error) {
 func (a *AddressDB) FindByUser(userID id.UUID) ([]*entity.Address, error) {
 	var addresses []*entity.Address
 	if err := a.db.WithContext(context.Background()).Where("user_id = ?", userID).Find(&addresses).Error; err != nil {
-		return nil, apperrors.HandlePgError(addressDB+".find_by_user", err)
+		return nil, apperrors.HandlePgError("address", err)
 	}
 	return addresses, nil
 }
 
 func (a *AddressDB) DeleteByID(addressID id.UUID) error {
 	if err := a.db.WithContext(context.Background()).Delete(&entity.Address{}, "id = ?", addressID).Error; err != nil {
-		return apperrors.HandlePgError(addressDB+".delete_by_id", err)
+		return apperrors.HandlePgError("address", err)
 	}
 	return nil
 }

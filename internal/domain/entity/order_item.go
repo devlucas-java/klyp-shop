@@ -7,8 +7,6 @@ import (
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 )
 
-const orderItemEntity = "order_item_entity.OrderItem"
-
 type OrderItem struct {
 	ID        id.UUID `gorm:"type:uuid;primaryKey"`
 	CreatedAt time.Time
@@ -18,13 +16,13 @@ type OrderItem struct {
 	ProductID id.UUID `gorm:"index;not null"`
 	Product   Product `gorm:"foreignKey:ProductID"`
 
-	Quantity int     `gorm:"not null"`
-	PriceBTC float64 `gorm:"not null"`
+	Quantity int   `gorm:"not null"`
+	PriceBTC int64 `gorm:"not null"`
 }
 
-func NewOrderItem(productID id.UUID, quantity int, priceBTC float64) (*OrderItem, error) {
+func NewOrderItem(productID id.UUID, quantity int, priceBTC int64) (*OrderItem, error) {
 	if quantity <= 0 {
-		return nil, apperrors.BadRequest(orderItemEntity+".new_order_item: quantity must be greater than zero", nil)
+		return nil, apperrors.BadRequest("quantity must be greater than zero", nil)
 	}
 
 	now := time.Now()
@@ -38,6 +36,6 @@ func NewOrderItem(productID id.UUID, quantity int, priceBTC float64) (*OrderItem
 	}, nil
 }
 
-func (oi *OrderItem) Subtotal() float64 {
-	return oi.PriceBTC * float64(oi.Quantity)
+func (oi *OrderItem) Subtotal() int64 {
+	return oi.PriceBTC * int64(oi.Quantity)
 }

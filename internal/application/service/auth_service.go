@@ -10,8 +10,6 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/security/jwt"
 )
 
-const authService = "auth_service.AuthService"
-
 type AuthService struct {
 	userRepository repository.UserRepository
 	jwtService     *jwt.JWTService
@@ -29,7 +27,7 @@ func NewAuthService(userRepository repository.UserRepository, jwtService *jwt.JW
 func (a *AuthService) Login(login *auth.LoginRequest) (*auth.JWTResponse, error) {
 	user, err := a.userRepository.FindByEmailOrUsername(login.Login)
 	if err != nil {
-		return nil, apperrors.Unauthorized(authService+".login: invalid credentials", err)
+		return nil, apperrors.InvalidCredentials(nil)
 	}
 
 	match, err := user.VerifyPassword(login.Password)
@@ -38,12 +36,12 @@ func (a *AuthService) Login(login *auth.LoginRequest) (*auth.JWTResponse, error)
 	}
 
 	if !match {
-		return nil, apperrors.Unauthorized(authService+".login: invalid credentials", nil)
+		return nil, apperrors.InvalidCredentials(nil)
 	}
 
 	token, err := a.jwtService.GenerateToken(user)
 	if err != nil {
-		return nil, apperrors.Internal(authService+".login: failed to generate token", err)
+		return nil, apperrors.Internal(err)
 	}
 
 	return auth.NewJWTResponse(token, a.mapper.ToResponse(user)), nil
@@ -52,24 +50,25 @@ func (a *AuthService) Login(login *auth.LoginRequest) (*auth.JWTResponse, error)
 func (a *AuthService) Register(dto *auth.RegisterDTO) (*auth.JWTResponse, error) {
 	exists, err := a.userRepository.ExistsUserByEmail(dto.Email)
 	if err != nil {
-		return nil, apperrors.Database(authService+".register: failed to check email", err)
+		return nil, err
 	}
 	if exists {
-		return nil, apperrors.Conflict(authService+".register: email already in use", nil)
+		return nil, apperrors.Conflict("email is already in use", nil)
 	}
 
 	exists, err = a.userRepository.ExistsUserByUserName(dto.Username)
 	if err != nil {
-		return nil, apperrors.Database(authService+".register: failed to check username", err)
+		return nil, err
 	}
 	if exists {
-		return nil, apperrors.Conflict(authService+".register: username already in use", nil)
+		return nil, apperrors.Conflict("username is already in use", nil)
 	}
 
 	user, err := entity.NewUser(dto.Name, dto.Email, dto.Username, dto.Password)
 	if err != nil {
-		return nil, apperrors.Internal(authService+".register: failed to create user", err)
+		return nil, err
 	}
+	user.ShoppingCart = *entity.NewShoppingCart(user.ID)
 
 	user, err = a.userRepository.Create(user)
 	if err != nil {
@@ -78,19 +77,19 @@ func (a *AuthService) Register(dto *auth.RegisterDTO) (*auth.JWTResponse, error)
 
 	token, err := a.jwtService.GenerateToken(user)
 	if err != nil {
-		return nil, apperrors.Internal(authService+".register: failed to generate token", err)
+		return nil, apperrors.Internal(err)
 	}
 
 	return auth.NewJWTResponse(token, a.mapper.ToResponse(user)), nil
 }
 
-func (a *AuthService) VerifyPassword(req *auth.VerifyPasswordRequest, user *entity.User) (*others.BooleanDTO, error) {
-	stored, err := a.userRepository.FindByID(user.ID)
+func (a *AuthService) VerifyPassword(req *auth.VerifyPasswordRequest, auth *entity.User) (*others.BooleanDTO, error) {
+	user, err := a.userRepository.FindByID(auth.ID)
 	if err != nil {
-		return nil, apperrors.NotFound(authService+".verify_password: user not found", err)
+		return nil, err
 	}
 
-	match, err := stored.VerifyPassword(req.Password)
+	match, err := user.VerifyPassword(req.Password)
 	if err != nil {
 		return nil, err
 	}
@@ -98,19 +97,18 @@ func (a *AuthService) VerifyPassword(req *auth.VerifyPasswordRequest, user *enti
 	return &others.BooleanDTO{Result: match}, nil
 }
 
-func (a *AuthService) UpdatePassword(dto *auth.UpdatePasswordRequest, user *entity.User) error {
-	stored, err := a.userRepository.FindByID(user.ID)
+func (a *AuthService) UpdatePassword(dto *auth.UpdatePasswordRequest, auth *entity.User) error {
+	user, err := a.userRepository.FindByID(auth.ID)
 	if err != nil {
-		return apperrors.NotFound(authService+".update_password: user not found", err)
-	}
-
-	if err := stored.ChangePassword(dto.CurrentPassword, dto.NewPassword); err != nil {
 		return err
 	}
 
-	_, err = a.userRepository.Update(stored)
-	if err != nil {
-		return apperrors.Database(authService+".update_password: failed to update password", err)
+	if err := user.ChangePassword(dto.CurrentPassword, dto.NewPassword); err != nil {
+		return err
+	}
+
+	if _, err = a.userRepository.Update(user); err != nil {
+		return err
 	}
 
 	return nil

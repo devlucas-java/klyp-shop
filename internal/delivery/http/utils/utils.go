@@ -10,8 +10,8 @@ import (
 
 func GetAuth(r *http.Request) (*entity.User, error) {
 	auth, ok := r.Context().Value(middleware.AuthKey).(*entity.User)
-	if !ok {
-		return nil, apperrors.Unauthorized("unauthorized", nil)
+	if !ok || auth == nil {
+		return nil, apperrors.Unauthorized(nil)
 	}
 	return auth, nil
 }

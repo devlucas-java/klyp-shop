@@ -3,40 +3,32 @@ package middleware
 import (
 	"net/http"
 
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/enums"
+	"github.com/devlucas-java/klyp-shop/pkg/logger"
 )
 
-func RoleMiddleware(roles []enums.Role) func(http.Handler) http.Handler {
+func RoleMiddleware(roles []enums.Role, log *logger.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 			auth, ok := r.Context().Value(AuthKey).(*entity.User)
 			if !ok || auth == nil {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				response.ResponseError(w, r, apperrors.Unauthorized(nil), log)
 				return
 			}
 
-			allowed := false
-
-			for _, r := range roles {
-				for _, ur := range auth.Roles {
-					if r == ur {
-						allowed = true
-						break
+			for _, required := range roles {
+				for _, userRole := range auth.Roles {
+					if required == userRole {
+						next.ServeHTTP(w, r)
+						return
 					}
 				}
-				if allowed {
-					break
-				}
 			}
 
-			if !allowed {
-				http.Error(w, "Forbidden", http.StatusForbidden)
-				return
-			}
-
-			next.ServeHTTP(w, r)
+			response.ResponseError(w, r, apperrors.Forbidden(nil), log)
 		})
 	}
 }

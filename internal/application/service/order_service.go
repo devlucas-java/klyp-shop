@@ -15,8 +15,6 @@ import (
 	"github.com/devlucas-java/klyp-shop/pkg/pagination"
 )
 
-const orderServiceTrace = "order_service.OrderService"
-
 type OrderService struct {
 	log               *logger.Logger
 	orderRepository   repository.OrderRepository
@@ -52,37 +50,33 @@ func NewOrderService(
 func (s *OrderService) CreateOrder(ctx context.Context, auth *entity.User, req *order.CreateOrderRequest) (*order.OrderResponse, error) {
 	user, err := s.userRepository.FindByID(auth.ID)
 	if err != nil {
-		return nil, apperrors.NotFound(orderServiceTrace+".create_order: user not found", err)
+		return nil, err
 	}
 
 	addressID, err := id.Parse(req.AddressID)
 	if err != nil {
-		return nil, apperrors.InvalidUUID(orderServiceTrace+".create_order: invalid address id", err)
+		return nil, apperrors.InvalidUUID(err)
 	}
 
 	address, err := s.addressRepository.FindByID(addressID)
 	if err != nil {
-		return nil, apperrors.NotFound(orderServiceTrace+".create_order: address not found", err)
+		return nil, err
 	}
 
 	if err := s.orderPolicy.AddressBelongsToUser(address, user.ID); err != nil {
 		return nil, err
 	}
 
-	if len(req.Items) == 0 {
-		return nil, apperrors.BadRequest(orderServiceTrace+".create_order: at least one item is required", nil)
-	}
-
 	items := make([]entity.OrderItem, 0, len(req.Items))
 	for _, itemReq := range req.Items {
 		productID, err := id.Parse(itemReq.ProductID)
 		if err != nil {
-			return nil, apperrors.InvalidUUID(orderServiceTrace+".create_order: invalid product id", err)
+			return nil, apperrors.InvalidUUID(err)
 		}
 
 		product, err := s.productRepository.FindByID(productID)
 		if err != nil {
-			return nil, apperrors.NotFound(orderServiceTrace+".create_order: product not found", err)
+			return nil, err
 		}
 
 		item, err := entity.NewOrderItem(productID, itemReq.Quantity, product.PriceBTC)
@@ -97,18 +91,18 @@ func (s *OrderService) CreateOrder(ctx context.Context, auth *entity.User, req *
 
 	created, err := s.orderRepository.Create(ctx, newOrder)
 	if err != nil {
-		return nil, apperrors.Database(orderServiceTrace+".create_order: failed to create order", err)
+		return nil, err
 	}
 
 	s.metric.OrdersCreated.Inc()
-	s.log.Infof("Order %s created for user %s", created.ID, auth.ID)
+	s.log.Infof("order %s created for user %s", created.ID, auth.ID)
 	return s.orderMapper.OrderToResponse(created), nil
 }
 
 func (s *OrderService) GetOrder(ctx context.Context, auth *entity.User, orderID id.UUID) (*order.OrderResponse, error) {
 	ord, err := s.orderRepository.FindByID(ctx, orderID)
 	if err != nil {
-		return nil, apperrors.NotFound(orderServiceTrace+".get_order: order not found", err)
+		return nil, err
 	}
 
 	if err := s.orderPolicy.CanView(ord, auth.ID); err != nil {
@@ -121,7 +115,7 @@ func (s *OrderService) GetOrder(ctx context.Context, auth *entity.User, orderID 
 func (s *OrderService) ListUserOrders(ctx context.Context, auth *entity.User, inputPagination pagination.InputPagination) (*order.OrdersPageResponse, error) {
 	orders, total, err := s.orderRepository.FindByUserIDPaginated(ctx, auth.ID, inputPagination.Page, inputPagination.Size, inputPagination.Search)
 	if err != nil {
-		return nil, apperrors.Database(orderServiceTrace+".list_user_orders: failed to list orders", err)
+		return nil, err
 	}
 
 	return &order.OrdersPageResponse{
@@ -147,7 +141,7 @@ func buildPagination(page, size int, total int64) pagination.OutPutPagination {
 func (s *OrderService) CancelOrder(ctx context.Context, auth *entity.User, orderID id.UUID) error {
 	ord, err := s.orderRepository.FindByID(ctx, orderID)
 	if err != nil {
-		return apperrors.NotFound(orderServiceTrace+".cancel_order: order not found", err)
+		return err
 	}
 
 	if err := s.orderPolicy.CanCancel(ord, auth.ID); err != nil {
@@ -159,10 +153,10 @@ func (s *OrderService) CancelOrder(ctx context.Context, auth *entity.User, order
 	}
 
 	if _, err := s.orderRepository.Updates(ctx, ord); err != nil {
-		return apperrors.Database(orderServiceTrace+".cancel_order: failed to cancel order", err)
+		return err
 	}
 
 	s.metric.OrdersCancelled.Inc()
-	s.log.Infof("Order %s cancelled by user %s", orderID, auth.ID)
+	s.log.Infof("order %s cancelled by user %s", orderID, auth.ID)
 	return nil
 }

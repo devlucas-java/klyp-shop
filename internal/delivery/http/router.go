@@ -47,7 +47,6 @@ func NewRouter(deps RouterDeps) chi.Router {
 		api.Mount("/product", module.InitProductModule(deps.DB, deps.Log, deps.JwtService))
 		api.Mount("/order", module.InitOrderModule(deps.DB, deps.Log, deps.JwtService, deps.Metric))
 		api.Mount("/cart", module.InitShoppingCartModule(deps.DB, deps.Log, deps.JwtService))
-		api.Mount("/dashboard", module.InitDashboardModule(deps.DB, deps.Log, deps.JwtService))
 		api.Mount("/featured", module.InitFeaturedProductModule(deps.DB, deps.Log, deps.JwtService))
 		api.Mount("/payment", module.InitPaymentModule(
 			deps.DB, deps.Log, deps.JwtService,

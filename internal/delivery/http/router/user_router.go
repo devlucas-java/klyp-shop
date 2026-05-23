@@ -44,7 +44,7 @@ func (u *UserRouter) RegisterUserRoutes(mux chi.Router) {
 		protected.Patch("/me", u.adapter.Adapt(u.userHandler.UpdateMe))
 
 		protected.Group(func(admin chi.Router) {
-			admin.Use(middleware.RoleMiddleware([]enums.Role{enums.ADMIN}))
+			admin.Use(middleware.RoleMiddleware([]enums.Role{enums.ADMIN}, u.log))
 
 			admin.Post("/promote/{id}", u.adapter.Adapt(u.userHandler.PromoteUser))
 			admin.Post("/demote/{id}", u.adapter.Adapt(u.userHandler.DemoteUser))

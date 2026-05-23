@@ -15,8 +15,6 @@ import (
 	"github.com/go-chi/chi"
 )
 
-const orderHandlerTrace = "order_handler.OrderHandler"
-
 type OrderHandler struct {
 	orderService *service.OrderService
 	log          *logger.Logger
@@ -31,10 +29,9 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return err
 	}
-
 	var req order.CreateOrderRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return apperrors.BadRequest(orderHandlerTrace+".create_order: invalid request payload", err)
+		return apperrors.BadRequest("invalid request payload", err)
 	}
 	res, err := h.orderService.CreateOrder(r.Context(), auth, &req)
 	if err != nil {
@@ -49,10 +46,9 @@ func (h *OrderHandler) GetOrderByID(w http.ResponseWriter, r *http.Request) erro
 	if err != nil {
 		return err
 	}
-
 	orderID, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		return apperrors.InvalidUUID(orderHandlerTrace+".get_order_by_id: invalid order id", err)
+		return apperrors.InvalidUUID(err)
 	}
 	res, err := h.orderService.GetOrder(r.Context(), auth, orderID)
 	if err != nil {
@@ -67,9 +63,7 @@ func (h *OrderHandler) ListOrders(w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
-
 	p := pagination.ParsePagination(r)
-
 	res, err := h.orderService.ListUserOrders(r.Context(), auth, p)
 	if err != nil {
 		return err
@@ -83,10 +77,9 @@ func (h *OrderHandler) CancelOrder(w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return err
 	}
-
 	orderID, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		return apperrors.InvalidUUID(orderHandlerTrace+".cancel_order: invalid order id", err)
+		return apperrors.InvalidUUID(err)
 	}
 	if err := h.orderService.CancelOrder(r.Context(), auth, orderID); err != nil {
 		return err

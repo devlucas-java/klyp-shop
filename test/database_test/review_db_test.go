@@ -44,7 +44,7 @@ func createReviewProduct(t *testing.T) (*entity.User, *entity.Product) {
 	seller := entity.NewSeller(user.ID, "Review Shop", "Bio")
 	require.NoError(t, dbReview.Create(seller).Error)
 
-	product, err := entity.NewProduct("Reviewed Product", "Desc", 0.01, 5, []string{})
+	product, err := entity.NewProduct("Reviewed Product", "Desc", 001, 5, []string{})
 	require.NoError(t, err)
 	product.SellerID = seller.ID
 	require.NoError(t, dbReview.Create(product).Error)

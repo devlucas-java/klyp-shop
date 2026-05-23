@@ -14,8 +14,6 @@ import (
 	"github.com/go-chi/chi"
 )
 
-const userHandlerTrace = "user_handler.UserHandler"
-
 type UserHandler struct {
 	userService *service.UserService
 	log         *logger.Logger
@@ -45,7 +43,7 @@ func (h *UserHandler) UpdateMe(w http.ResponseWriter, r *http.Request) error {
 	}
 	var dto user.UpdateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		return apperrors.BadRequest(userHandlerTrace+".update_me: invalid request payload", err)
+		return apperrors.BadRequest("invalid request payload", err)
 	}
 	if err := dto.Validate(); err != nil {
 		return err
@@ -73,7 +71,7 @@ func (h *UserHandler) DeleteMe(w http.ResponseWriter, r *http.Request) error {
 func (h *UserHandler) PromoteUser(w http.ResponseWriter, r *http.Request) error {
 	uuid, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		return apperrors.InvalidUUID(userHandlerTrace+".promote_user: invalid user id", err)
+		return apperrors.InvalidUUID(err)
 	}
 	if err := h.userService.PromoteToAdmin(uuid); err != nil {
 		return err
@@ -85,7 +83,7 @@ func (h *UserHandler) PromoteUser(w http.ResponseWriter, r *http.Request) error 
 func (h *UserHandler) DemoteUser(w http.ResponseWriter, r *http.Request) error {
 	uuid, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		return apperrors.InvalidUUID(userHandlerTrace+".demote_user: invalid user id", err)
+		return apperrors.InvalidUUID(err)
 	}
 	if err := h.userService.DemoteToUser(uuid); err != nil {
 		return err

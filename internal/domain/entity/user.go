@@ -9,8 +9,6 @@ import (
 	"github.com/devlucas-java/klyp-shop/pkg/password_encoder"
 )
 
-const userEntity = "user_entity.User"
-
 type User struct {
 	ID        id.UUID   `gorm:"type:uuid;primaryKey"`
 	CreatedAt time.Time `gorm:"autoCreateTime"`
@@ -35,7 +33,7 @@ type User struct {
 func NewUser(name, email, username, pass string) (*User, error) {
 	hash, err := password_encoder.Encoder(pass)
 	if err != nil {
-		return nil, apperrors.Internal(userEntity+".new_user: failed to encode password", err)
+		return nil, apperrors.Internal(err)
 	}
 	now := time.Now()
 	return &User{
@@ -62,7 +60,7 @@ func (u *User) HasRole(role enums.Role) bool {
 func (u *User) VerifyPassword(password string) (bool, error) {
 	match, err := password_encoder.Match(password, u.Password)
 	if err != nil {
-		return false, apperrors.Internal(userEntity+".verify_password: failed to verify password", err)
+		return false, apperrors.Internal(err)
 	}
 	return match, nil
 }
@@ -73,12 +71,12 @@ func (u *User) ChangePassword(currentPassword, newPassword string) error {
 		return err
 	}
 	if !match {
-		return apperrors.Unauthorized(userEntity+".change_password: invalid credentials", nil)
+		return apperrors.InvalidCredentials(nil)
 	}
 
 	hash, err := password_encoder.Encoder(newPassword)
 	if err != nil {
-		return apperrors.Internal(userEntity+".change_password: failed to encode password", err)
+		return apperrors.Internal(err)
 	}
 
 	u.Password = hash
@@ -105,14 +103,14 @@ func (u *User) ChangeUsername(username string) {
 
 func (u *User) EnsureSeller() error {
 	if !u.IsSeller || u.Seller == nil {
-		return apperrors.NotFound(userEntity+".ensure_seller: user is not a seller", nil)
+		return apperrors.Unprocessable("this action requires a seller account", nil)
 	}
 	return nil
 }
 
 func (u *User) MarkAsSeller() error {
 	if u.IsSeller {
-		return apperrors.Conflict(userEntity+".mark_as_seller: user is already a seller", nil)
+		return apperrors.Conflict("user is already a seller", nil)
 	}
 	u.IsSeller = true
 	return nil
@@ -120,7 +118,7 @@ func (u *User) MarkAsSeller() error {
 
 func (u *User) UnmarkAsSeller() error {
 	if !u.IsSeller {
-		return apperrors.Conflict(userEntity+".unmark_as_seller: user is not a seller", nil)
+		return apperrors.Conflict("user is not a seller", nil)
 	}
 	u.IsSeller = false
 	return nil

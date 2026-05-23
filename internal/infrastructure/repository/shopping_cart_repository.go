@@ -7,8 +7,9 @@ import (
 
 type ShoppingCartRepository interface {
 	FindByUserID(userID id.UUID) (*entity.ShoppingCart, error)
+	FindByID(cartID id.UUID) (*entity.ShoppingCart, error)
+	FindCartsByProductID(productID id.UUID) ([]*entity.ShoppingCart, error)
 	Create(cart *entity.ShoppingCart) (*entity.ShoppingCart, error)
-	Updates(cart *entity.ShoppingCart) (*entity.ShoppingCart, error)
 	Save(cart *entity.ShoppingCart) (*entity.ShoppingCart, error)
-	DeleteByID(uuid id.UUID) error
+	DeleteByID(cartID id.UUID) error
 }

@@ -20,7 +20,7 @@ func NewAdapter(log *logger.Logger) *Adapter {
 func (a *Adapter) Adapt(h AdapterHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := h(w, r); err != nil {
-			response.ResponseError(w, err, a.log)
+			response.ResponseError(w, r, err, a.log)
 		}
 	}
 }

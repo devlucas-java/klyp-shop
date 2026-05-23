@@ -37,7 +37,7 @@ func createOrderItemOrder(t *testing.T) *entity.Order {
 		UserID:    id.NewUUID(),
 		AddressID: id.NewUUID(),
 		Status:    entity.OrderStatusPending,
-		TotalBTC:  0.5,
+		TotalBTC:  05,
 	}
 	require.NoError(t, dbOrderItem.Create(order).Error)
 	return order
@@ -49,7 +49,7 @@ func createOrderItemProduct(t *testing.T) *entity.Product {
 		ID:          id.NewUUID(),
 		Name:        "Test Product",
 		Description: "Test Description",
-		PriceBTC:    0.1,
+		PriceBTC:    01,
 		Stock:       10,
 	}
 	require.NoError(t, dbOrderItem.Create(product).Error)
@@ -66,7 +66,7 @@ func TestCreateOrderItem(t *testing.T) {
 		OrderID:   order.ID,
 		ProductID: product.ID,
 		Quantity:  2,
-		PriceBTC:  0.2,
+		PriceBTC:  02,
 	}
 
 	res, err := orderItemRepo.Create(orderItem)
@@ -87,7 +87,7 @@ func TestGetOrderItemByOrder(t *testing.T) {
 		OrderID:   order.ID,
 		ProductID: product.ID,
 		Quantity:  1,
-		PriceBTC:  0.1,
+		PriceBTC:  01,
 	}).Error)
 
 	res, err := orderItemRepo.FindByOrder(order.ID)
@@ -106,7 +106,7 @@ func TestUpdateOrderItem(t *testing.T) {
 		OrderID:   order.ID,
 		ProductID: product.ID,
 		Quantity:  1,
-		PriceBTC:  0.1,
+		PriceBTC:  01,
 	}
 	require.NoError(t, dbOrderItem.Create(orderItem).Error)
 
@@ -127,7 +127,7 @@ func TestDeleteOrderItem(t *testing.T) {
 		OrderID:   order.ID,
 		ProductID: product.ID,
 		Quantity:  1,
-		PriceBTC:  0.1,
+		PriceBTC:  01,
 	}
 	require.NoError(t, dbOrderItem.Create(orderItem).Error)
 

@@ -38,7 +38,7 @@ func NewAddressRouter(
 func (a *AddressRouter) Handle(mux chi.Router) {
 	mux.Group(func(protected chi.Router) {
 		protected.Use(middleware.JwtMiddleware(a.jwtService, a.log, a.userRepository))
-		protected.Use(middleware.RoleMiddleware([]enums.Role{enums.USER}))
+		protected.Use(middleware.RoleMiddleware([]enums.Role{enums.USER}, a.log))
 
 		protected.Get("/", a.adapter.Adapt(a.handler.GetAddresses))
 		protected.Post("/", a.adapter.Adapt(a.handler.CreateAddress))

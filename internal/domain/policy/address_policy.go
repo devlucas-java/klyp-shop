@@ -23,7 +23,7 @@ func (p *AddressPolicy) CanCreate(existing []*entity.Address) error {
 
 func (p *AddressPolicy) CanModify(address *entity.Address, userID id.UUID) error {
 	if address.UserID != userID {
-		return apperrors.Unauthorized("address_policy.AddressPolicy.can_modify: address does not belong to user", nil)
+		return apperrors.Forbidden(nil)
 	}
 	return nil
 }

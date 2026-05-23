@@ -14,8 +14,6 @@ import (
 	"github.com/go-chi/chi"
 )
 
-const sellerHandlerTrace = "seller_handler.SellerHandler"
-
 type SellerHandler struct {
 	sellerService *service.SellerService
 	log           *logger.Logger
@@ -32,7 +30,7 @@ func (h *SellerHandler) CreateSeller(w http.ResponseWriter, r *http.Request) err
 	}
 	var dto seller.CreateSeller
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		return apperrors.BadRequest(sellerHandlerTrace+".create_seller: invalid request payload", err)
+		return apperrors.BadRequest("invalid request payload", err)
 	}
 	if err := dto.Validate(); err != nil {
 		return err
@@ -48,7 +46,7 @@ func (h *SellerHandler) CreateSeller(w http.ResponseWriter, r *http.Request) err
 func (h *SellerHandler) GetSellerByID(w http.ResponseWriter, r *http.Request) error {
 	uuid, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		return apperrors.InvalidUUID(sellerHandlerTrace+".get_seller_by_id: invalid seller id", err)
+		return apperrors.InvalidUUID(err)
 	}
 	res, err := h.sellerService.GetSellerByID(uuid)
 	if err != nil {
@@ -65,7 +63,7 @@ func (h *SellerHandler) UpdateSeller(w http.ResponseWriter, r *http.Request) err
 	}
 	var dto seller.UpdateSeller
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		return apperrors.BadRequest(sellerHandlerTrace+".update_seller: invalid request payload", err)
+		return apperrors.BadRequest("invalid request payload", err)
 	}
 	if err := dto.Validate(); err != nil {
 		return err

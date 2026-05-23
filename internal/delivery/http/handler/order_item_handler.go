@@ -11,8 +11,6 @@ import (
 	"github.com/go-chi/chi"
 )
 
-const orderItemHandlerTrace = "order_item_handler.OrderItemHandler"
-
 type OrderItemHandler struct {
 	orderItemService *service.OrderItemService
 	log              *logger.Logger
@@ -25,7 +23,7 @@ func NewOrderItemHandler(orderItemService *service.OrderItemService, log *logger
 func (h *OrderItemHandler) GetOrderItems(w http.ResponseWriter, r *http.Request) error {
 	orderID, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		return apperrors.InvalidUUID(orderItemHandlerTrace+".get_order_items: invalid order id", err)
+		return apperrors.InvalidUUID(err)
 	}
 	res, err := h.orderItemService.GetOrderItems(r.Context(), orderID)
 	if err != nil {
@@ -38,11 +36,11 @@ func (h *OrderItemHandler) GetOrderItems(w http.ResponseWriter, r *http.Request)
 func (h *OrderItemHandler) GetOrderItem(w http.ResponseWriter, r *http.Request) error {
 	orderID, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		return apperrors.InvalidUUID(orderItemHandlerTrace+".get_order_item: invalid order id", err)
+		return apperrors.InvalidUUID(err)
 	}
 	itemID, err := id.Parse(chi.URLParam(r, "itemId"))
 	if err != nil {
-		return apperrors.InvalidUUID(orderItemHandlerTrace+".get_order_item: invalid item id", err)
+		return apperrors.InvalidUUID(err)
 	}
 	res, err := h.orderItemService.GetOrderItem(r.Context(), orderID, itemID)
 	if err != nil {

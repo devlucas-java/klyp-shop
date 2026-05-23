@@ -10,8 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const chatDB = "chat_db.ChatDB"
-
 type ChatDB struct {
 	db *gorm.DB
 }
@@ -22,7 +20,7 @@ func NewChatDB(db *gorm.DB) repository.ChatRepository {
 
 func (c *ChatDB) Save(msg *entity.ChatMessage) (*entity.ChatMessage, error) {
 	if err := c.db.WithContext(context.Background()).Create(msg).Error; err != nil {
-		return nil, apperrors.HandlePgError(chatDB+".save", err)
+		return nil, apperrors.HandlePgError("chat", err)
 	}
 	return msg, nil
 }
@@ -37,7 +35,7 @@ func (c *ChatDB) FindConversation(userA, userB id.UUID, limit, offset int) ([]*e
 		Offset(offset).
 		Find(&msgs).Error
 	if err != nil {
-		return nil, apperrors.HandlePgError(chatDB+".find_conversation", err)
+		return nil, apperrors.HandlePgError("chat", err)
 	}
 	return msgs, nil
 }

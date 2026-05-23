@@ -43,7 +43,7 @@ func createProductSeller(t *testing.T) *entity.Seller {
 	return seller
 }
 
-func newTestProduct(t *testing.T, name, desc string, price float64, stock int, cats []string) *entity.Product {
+func newTestProduct(t *testing.T, name, desc string, price int64, stock int, cats []string) *entity.Product {
 	t.Helper()
 	p, err := entity.NewProduct(name, desc, price, stock, cats)
 	require.NoError(t, err)
@@ -54,7 +54,7 @@ func TestCreateProduct(t *testing.T) {
 	setupProductDB(t)
 	seller := createProductSeller(t)
 
-	product := newTestProduct(t, "Laptop", "A great laptop", 0.05, 10, []string{"electronics"})
+	product := newTestProduct(t, "Laptop", "A great laptop", 005, 10, []string{"electronics"})
 	product.SellerID = seller.ID
 
 	res, err := productRepo.Create(product)
@@ -70,7 +70,7 @@ func TestFindProductByID(t *testing.T) {
 	setupProductDB(t)
 	seller := createProductSeller(t)
 
-	product := newTestProduct(t, "Phone", "A phone", 0.02, 5, []string{"electronics"})
+	product := newTestProduct(t, "Phone", "A phone", 002, 5, []string{"electronics"})
 	product.SellerID = seller.ID
 	require.NoError(t, dbProduct.Create(product).Error)
 
@@ -92,7 +92,7 @@ func TestUpdateProduct(t *testing.T) {
 	setupProductDB(t)
 	seller := createProductSeller(t)
 
-	product := newTestProduct(t, "Old Product", "Desc", 0.01, 3, []string{"misc"})
+	product := newTestProduct(t, "Old Product", "Desc", 001, 3, []string{"misc"})
 	product.SellerID = seller.ID
 	require.NoError(t, dbProduct.Create(product).Error)
 
@@ -110,7 +110,7 @@ func TestDeleteProduct(t *testing.T) {
 	setupProductDB(t)
 	seller := createProductSeller(t)
 
-	product := newTestProduct(t, "To Delete", "Desc", 0.01, 1, []string{})
+	product := newTestProduct(t, "To Delete", "Desc", 001, 1, []string{})
 	product.SellerID = seller.ID
 	require.NoError(t, dbProduct.Create(product).Error)
 
@@ -127,7 +127,7 @@ func TestFindProductsBySellerID(t *testing.T) {
 	seller := createProductSeller(t)
 
 	for i := 0; i < 3; i++ {
-		p := newTestProduct(t, "Product", "Desc", 0.01, 1, []string{})
+		p := newTestProduct(t, "Product", "Desc", 001, 1, []string{})
 		p.SellerID = seller.ID
 		require.NoError(t, dbProduct.Create(p).Error)
 	}

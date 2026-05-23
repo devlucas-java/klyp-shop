@@ -7,8 +7,6 @@ import (
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 )
 
-const shoppingCartItemEntity = "shopping_cart_item_entity.ShoppingCartItem"
-
 type ShoppingCartItem struct {
 	ID        id.UUID `gorm:"type:uuid;primaryKey"`
 	CreatedAt time.Time
@@ -16,15 +14,15 @@ type ShoppingCartItem struct {
 
 	CartID    id.UUID `gorm:"index;not null"`
 	ProductID id.UUID `gorm:"index;not null"`
-	Product   Product `gorm:"foreignKey:ProductID"`
+	Product   Product `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE;"`
 
-	Quantity int     `gorm:"not null"`
-	PriceBTC float64 `gorm:"not null"`
+	Quantity int   `gorm:"not null"`
+	PriceBTC int64 `gorm:"not null"`
 }
 
-func NewShoppingCartItem(cartID, productID id.UUID, quantity int, priceBTC float64) (*ShoppingCartItem, error) {
+func NewShoppingCartItem(cartID, productID id.UUID, quantity int, priceBTC int64) (*ShoppingCartItem, error) {
 	if quantity <= 0 {
-		return nil, apperrors.BadRequest(shoppingCartItemEntity+".new_shopping_cart_item: quantity must be greater than zero", nil)
+		return nil, apperrors.BadRequest("quantity must be greater than zero", nil)
 	}
 
 	now := time.Now()
@@ -41,13 +39,13 @@ func NewShoppingCartItem(cartID, productID id.UUID, quantity int, priceBTC float
 
 func (item *ShoppingCartItem) SetQuantity(quantity int) error {
 	if quantity <= 0 {
-		return apperrors.BadRequest(shoppingCartItemEntity+".set_quantity: quantity must be greater than zero", nil)
+		return apperrors.BadRequest("quantity must be greater than zero", nil)
 	}
 	item.Quantity = quantity
 	item.UpdatedAt = time.Now()
 	return nil
 }
 
-func (item *ShoppingCartItem) Subtotal() float64 {
-	return item.PriceBTC * float64(item.Quantity)
+func (item *ShoppingCartItem) Subtotal() int64 {
+	return item.PriceBTC * int64(item.Quantity)
 }

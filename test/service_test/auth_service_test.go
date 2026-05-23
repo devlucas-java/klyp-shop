@@ -69,7 +69,7 @@ func TestAuthService_Register_DBError(t *testing.T) {
 	userRepo.On("ExistsUserByEmail", dto.Email).Return(false, nil)
 	userRepo.On("ExistsUserByUserName", dto.Username).Return(false, nil)
 	userRepo.On("Create", mock.AnythingOfType("*entity.User")).
-		Return(nil, apperrors.Database("duplicate email", nil))
+		Return(nil, apperrors.Conflict("duplicate email", nil))
 
 	_, err := svc.Register(dto)
 

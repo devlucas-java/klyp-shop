@@ -5,7 +5,7 @@ import "github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 type UpdateProduct struct {
 	Name        string   `json:"name"`
 	Description string   `json:"description"`
-	PriceBTC    float64  `json:"price_btc"`
+	PriceBTC    int64    `json:"price_btc"`
 	Stock       int      `json:"stock"`
 	Categories  []string `json:"categories"`
 }

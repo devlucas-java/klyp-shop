@@ -47,7 +47,7 @@ func createCommentProduct(t *testing.T) *entity.Product {
 		ID:          id.NewUUID(),
 		Name:        "Test Product",
 		Description: "Test Description",
-		PriceBTC:    0.1,
+		PriceBTC:    01,
 		Stock:       10,
 	}
 	require.NoError(t, dbComment.Create(product).Error)

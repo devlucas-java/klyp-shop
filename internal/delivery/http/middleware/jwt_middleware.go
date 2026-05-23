@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/devlucas-java/klyp-shop/internal/delivery/http/response"
+	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/domain/enums"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
@@ -31,19 +33,19 @@ func JwtMiddleware(
 
 			claims, err := jwtService.Validate(token)
 			if err != nil {
-				http.Error(w, "Forbidden", http.StatusForbidden)
+				response.ResponseError(w, r, apperrors.Unauthorized(err), log)
 				return
 			}
 
 			userIDStr, ok := claims["user_id"].(string)
 			if !ok {
-				http.Error(w, "Invalid token claims", http.StatusUnauthorized)
+				response.ResponseError(w, r, apperrors.Unauthorized(nil), log)
 				return
 			}
 
 			userID, err := id.Parse(userIDStr)
 			if err != nil {
-				http.Error(w, "Invalid user ID in token", http.StatusUnauthorized)
+				response.ResponseError(w, r, apperrors.Unauthorized(err), log)
 				return
 			}
 
@@ -52,9 +54,8 @@ func JwtMiddleware(
 
 			user, err := userRepository.FindByID(userID)
 			if err != nil || user == nil {
-				log.Errorf("JwtMiddleware: user not found %s: %v", userID, err)
-
-				http.Error(w, "Unauthorize", http.StatusUnauthorized)
+				log.Errorf("jwt_middleware: user not found for id %s: %v", userID, err)
+				response.ResponseError(w, r, apperrors.Unauthorized(err), log)
 				return
 			}
 

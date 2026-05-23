@@ -18,9 +18,10 @@ func InitProductModule(db *gorm.DB, log *logger.Logger, jwtService *jwt.JWTServi
 	userRepository := database.NewUserDB(db)
 	productRepository := database.NewProductDB(db)
 	sellerRepository := database.NewSellerDB(db)
+	cartRepository := database.NewShoppingCartDB(db)
 	productMapper := mapper.NewProductMapper()
 
-	productService := service.NewProductService(log, productRepository, userRepository, sellerRepository, productMapper)
+	productService := service.NewProductService(log, productRepository, userRepository, sellerRepository, productMapper, cartRepository)
 	productHandler := handler.NewProductHandler(productService, log)
 	adapter := adapter.NewAdapter(log)
 	productRouter := router.NewProductRouter(jwtService, productHandler, log, userRepository, productRepository, adapter)

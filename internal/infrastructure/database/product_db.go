@@ -10,8 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const productDB = "product_db.ProductDB"
-
 type ProductDB struct {
 	db *gorm.DB
 }
@@ -22,25 +20,25 @@ func NewProductDB(db *gorm.DB) repository.ProductRepository {
 
 func (r *ProductDB) Create(product *entity.Product) (*entity.Product, error) {
 	if err := r.db.WithContext(context.Background()).Create(product).Error; err != nil {
-		return nil, apperrors.HandlePgError(productDB+".create", err)
+		return nil, apperrors.HandlePgError("product", err)
 	}
 	return product, nil
 }
 
 func (r *ProductDB) Save(product *entity.Product) (*entity.Product, error) {
 	if err := r.db.WithContext(context.Background()).Where("id = ?", product.ID).Save(product).Error; err != nil {
-		return nil, apperrors.HandlePgError(productDB+".save", err)
+		return nil, apperrors.HandlePgError("product", err)
 	}
 	return product, nil
 }
 
 func (r *ProductDB) Updates(product *entity.Product) (*entity.Product, error) {
 	if err := r.db.WithContext(context.Background()).Model(product).Where("id = ?", product.ID).Updates(product).Error; err != nil {
-		return nil, apperrors.HandlePgError(productDB+".updates", err)
+		return nil, apperrors.HandlePgError("product", err)
 	}
 	var saved entity.Product
 	if err := r.db.WithContext(context.Background()).First(&saved, "id = ?", product.ID).Error; err != nil {
-		return nil, apperrors.HandlePgError(productDB+".updates", err)
+		return nil, apperrors.HandlePgError("product", err)
 	}
 	return &saved, nil
 }
@@ -49,7 +47,7 @@ func (r *ProductDB) FindByID(productID id.UUID) (*entity.Product, error) {
 	var product entity.Product
 	err := r.db.WithContext(context.Background()).Preload("Reviews").First(&product, "id = ?", productID).Error
 	if err != nil {
-		return nil, apperrors.HandlePgError(productDB+".find_by_id", err)
+		return nil, apperrors.HandlePgError("product", err)
 	}
 	return &product, nil
 }
@@ -64,7 +62,7 @@ func (r *ProductDB) FindBySellerID(sellerID id.UUID, page, size int) ([]*entity.
 		Order("created_at desc").
 		Find(&products).Error
 	if err != nil {
-		return nil, apperrors.HandlePgError(productDB+".find_by_seller_id", err)
+		return nil, apperrors.HandlePgError("product", err)
 	}
 	return products, nil
 }
@@ -90,7 +88,7 @@ func (r *ProductDB) Search(page, size int, order, search string, categories []st
 	}
 
 	if err := query.Find(&products).Error; err != nil {
-		return nil, apperrors.HandlePgError(productDB+".search", err)
+		return nil, apperrors.HandlePgError("product", err)
 	}
 	return products, nil
 }
@@ -99,14 +97,14 @@ func (r *ProductDB) CountTop10BySellerID(sellerID id.UUID) (int64, error) {
 	var count int64
 	err := r.db.Where("products.seller_id = ? AND products.is_top10 = ?", sellerID, true).Count(&count).Error
 	if err != nil {
-		return 0, apperrors.HandlePgError(productDB+".count_top10_by_seller_id", err)
+		return 0, apperrors.HandlePgError("product", err)
 	}
 	return count, nil
 }
 
 func (r *ProductDB) DeleteByID(productID id.UUID) error {
 	if err := r.db.WithContext(context.Background()).Delete(&entity.Product{}, "id = ?", productID).Error; err != nil {
-		return apperrors.HandlePgError(productDB+".delete_by_id", err)
+		return apperrors.HandlePgError("product", err)
 	}
 	return nil
 }

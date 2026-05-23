@@ -10,8 +10,6 @@ import (
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 )
 
-const chatServiceTrace = "chat_service.ChatService"
-
 type ChatService struct {
 	log            *logger.Logger
 	chatRepository repository.ChatRepository
@@ -35,12 +33,12 @@ func NewChatService(
 func (s *ChatService) SendMessage(sender *entity.User, req *chat.SendMessageRequest) (*chat.MessageResponse, error) {
 	receiverID, err := id.Parse(req.ReceiverID)
 	if err != nil {
-		return nil, apperrors.InvalidUUID(chatServiceTrace+".send_message: invalid receiver id", err)
+		return nil, apperrors.InvalidUUID(err)
 	}
 
 	receiver, err := s.userRepository.FindByID(receiverID)
 	if err != nil {
-		return nil, apperrors.NotFound(chatServiceTrace+".send_message: receiver not found", err)
+		return nil, apperrors.NotFound("receiver not found", err)
 	}
 
 	if err := s.chatPolicy.CanChat(sender, receiver); err != nil {
@@ -51,7 +49,7 @@ func (s *ChatService) SendMessage(sender *entity.User, req *chat.SendMessageRequ
 
 	saved, err := s.chatRepository.Save(msg)
 	if err != nil {
-		return nil, apperrors.Database(chatServiceTrace+".send_message: failed to save message", err)
+		return nil, apperrors.Internal(err)
 	}
 
 	return toMessageResponse(saved), nil
@@ -60,7 +58,7 @@ func (s *ChatService) SendMessage(sender *entity.User, req *chat.SendMessageRequ
 func (s *ChatService) GetConversation(auth *entity.User, peerID id.UUID, limit, offset int) ([]*chat.MessageResponse, error) {
 	peer, err := s.userRepository.FindByID(peerID)
 	if err != nil {
-		return nil, apperrors.NotFound(chatServiceTrace+".get_conversation: peer not found", err)
+		return nil, apperrors.NotFound("user not found", err)
 	}
 
 	if err := s.chatPolicy.CanChat(auth, peer); err != nil {
@@ -73,7 +71,7 @@ func (s *ChatService) GetConversation(auth *entity.User, peerID id.UUID, limit, 
 
 	msgs, err := s.chatRepository.FindConversation(auth.ID, peerID, limit, offset)
 	if err != nil {
-		return nil, apperrors.Database(chatServiceTrace+".get_conversation: failed to fetch conversation", err)
+		return nil, apperrors.Internal(err)
 	}
 
 	s.chatRepository.MarkAsRead(auth.ID, peerID)

@@ -12,8 +12,6 @@ import (
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 )
 
-const authHandler = "auth_handler.AuthHandler"
-
 type AuthHandler struct {
 	authService *service.AuthService
 	log         *logger.Logger
@@ -26,7 +24,7 @@ func NewAuthHandler(authService *service.AuthService, log *logger.Logger) *AuthH
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) error {
 	var req auth.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return apperrors.BadRequest(authHandler+".login: invalid request payload", err)
+		return apperrors.BadRequest("invalid request payload", err)
 	}
 	if err := req.Validate(); err != nil {
 		return err
@@ -42,7 +40,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) error {
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) error {
 	var req auth.RegisterDTO
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return apperrors.BadRequest(authHandler+".register: invalid request payload", err)
+		return apperrors.BadRequest("invalid request payload", err)
 	}
 	if err := req.Validate(); err != nil {
 		return err
@@ -58,7 +56,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) error {
 func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) error {
 	var req auth.UpdatePasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return apperrors.BadRequest(authHandler+".change_password: invalid request payload", err)
+		return apperrors.BadRequest("invalid request payload", err)
 	}
 	if err := req.Validate(); err != nil {
 		return err
@@ -77,7 +75,7 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) err
 func (h *AuthHandler) VerifyPassword(w http.ResponseWriter, r *http.Request) error {
 	var req auth.VerifyPasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return apperrors.BadRequest(authHandler+".verify_password: invalid request payload", err)
+		return apperrors.BadRequest("invalid request payload", err)
 	}
 	if err := req.Validate(); err != nil {
 		return err

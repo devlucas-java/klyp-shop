@@ -36,3 +36,50 @@ func NewAddress(userID id.UUID, street, city, state, country, postCode string, n
 		Postcode:  postCode,
 	}
 }
+
+func (a *Address) ChangeStreet(str string) {
+	if str == "" {
+		return
+	}
+	a.Street = str
+	a.UpdatedAt = time.Now()
+}
+func (a *Address) ChangeCity(city string) {
+	if city == "" {
+		return
+	}
+	a.City = city
+	a.UpdatedAt = time.Now()
+}
+
+func (a *Address) ChangeState(state string) {
+	if state == "" {
+		return
+	}
+	a.State = state
+	a.UpdatedAt = time.Now()
+}
+
+func (a *Address) ChangeCountry(country string) {
+	if country == "" {
+		return
+	}
+	a.Country = country
+	a.UpdatedAt = time.Now()
+}
+
+func (a *Address) ChangeNumber(number int32) {
+	if number <= 0 {
+		return
+	}
+	a.Number = number
+	a.UpdatedAt = time.Now()
+}
+
+func (a *Address) ChangePostcode(postcode string) {
+	if postcode == "" {
+		return
+	}
+	a.Postcode = postcode
+	a.UpdatedAt = time.Now()
+}

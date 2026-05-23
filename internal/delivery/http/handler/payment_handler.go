@@ -13,8 +13,6 @@ import (
 	"github.com/go-chi/chi"
 )
 
-const paymentHandlerTrace = "payment_handler.PaymentHandler"
-
 type PaymentHandler struct {
 	paymentService *service.PaymentService
 	log            *logger.Logger
@@ -29,17 +27,14 @@ func (h *PaymentHandler) CreateInvoice(w http.ResponseWriter, r *http.Request) e
 	if err != nil {
 		return err
 	}
-
 	orderID, err := id.Parse(chi.URLParam(r, "orderID"))
 	if err != nil {
-		return apperrors.InvalidUUID(paymentHandlerTrace+".create_invoice: invalid order id", err)
+		return apperrors.InvalidUUID(err)
 	}
-
 	res, err := h.paymentService.CreateInvoice(r.Context(), auth, orderID)
 	if err != nil {
 		return err
 	}
-
 	response.ResponseEntity(w, http.StatusCreated, res)
 	return nil
 }
@@ -49,17 +44,14 @@ func (h *PaymentHandler) GetPaymentStatus(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		return err
 	}
-
 	orderID, err := id.Parse(chi.URLParam(r, "orderID"))
 	if err != nil {
-		return apperrors.InvalidUUID(paymentHandlerTrace+".get_payment_status: invalid order id", err)
+		return apperrors.InvalidUUID(err)
 	}
-
 	res, err := h.paymentService.GetPaymentStatus(r.Context(), auth, orderID)
 	if err != nil {
 		return err
 	}
-
 	response.ResponseEntity(w, http.StatusOK, res)
 	return nil
 }
@@ -67,15 +59,12 @@ func (h *PaymentHandler) GetPaymentStatus(w http.ResponseWriter, r *http.Request
 func (h *PaymentHandler) Webhook(w http.ResponseWriter, r *http.Request) error {
 	body, err := io.ReadAll(io.LimitReader(r.Body, 65536))
 	if err != nil {
-		return apperrors.BadRequest(paymentHandlerTrace+".webhook: failed to read body", err)
+		return apperrors.BadRequest("failed to read request body", err)
 	}
-
 	signature := r.Header.Get("BTCPay-Sig")
-
 	if err := h.paymentService.HandleWebhook(r.Context(), body, signature); err != nil {
 		return err
 	}
-
 	w.WriteHeader(http.StatusOK)
 	return nil
 }

@@ -42,7 +42,7 @@ func (f *FeaturedProductRouter) RegisterFeaturedRoutes(r chi.Router) {
 
 	r.Group(func(protected chi.Router) {
 		protected.Use(middleware.JwtMiddleware(f.jwtService, f.log, f.userRepository))
-		protected.Use(middleware.RoleMiddleware([]enums.Role{enums.SELLER, enums.ADMIN}))
+		protected.Use(middleware.RoleMiddleware([]enums.Role{enums.SELLER, enums.ADMIN}, f.log))
 
 		protected.Get("/me", f.adapter.Adapt(f.featuredHandler.GetMyFeatured))
 		protected.Post("/", f.adapter.Adapt(f.featuredHandler.AddFeatured))

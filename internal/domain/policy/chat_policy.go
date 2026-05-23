@@ -6,8 +6,6 @@ import (
 	"github.com/devlucas-java/klyp-shop/internal/domain/enums"
 )
 
-const chatPolicy = "chat_policy.ChatPolicy"
-
 type ChatPolicy struct{}
 
 func NewChatPolicy() *ChatPolicy {
@@ -23,5 +21,5 @@ func (p *ChatPolicy) CanChat(sender, receiver *entity.User) error {
 		return nil
 	}
 
-	return apperrors.Forbidden(chatPolicy+".can_chat: users cannot chat with each other", nil)
+	return apperrors.Forbidden(nil)
 }

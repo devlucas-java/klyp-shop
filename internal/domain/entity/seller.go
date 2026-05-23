@@ -17,7 +17,7 @@ type Seller struct {
 	DisplayName string `gorm:"size:120;not null"`
 	Bio         string `gorm:"size:500"`
 
-	Products []Product
+	Products []Product `gorm:"foreignKey:SellerID;constraint:OnDelete:CASCADE;"`
 }
 
 func NewSeller(userID id.UUID, displayName, bio string) *Seller {

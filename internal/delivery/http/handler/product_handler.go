@@ -14,8 +14,6 @@ import (
 	"github.com/go-chi/chi"
 )
 
-const productHandlerTrace = "product_handler.ProductHandler"
-
 type ProductHandler struct {
 	productService *service.ProductService
 	log            *logger.Logger
@@ -30,10 +28,9 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) e
 	if err != nil {
 		return err
 	}
-
 	var dto product.CreateProduct
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		return apperrors.BadRequest(productHandlerTrace+".create_product: invalid request payload", err)
+		return apperrors.BadRequest("invalid request payload", err)
 	}
 	if err := dto.Validate(); err != nil {
 		return err
@@ -49,7 +46,7 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) e
 func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) error {
 	uuid, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		return apperrors.InvalidUUID(productHandlerTrace+".get_product_by_id: invalid product id", err)
+		return apperrors.InvalidUUID(err)
 	}
 	res, err := h.productService.GetProductByID(uuid)
 	if err != nil {
@@ -64,14 +61,13 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) e
 	if err != nil {
 		return err
 	}
-
 	uuid, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		return apperrors.InvalidUUID(productHandlerTrace+".update_product: invalid product id", err)
+		return apperrors.InvalidUUID(err)
 	}
 	var dto product.UpdateProduct
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		return apperrors.BadRequest(productHandlerTrace+".update_product: invalid request payload", err)
+		return apperrors.BadRequest("invalid request payload", err)
 	}
 	if err := dto.Validate(); err != nil {
 		return err
@@ -89,10 +85,9 @@ func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) e
 	if err != nil {
 		return err
 	}
-
 	uuid, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		return apperrors.InvalidUUID(productHandlerTrace+".delete_product: invalid product id", err)
+		return apperrors.InvalidUUID(err)
 	}
 	if err := h.productService.DeleteProduct(auth, uuid); err != nil {
 		return err
@@ -106,10 +101,9 @@ func (h *ProductHandler) SetTop10(w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
-
 	uuid, err := id.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		return apperrors.InvalidUUID(productHandlerTrace+".set_top10: invalid product id", err)
+		return apperrors.InvalidUUID(err)
 	}
 	res, err := h.productService.SetTop10(r.Context(), auth, uuid)
 	if err != nil {

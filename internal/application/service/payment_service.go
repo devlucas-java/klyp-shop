@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"math"
 
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/payment"
 	paymentDTO "github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/payment"
@@ -15,14 +14,7 @@ import (
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 )
 
-const paymentServiceTrace = "payment_service.PaymentService"
-
 const satsPerBTC = int64(100_000_000)
-
-// btcToSats converte um valor em BTC (float64) para satoshis (int64).
-func btcToSats(btc float64) int64 {
-	return int64(math.Round(btc * float64(satsPerBTC)))
-}
 
 type PaymentService struct {
 	log               *logger.Logger
@@ -51,14 +43,13 @@ func NewPaymentService(
 func (s *PaymentService) CreateInvoice(ctx context.Context, auth *entity.User, orderID id.UUID) (*payment.InvoiceResponse, error) {
 	order, err := s.orderRepository.FindByID(ctx, orderID)
 	if err != nil {
-		return nil, apperrors.NotFound(paymentServiceTrace+".create_invoice: order not found", err)
+		return nil, err
 	}
 
 	if err := order.CanBePaidBy(auth.ID); err != nil {
 		return nil, err
 	}
 
-	// Retorna invoice existente sem criar duplicata
 	existing, _ := s.paymentRepository.FindByOrderID(orderID)
 	if existing != nil {
 		return &payment.InvoiceResponse{
@@ -70,19 +61,17 @@ func (s *PaymentService) CreateInvoice(ctx context.Context, auth *entity.User, o
 		}, nil
 	}
 
-	amountSats := btcToSats(order.TotalBTC)
-
-	invoice, err := s.paymentGateway.CreateInvoice(orderID.String(), amountSats)
+	invoice, err := s.paymentGateway.CreateInvoice(orderID.String(), order.TotalBTC)
 	if err != nil {
-		return nil, apperrors.Internal(paymentServiceTrace+".create_invoice: failed to create invoice", err)
+		return nil, err
 	}
 
-	pay := entity.NewBitcoinPayment(orderID, invoice.CheckoutLink, amountSats)
+	pay := entity.NewBitcoinPayment(orderID, invoice.CheckoutLink, order.TotalBTC)
 	pay.TxHash = invoice.ID
 
 	saved, err := s.paymentRepository.Create(pay)
 	if err != nil {
-		return nil, apperrors.Database(paymentServiceTrace+".create_invoice: failed to save payment", err)
+		return nil, err
 	}
 
 	s.metric.PaymentsCreated.Inc()
@@ -101,7 +90,7 @@ func (s *PaymentService) CreateInvoice(ctx context.Context, auth *entity.User, o
 func (s *PaymentService) GetPaymentStatus(ctx context.Context, auth *entity.User, orderID id.UUID) (*payment.InvoiceResponse, error) {
 	order, err := s.orderRepository.FindByID(ctx, orderID)
 	if err != nil {
-		return nil, apperrors.NotFound(paymentServiceTrace+".get_payment_status: order not found", err)
+		return nil, err
 	}
 
 	if err := order.EnsureOwnedBy(auth.ID); err != nil {
@@ -110,7 +99,7 @@ func (s *PaymentService) GetPaymentStatus(ctx context.Context, auth *entity.User
 
 	pay, err := s.paymentRepository.FindByOrderID(orderID)
 	if err != nil {
-		return nil, apperrors.NotFound(paymentServiceTrace+".get_payment_status: payment not found", err)
+		return nil, err
 	}
 
 	if pay.TxHash != "" {
@@ -130,15 +119,13 @@ func (s *PaymentService) GetPaymentStatus(ctx context.Context, auth *entity.User
 	}, nil
 }
 
-// HandleWebhook recebe o payload bruto e delega parse + validação de assinatura ao gateway.
 func (s *PaymentService) HandleWebhook(ctx context.Context, rawBody []byte, signature string) error {
 	event, err := s.paymentGateway.ParseWebhook(rawBody, signature)
 	if err != nil {
-		return apperrors.Unauthorized(paymentServiceTrace+".handle_webhook: invalid webhook signature", err)
+		return err
 	}
 
-	s.log.Infof("PaymentService.HandleWebhook: type=%s invoiceID=%s orderID=%s",
-		event.Type, event.InvoiceID, event.OrderID)
+	s.log.Infof("webhook received: type=%s invoiceID=%s orderID=%s", event.Type, event.InvoiceID, event.OrderID)
 
 	switch event.Type {
 	case "InvoiceSettled", "InvoicePaymentSettled":
@@ -153,52 +140,52 @@ func (s *PaymentService) HandleWebhook(ctx context.Context, rawBody []byte, sign
 func (s *PaymentService) handleInvoiceSettled(ctx context.Context, event *port.WebhookEvent) error {
 	orderID, err := id.Parse(event.OrderID)
 	if err != nil {
-		return apperrors.InvalidUUID(paymentServiceTrace+".handle_invoice_settled: invalid order id", err)
+		return apperrors.InvalidUUID(err)
 	}
 
 	pay, err := s.paymentRepository.FindByOrderID(orderID)
 	if err != nil {
-		return apperrors.NotFound(paymentServiceTrace+".handle_invoice_settled: payment not found", err)
+		return err
 	}
 
 	pay.Confirm(event.InvoiceID)
 	if _, err := s.paymentRepository.Save(pay); err != nil {
-		return apperrors.Database(paymentServiceTrace+".handle_invoice_settled: failed to update payment", err)
+		return err
 	}
 
 	order, err := s.orderRepository.FindByID(ctx, orderID)
 	if err != nil {
-		return apperrors.NotFound(paymentServiceTrace+".handle_invoice_settled: order not found", err)
+		return err
 	}
 
 	order.MarkAsPaid()
 	if _, err := s.orderRepository.Updates(ctx, order); err != nil {
-		return apperrors.Database(paymentServiceTrace+".handle_invoice_settled: failed to update order", err)
+		return err
 	}
 
 	s.metric.PaymentsSettled.Inc()
-	s.log.Infof("PaymentService: order %s marked as paid", orderID)
+	s.log.Infof("order %s marked as paid", orderID)
 	return nil
 }
 
 func (s *PaymentService) handleInvoiceFailed(event *port.WebhookEvent) error {
 	orderID, err := id.Parse(event.OrderID)
 	if err != nil {
-		return apperrors.InvalidUUID(paymentServiceTrace+".handle_invoice_failed: invalid order id", err)
+		return apperrors.InvalidUUID(err)
 	}
 
 	pay, err := s.paymentRepository.FindByOrderID(orderID)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	pay.Fail()
 	if _, err := s.paymentRepository.Save(pay); err != nil {
-		return apperrors.Database(paymentServiceTrace+".handle_invoice_failed: failed to update payment", err)
+		return err
 	}
 
 	s.metric.PaymentsFailed.Inc()
-	s.log.Infof("PaymentService: payment for order %s marked as failed", orderID)
+	s.log.Infof("payment for order %s marked as failed", orderID)
 	return nil
 }
 

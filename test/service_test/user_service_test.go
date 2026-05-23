@@ -31,6 +31,8 @@ func newUser() *entity.User {
 	}
 }
 
+// ── GetMe ─────────────────────────────────────────────────────────────────────
+
 func TestGetMe(t *testing.T) {
 	userRepo := new(mocks.UserRepositoryMock)
 	svc := newUserService(userRepo)
@@ -59,6 +61,8 @@ func TestGetMe_NotFound(t *testing.T) {
 	userRepo.AssertExpectations(t)
 }
 
+// ── UpdateMe ──────────────────────────────────────────────────────────────────
+
 func TestUpdateMe_Name(t *testing.T) {
 	userRepo := new(mocks.UserRepositoryMock)
 	svc := newUserService(userRepo)
@@ -68,13 +72,50 @@ func TestUpdateMe_Name(t *testing.T) {
 	updated.Name = "Updated Name"
 
 	userRepo.On("FindByID", user.ID).Return(user, nil)
-	userRepo.On("FindByEmailOrUsername", mock.Anything).Return(nil, apperrors.NotFound("User", nil)).Maybe()
 	userRepo.On("Update", mock.AnythingOfType("*entity.User")).Return(&updated, nil)
 
 	res, err := svc.UpdateMe(user, &userDTO.UpdateUserRequest{Name: "Updated Name"})
 
 	assert.NoError(t, err)
 	assert.Equal(t, "Updated Name", res.Name)
+	userRepo.AssertExpectations(t)
+}
+
+func TestUpdateMe_Email_NewAvailable(t *testing.T) {
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newUserService(userRepo)
+
+	user := newUser()
+	updated := *user
+	updated.Email = "new@test.com"
+
+	userRepo.On("FindByID", user.ID).Return(user, nil)
+	userRepo.On("ExistsUserByEmail", "new@test.com").Return(false, nil)
+	userRepo.On("Update", mock.AnythingOfType("*entity.User")).Return(&updated, nil)
+
+	res, err := svc.UpdateMe(user, &userDTO.UpdateUserRequest{Email: "new@test.com"})
+
+	assert.NoError(t, err)
+	assert.Equal(t, "new@test.com", res.Email)
+	userRepo.AssertExpectations(t)
+}
+
+func TestUpdateMe_Email_SameAsCurrent_SkipsConflictCheck(t *testing.T) {
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newUserService(userRepo)
+
+	user := newUser()
+	updated := *user
+
+	userRepo.On("FindByID", user.ID).Return(user, nil)
+	userRepo.On("Update", mock.AnythingOfType("*entity.User")).Return(&updated, nil)
+
+	// sending the same email should not trigger ExistsUserByEmail
+	res, err := svc.UpdateMe(user, &userDTO.UpdateUserRequest{Email: user.Email})
+
+	assert.NoError(t, err)
+	assert.Equal(t, user.Email, res.Email)
+	userRepo.AssertNotCalled(t, "ExistsUserByEmail")
 	userRepo.AssertExpectations(t)
 }
 
@@ -90,6 +131,44 @@ func TestUpdateMe_EmailConflict(t *testing.T) {
 	_, err := svc.UpdateMe(user, &userDTO.UpdateUserRequest{Email: "taken@test.com"})
 
 	assert.Error(t, err)
+	userRepo.AssertNotCalled(t, "Update")
+	userRepo.AssertExpectations(t)
+}
+
+func TestUpdateMe_Username_NewAvailable(t *testing.T) {
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newUserService(userRepo)
+
+	user := newUser()
+	updated := *user
+	updated.Username = "newuser"
+
+	userRepo.On("FindByID", user.ID).Return(user, nil)
+	userRepo.On("ExistsUserByUserName", "newuser").Return(false, nil)
+	userRepo.On("Update", mock.AnythingOfType("*entity.User")).Return(&updated, nil)
+
+	res, err := svc.UpdateMe(user, &userDTO.UpdateUserRequest{Username: "newuser"})
+
+	assert.NoError(t, err)
+	assert.Equal(t, "newuser", res.Username)
+	userRepo.AssertExpectations(t)
+}
+
+func TestUpdateMe_Username_SameAsCurrent_SkipsConflictCheck(t *testing.T) {
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newUserService(userRepo)
+
+	user := newUser()
+	updated := *user
+
+	userRepo.On("FindByID", user.ID).Return(user, nil)
+	userRepo.On("Update", mock.AnythingOfType("*entity.User")).Return(&updated, nil)
+
+	res, err := svc.UpdateMe(user, &userDTO.UpdateUserRequest{Username: user.Username})
+
+	assert.NoError(t, err)
+	assert.Equal(t, user.Username, res.Username)
+	userRepo.AssertNotCalled(t, "ExistsUserByUserName")
 	userRepo.AssertExpectations(t)
 }
 
@@ -105,8 +184,24 @@ func TestUpdateMe_UsernameConflict(t *testing.T) {
 	_, err := svc.UpdateMe(user, &userDTO.UpdateUserRequest{Username: "takenuser"})
 
 	assert.Error(t, err)
+	userRepo.AssertNotCalled(t, "Update")
 	userRepo.AssertExpectations(t)
 }
+
+func TestUpdateMe_UserNotFound(t *testing.T) {
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newUserService(userRepo)
+
+	ghost := &entity.User{ID: id.NewUUID()}
+	userRepo.On("FindByID", ghost.ID).Return(nil, apperrors.NotFound("User", nil))
+
+	_, err := svc.UpdateMe(ghost, &userDTO.UpdateUserRequest{Name: "X"})
+
+	assert.Error(t, err)
+	userRepo.AssertExpectations(t)
+}
+
+// ── DeleteMe ──────────────────────────────────────────────────────────────────
 
 func TestDeleteMe(t *testing.T) {
 	userRepo := new(mocks.UserRepositoryMock)
@@ -132,8 +227,11 @@ func TestDeleteMe_NotFound(t *testing.T) {
 	err := svc.DeleteMe(ghost)
 
 	assert.Error(t, err)
+	userRepo.AssertNotCalled(t, "DeleteByID")
 	userRepo.AssertExpectations(t)
 }
+
+// ── PromoteToAdmin ────────────────────────────────────────────────────────────
 
 func TestPromoteToAdmin(t *testing.T) {
 	userRepo := new(mocks.UserRepositoryMock)
@@ -163,6 +261,7 @@ func TestPromoteToAdmin_AlreadyAdmin(t *testing.T) {
 	err := svc.PromoteToAdmin(user.ID)
 
 	assert.Error(t, err)
+	userRepo.AssertNotCalled(t, "Update")
 	userRepo.AssertExpectations(t)
 }
 
@@ -177,8 +276,24 @@ func TestPromoteToAdmin_IsSeller(t *testing.T) {
 	err := svc.PromoteToAdmin(user.ID)
 
 	assert.Error(t, err)
+	userRepo.AssertNotCalled(t, "Update")
 	userRepo.AssertExpectations(t)
 }
+
+func TestPromoteToAdmin_UserNotFound(t *testing.T) {
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newUserService(userRepo)
+
+	ghostID := id.NewUUID()
+	userRepo.On("FindByID", ghostID).Return(nil, apperrors.NotFound("User", nil))
+
+	err := svc.PromoteToAdmin(ghostID)
+
+	assert.Error(t, err)
+	userRepo.AssertExpectations(t)
+}
+
+// ── DemoteToUser ──────────────────────────────────────────────────────────────
 
 func TestDemoteToUser(t *testing.T) {
 	userRepo := new(mocks.UserRepositoryMock)
@@ -202,10 +317,40 @@ func TestDemoteToUser_AlreadyUser(t *testing.T) {
 	userRepo := new(mocks.UserRepositoryMock)
 	svc := newUserService(userRepo)
 
-	user := newUser()
+	user := newUser() // role is USER by default
 	userRepo.On("FindByID", user.ID).Return(user, nil)
 
 	err := svc.DemoteToUser(user.ID)
+
+	assert.Error(t, err)
+	userRepo.AssertNotCalled(t, "Update")
+	userRepo.AssertExpectations(t)
+}
+
+func TestDemoteToUser_IsSeller(t *testing.T) {
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newUserService(userRepo)
+
+	user := newUser()
+	user.IsSeller = true
+	user.Roles = []enums.Role{enums.SELLER}
+	userRepo.On("FindByID", user.ID).Return(user, nil)
+
+	err := svc.DemoteToUser(user.ID)
+
+	assert.Error(t, err)
+	userRepo.AssertNotCalled(t, "Update")
+	userRepo.AssertExpectations(t)
+}
+
+func TestDemoteToUser_UserNotFound(t *testing.T) {
+	userRepo := new(mocks.UserRepositoryMock)
+	svc := newUserService(userRepo)
+
+	ghostID := id.NewUUID()
+	userRepo.On("FindByID", ghostID).Return(nil, apperrors.NotFound("User", nil))
+
+	err := svc.DemoteToUser(ghostID)
 
 	assert.Error(t, err)
 	userRepo.AssertExpectations(t)

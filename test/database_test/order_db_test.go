@@ -74,7 +74,7 @@ func TestCreateOrder(t *testing.T) {
 		UserID:    user.ID,
 		AddressID: address.ID,
 		Status:    entity.OrderStatusPending,
-		TotalBTC:  0.5,
+		TotalBTC:  05,
 	}
 
 	res, err := orderRepo.Create(ctxOrder, order)
@@ -96,7 +96,7 @@ func TestUpdateOrder(t *testing.T) {
 		UserID:    user.ID,
 		AddressID: address.ID,
 		Status:    entity.OrderStatusPending,
-		TotalBTC:  0.5,
+		TotalBTC:  05,
 	}
 	require.NoError(t, dbOrder.Create(order).Error)
 
@@ -117,7 +117,7 @@ func TestDeleteOrder(t *testing.T) {
 		UserID:    user.ID,
 		AddressID: address.ID,
 		Status:    entity.OrderStatusPending,
-		TotalBTC:  0.5,
+		TotalBTC:  05,
 	}
 	require.NoError(t, dbOrder.Create(order).Error)
 

@@ -98,6 +98,23 @@ func InitDB(log *logger.Logger) *gorm.DB {
 		panic(err)
 	}
 
+	// Manual schema fixes: alter column types and constraints that AutoMigrate cannot change automatically.
+	manualMigrations := []string{
+		// Fix total_btc: was created as decimal(18,8) but the domain uses int64 (satoshis).
+		`ALTER TABLE shopping_carts ALTER COLUMN total_btc TYPE bigint USING total_btc::bigint`,
+		// Fix seller -> products FK: drop old constraint and recreate with ON DELETE CASCADE.
+		`ALTER TABLE products DROP CONSTRAINT IF EXISTS fk_sellers_products`,
+		`ALTER TABLE products ADD CONSTRAINT fk_sellers_products FOREIGN KEY (seller_id) REFERENCES sellers(id) ON DELETE CASCADE`,
+		// Fix product -> shopping_cart_items FK: drop old constraint and recreate with ON DELETE CASCADE.
+		`ALTER TABLE shopping_cart_items DROP CONSTRAINT IF EXISTS fk_shopping_cart_items_product`,
+		`ALTER TABLE shopping_cart_items ADD CONSTRAINT fk_shopping_cart_items_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE`,
+	}
+	for _, sql := range manualMigrations {
+		if err := db.Exec(sql).Error; err != nil {
+			log.Warnf("manual migration skipped or failed (may already be applied): %v", err)
+		}
+	}
+
 	err = db.AutoMigrate(
 		&entity.User{},
 		&entity.Seller{},

@@ -7,8 +7,6 @@ import (
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 )
 
-const orderEntity = "order_entity.Order"
-
 type OrderStatus string
 
 const (
@@ -31,16 +29,16 @@ type Order struct {
 	Address   Address
 
 	Status   OrderStatus `gorm:"default:'pending'"`
-	TotalBTC float64
+	TotalBTC int64
 
 	Items          []OrderItem
 	BitcoinPayment *BitcoinPayment
 }
 
 func NewOrder(userID, addressID id.UUID, items []OrderItem) *Order {
-	var total float64
+	var total int64
 	for _, item := range items {
-		total += item.PriceBTC * float64(item.Quantity)
+		total += item.PriceBTC * int64(item.Quantity)
 	}
 
 	now := time.Now()
@@ -62,7 +60,7 @@ func (o *Order) IsOwnedBy(userID id.UUID) bool {
 
 func (o *Order) EnsureOwnedBy(userID id.UUID) error {
 	if !o.IsOwnedBy(userID) {
-		return apperrors.Forbidden(orderEntity+".ensure_owned_by: order does not belong to user", nil)
+		return apperrors.Forbidden(nil)
 	}
 	return nil
 }
@@ -76,7 +74,7 @@ func (o *Order) CanBePaidBy(userID id.UUID) error {
 		return err
 	}
 	if o.Status != OrderStatusPending {
-		return apperrors.Conflict(orderEntity+".can_be_paid_by: order is not in pending status", nil)
+		return apperrors.Conflict("this order cannot be paid because it is not in pending status", nil)
 	}
 	return nil
 }
@@ -98,7 +96,7 @@ func (o *Order) MarkAsDelivered() {
 
 func (o *Order) CancelPending() error {
 	if o.Status != OrderStatusPending {
-		return apperrors.Conflict(orderEntity+".cancel_pending: only pending orders can be cancelled", nil)
+		return apperrors.Conflict("only pending orders can be cancelled", nil)
 	}
 	o.Status = OrderStatusCancelled
 	o.UpdatedAt = time.Now()

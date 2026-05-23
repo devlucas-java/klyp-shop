@@ -4,41 +4,36 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
+	"github.com/go-chi/chi/middleware"
 )
 
-func ResponseError(w http.ResponseWriter, err error, log *logger.Logger) {
-	var apiErr *apperrors.APIError
-	if errors.As(err, &apiErr) {
-		ResponseEntity(w, apiErr.Status, apiErr)
-		return
-	}
-
-	mapped := apperrors.ToAPIError(err)
-
-	logByKind(log, err, mapped)
-
-	ResponseEntity(w, mapped.Status, mapped)
+type apiErrorInterface interface {
+	APIError() (int, string)
 }
 
-func logByKind(log *logger.Logger, original error, mapped *apperrors.APIError) {
-	var domainErr *apperrors.DomainError
-	if !errors.As(original, &domainErr) {
-		log.Errorf("unhandled error: %v", original)
+func ResponseError(w http.ResponseWriter, r *http.Request, err error, log *logger.Logger) {
+	requestID := middleware.GetReqID(r.Context())
+
+	var appErr apiErrorInterface
+	if errors.As(err, &appErr) {
+		status, msg := appErr.APIError()
+		logByStatus(log, requestID, status, err)
+		ResponseEntity(w, status, map[string]string{"message": msg})
 		return
 	}
 
-	switch domainErr.Kind {
-	case apperrors.KindForbidden, apperrors.KindUnauthorized:
-		log.Warnf("[%s] %v", domainErr.Kind, original)
+	log.Errorf("[%s] unhandled error (500): %v", requestID, err)
+	ResponseEntity(w, http.StatusInternalServerError, map[string]string{
+		"message": "an unexpected error occurred, please try again later",
+	})
+}
 
-	case apperrors.KindDatabase, apperrors.KindInternal:
-		log.Errorf("[%s] %v", domainErr.Kind, original)
-
-	case apperrors.KindNotFound, apperrors.KindConflict,
-		apperrors.KindUnprocessable, apperrors.KindBadRequest,
-		apperrors.KindInvalidUUID, apperrors.KindNotNull,
-		apperrors.KindCheckViolation, apperrors.KindInvalidText:
+func logByStatus(log *logger.Logger, requestID string, status int, err error) {
+	switch {
+	case status >= 500:
+		log.Errorf("[%s] internal error (%d): %v", requestID, status, err)
+	case status == http.StatusUnauthorized || status == http.StatusForbidden:
+		log.Warnf("[%s] auth error (%d): %v", requestID, status, err)
 	}
 }

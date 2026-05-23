@@ -10,8 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const bitcoinPaymentDB = "bitcoin_payment_db.BitcoinPaymentDB"
-
 type BitcoinPaymentDB struct {
 	db *gorm.DB
 }
@@ -22,21 +20,21 @@ func NewBitcoinPaymentDB(db *gorm.DB) repository.BitcoinPaymentRepository {
 
 func (b *BitcoinPaymentDB) Create(payment *entity.BitcoinPayment) (*entity.BitcoinPayment, error) {
 	if err := b.db.WithContext(context.Background()).Create(payment).Error; err != nil {
-		return nil, apperrors.HandlePgError(bitcoinPaymentDB+".create", err)
+		return nil, apperrors.HandlePgError("payment", err)
 	}
 	return payment, nil
 }
 
 func (b *BitcoinPaymentDB) Save(payment *entity.BitcoinPayment) (*entity.BitcoinPayment, error) {
 	if err := b.db.WithContext(context.Background()).Where("id = ?", payment.ID).Save(payment).Error; err != nil {
-		return nil, apperrors.HandlePgError(bitcoinPaymentDB+".save", err)
+		return nil, apperrors.HandlePgError("payment", err)
 	}
 	return payment, nil
 }
 
 func (b *BitcoinPaymentDB) Updates(payment *entity.BitcoinPayment) (*entity.BitcoinPayment, error) {
 	if err := b.db.WithContext(context.Background()).Model(payment).Where("id = ?", payment.ID).Updates(payment).Error; err != nil {
-		return nil, apperrors.HandlePgError(bitcoinPaymentDB+".updates", err)
+		return nil, apperrors.HandlePgError("payment", err)
 	}
 	return payment, nil
 }
@@ -49,7 +47,7 @@ func (b *BitcoinPaymentDB) FindByID(paymentID id.UUID) (*entity.BitcoinPayment, 
 	var payment entity.BitcoinPayment
 	err := b.db.WithContext(context.Background()).First(&payment, "id = ?", paymentID).Error
 	if err != nil {
-		return nil, apperrors.HandlePgError(bitcoinPaymentDB+".find_by_id", err)
+		return nil, apperrors.HandlePgError("payment", err)
 	}
 	return &payment, nil
 }
@@ -58,7 +56,7 @@ func (b *BitcoinPaymentDB) FindByOrderID(orderID id.UUID) (*entity.BitcoinPaymen
 	var payment entity.BitcoinPayment
 	err := b.db.WithContext(context.Background()).Where("order_id = ?", orderID).First(&payment).Error
 	if err != nil {
-		return nil, apperrors.HandlePgError(bitcoinPaymentDB+".find_by_order_id", err)
+		return nil, apperrors.HandlePgError("payment", err)
 	}
 	return &payment, nil
 }
@@ -67,14 +65,14 @@ func (b *BitcoinPaymentDB) FindByTxHash(txHash string) (*entity.BitcoinPayment, 
 	var payment entity.BitcoinPayment
 	err := b.db.WithContext(context.Background()).Where("tx_hash = ?", txHash).First(&payment).Error
 	if err != nil {
-		return nil, apperrors.HandlePgError(bitcoinPaymentDB+".find_by_tx_hash", err)
+		return nil, apperrors.HandlePgError("payment", err)
 	}
 	return &payment, nil
 }
 
 func (b *BitcoinPaymentDB) DeleteByID(paymentID id.UUID) error {
 	if err := b.db.WithContext(context.Background()).Delete(&entity.BitcoinPayment{}, "id = ?", paymentID).Error; err != nil {
-		return apperrors.HandlePgError(bitcoinPaymentDB+".delete_by_id", err)
+		return apperrors.HandlePgError("payment", err)
 	}
 	return nil
 }

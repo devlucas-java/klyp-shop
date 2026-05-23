@@ -1,6 +1,7 @@
 
 
 .env
+OBS.md
 
 ### STS ###
 .apt_generated
@@ -12,6 +13,7 @@
 
 ## Vs Code ##
 .vscode/
+.kiro/
 
 ### IntelliJ IDEA ###
 .idea

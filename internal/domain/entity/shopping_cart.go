@@ -7,15 +7,13 @@ import (
 	"github.com/devlucas-java/klyp-shop/pkg/id"
 )
 
-const shoppingCartEntity = "shopping_cart_entity.ShoppingCart"
-
 type ShoppingCart struct {
 	ID        id.UUID             `gorm:"type:uuid;primaryKey"`
 	CreatedAt time.Time           `gorm:"autoCreateTime"`
 	UpdatedAt time.Time           `gorm:"autoUpdateTime"`
 	UserID    id.UUID             `gorm:"index;not null"`
 	Items     []*ShoppingCartItem `gorm:"foreignKey:CartID;constraint:OnDelete:CASCADE;"`
-	TotalBTC  float64             `gorm:"type:decimal(18,8);not null"`
+	TotalBTC  int64               `gorm:"type:bigint;not null;default:0"`
 }
 
 func NewShoppingCart(userID id.UUID) *ShoppingCart {
@@ -31,10 +29,10 @@ func NewShoppingCart(userID id.UUID) *ShoppingCart {
 
 func (c *ShoppingCart) AddItem(item *ShoppingCartItem) error {
 	if item == nil {
-		return apperrors.BadRequest(shoppingCartEntity+".add_item: invalid shopping cart item", nil)
+		return apperrors.BadRequest("invalid shopping cart item", nil)
 	}
 	if item.CartID != c.ID {
-		return apperrors.BadRequest(shoppingCartEntity+".add_item: shopping cart item cart mismatch", nil)
+		return apperrors.BadRequest("item does not belong to this cart", nil)
 	}
 
 	c.Items = append(c.Items, item)
@@ -44,12 +42,12 @@ func (c *ShoppingCart) AddItem(item *ShoppingCartItem) error {
 
 func (c *ShoppingCart) UpdateItemQuantity(itemID id.UUID, quantity int) error {
 	if quantity <= 0 {
-		return apperrors.BadRequest(shoppingCartEntity+".update_item_quantity: quantity must be greater than zero", nil)
+		return apperrors.BadRequest("quantity must be greater than zero", nil)
 	}
 
 	item := c.FindItem(itemID)
 	if item == nil {
-		return apperrors.NotFound(shoppingCartEntity+".update_item_quantity: shopping cart item not found", nil)
+		return apperrors.NotFound("item not found in cart", nil)
 	}
 
 	if err := item.SetQuantity(quantity); err != nil {
@@ -72,7 +70,7 @@ func (c *ShoppingCart) RemoveItem(itemID id.UUID) error {
 	}
 
 	if !removed {
-		return apperrors.NotFound(shoppingCartEntity+".remove_item: shopping cart item not found", nil)
+		return apperrors.NotFound("item not found in cart", nil)
 	}
 
 	c.Items = updatedItems
@@ -90,8 +88,17 @@ func (c *ShoppingCart) FindItem(itemID id.UUID) *ShoppingCartItem {
 	return nil
 }
 
+func (c *ShoppingCart) FindItemByProductID(productID id.UUID) *ShoppingCartItem {
+	for _, item := range c.Items {
+		if item.ProductID == productID {
+			return item
+		}
+	}
+	return nil
+}
+
 func (c *ShoppingCart) RecalculateTotal() {
-	var total float64
+	var total int64
 	for _, item := range c.Items {
 		total += item.Subtotal()
 	}

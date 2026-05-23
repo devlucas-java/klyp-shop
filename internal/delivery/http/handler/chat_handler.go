@@ -15,8 +15,6 @@ import (
 	"github.com/go-chi/chi"
 )
 
-const chatHandlerTrace = "chat_handler.ChatHandler"
-
 type ChatHandler struct {
 	chatService *service.ChatService
 	log         *logger.Logger
@@ -31,20 +29,17 @@ func (h *ChatHandler) SendMessage(w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
-
 	var req chat.SendMessageRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return apperrors.BadRequest(chatHandlerTrace+".send_message: invalid request payload", err)
+		return apperrors.BadRequest("invalid request payload", err)
 	}
 	if err := req.Validate(); err != nil {
-		return apperrors.BadRequest(chatHandlerTrace+".send_message: "+err.Error(), nil)
+		return apperrors.BadRequest(err.Error(), nil)
 	}
-
 	res, err := h.chatService.SendMessage(auth, &req)
 	if err != nil {
 		return err
 	}
-
 	response.ResponseEntity(w, http.StatusCreated, res)
 	return nil
 }
@@ -54,20 +49,16 @@ func (h *ChatHandler) GetConversation(w http.ResponseWriter, r *http.Request) er
 	if err != nil {
 		return err
 	}
-
 	peerID, err := id.Parse(chi.URLParam(r, "peerID"))
 	if err != nil {
-		return apperrors.InvalidUUID(chatHandlerTrace+".get_conversation: invalid peer id", err)
+		return apperrors.InvalidUUID(err)
 	}
-
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
-
 	msgs, err := h.chatService.GetConversation(auth, peerID, limit, offset)
 	if err != nil {
 		return err
 	}
-
 	response.ResponseEntity(w, http.StatusOK, msgs)
 	return nil
 }

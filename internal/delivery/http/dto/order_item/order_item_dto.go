@@ -8,11 +8,11 @@ type OrderItemRequest struct {
 }
 
 type OrderItemResponse struct {
-	ID        string  `json:"id"`
-	ProductID string  `json:"product_id"`
-	Quantity  int     `json:"quantity"`
-	PriceBTC  float64 `json:"price_btc"`
-	Subtotal  float64 `json:"subtotal"`
+	ID        string `json:"id"`
+	ProductID string `json:"product_id"`
+	Quantity  int    `json:"quantity"`
+	PriceBTC  int64  `json:"price_btc"`
+	Subtotal  int64  `json:"subtotal"`
 }
 
 func (r *OrderItemRequest) Validate() error {

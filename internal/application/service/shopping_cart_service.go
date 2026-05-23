@@ -3,13 +3,10 @@ package service
 import (
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/cart"
 	"github.com/devlucas-java/klyp-shop/internal/delivery/http/dto/mapper"
-	"github.com/devlucas-java/klyp-shop/internal/domain/apperrors"
 	"github.com/devlucas-java/klyp-shop/internal/domain/entity"
 	"github.com/devlucas-java/klyp-shop/internal/infrastructure/repository"
 	"github.com/devlucas-java/klyp-shop/pkg/logger"
 )
-
-const shoppingCartServiceTrace = "shopping_cart_service.ShoppingCartService"
 
 type ShoppingCartService struct {
 	log            *logger.Logger
@@ -30,17 +27,26 @@ func NewShoppingCartService(
 }
 
 func (s *ShoppingCartService) GetCart(auth *entity.User) (*cart.ShoppingCartResponse, error) {
-	c, err := s.cartRepository.FindByUserID(auth.ID)
+	cart, err := s.cartRepository.FindByUserID(auth.ID)
+
 	if err != nil {
-		return nil, apperrors.Database(shoppingCartServiceTrace+".get_cart: failed to get shopping cart", err)
+		return nil, err
 	}
-	return s.cartMapper.ShoppingCartToResponse(c), nil
+
+	return s.cartMapper.ShoppingCartToResponse(cart), nil
 }
 
 func (s *ShoppingCartService) ClearCart(auth *entity.User) error {
-	c, err := s.cartRepository.FindByUserID(auth.ID)
+	cart, err := s.cartRepository.FindByUserID(auth.ID)
+
 	if err != nil {
-		return apperrors.Database(shoppingCartServiceTrace+".clear_cart: failed to get shopping cart", err)
+		return err
 	}
-	return s.cartRepository.DeleteByID(c.ID)
+
+	if err := s.cartRepository.DeleteByID(cart.ID); err != nil {
+		return err
+	}
+
+	_, err = s.cartRepository.Create(entity.NewShoppingCart(auth.ID))
+	return err
 }
