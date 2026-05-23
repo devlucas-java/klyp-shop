@@ -1,43 +1,42 @@
 package apperrors
 
 import (
-	goErrors "errors"
+	"errors"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
 )
 
 const (
-	pgErrUniqueViolation     = "23505"
-	pgErrForeignKeyViolation = "23503"
-	pgErrNotNullViolation    = "23502"
-	pgErrCheckViolation      = "23514"
-	pgErrInvalidText         = "22P02"
+	pgUniqueViolation     = "23505"
+	pgForeignKeyViolation = "23503"
+	pgNotNullViolation    = "23502"
+	pgCheckViolation      = "23514"
+	pgInvalidText         = "22P02"
 )
 
-func HandlePgError(trace string, err error) *DomainError {
-	var pgErr *pgconn.PgError
-
-	if goErrors.Is(err, gorm.ErrRecordNotFound) {
-		return NotFound(trace+": record not found", err)
+func HandlePgError(resource string, err error) *AppError {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return NotFound(resource+" resource was not found", err)
 	}
 
-	if !goErrors.As(err, &pgErr) {
-		return Database(trace+": unexpected database error", err)
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
+		return Internal(err)
 	}
 
 	switch pgErr.Code {
-	case pgErrUniqueViolation:
-		return Conflict(trace+": unique constraint violation", err)
-	case pgErrForeignKeyViolation:
-		return NotFound(trace+": foreign key constraint violation", err)
-	case pgErrNotNullViolation:
-		return NotNull(trace+": not null constraint violation", err)
-	case pgErrCheckViolation:
-		return CheckViolation(trace+": check constraint violation", err)
-	case pgErrInvalidText:
-		return InvalidText(trace+": invalid text representation", err)
+	case pgUniqueViolation:
+		return Conflict(resource+" a record with this data already exists", err)
+	case pgForeignKeyViolation:
+		return Internal(err)
+	case pgNotNullViolation:
+		return BadRequest(resource+" a required field was not provided", err)
+	case pgCheckViolation:
+		return BadRequest(resource+" the provided data violates a constraint", err)
+	case pgInvalidText:
+		return BadRequest(resource+" contains an invalid value", err)
 	default:
-		return Database(trace+": unexpected database error", err)
+		return Internal(err)
 	}
 }

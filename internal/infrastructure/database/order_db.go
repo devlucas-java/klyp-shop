@@ -10,8 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const orderDB = "order_db.OrderDB"
-
 type OrderDB struct {
 	db *gorm.DB
 }
@@ -23,17 +21,17 @@ func NewOrderDB(db *gorm.DB) repository.OrderRepository {
 func (o *OrderDB) Create(ctx context.Context, order *entity.Order) (*entity.Order, error) {
 	tx := o.db.WithContext(ctx).Begin()
 	if tx.Error != nil {
-		return nil, apperrors.HandlePgError(orderDB+".create", tx.Error)
+		return nil, apperrors.HandlePgError("order", tx.Error)
 	}
 
 	if err := tx.Create(order).Error; err != nil {
 		tx.Rollback()
-		return nil, apperrors.HandlePgError(orderDB+".create", err)
+		return nil, apperrors.HandlePgError("order", err)
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		return nil, apperrors.HandlePgError(orderDB+".create", err)
+		return nil, apperrors.HandlePgError("order", err)
 	}
 
 	return order, nil
@@ -42,17 +40,17 @@ func (o *OrderDB) Create(ctx context.Context, order *entity.Order) (*entity.Orde
 func (o *OrderDB) Save(ctx context.Context, order *entity.Order) (*entity.Order, error) {
 	tx := o.db.WithContext(ctx).Begin()
 	if tx.Error != nil {
-		return nil, apperrors.HandlePgError(orderDB+".save", tx.Error)
+		return nil, apperrors.HandlePgError("order", tx.Error)
 	}
 
 	if err := tx.Where("id = ?", order.ID).Save(order).Error; err != nil {
 		tx.Rollback()
-		return nil, apperrors.HandlePgError(orderDB+".save", err)
+		return nil, apperrors.HandlePgError("order", err)
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		return nil, apperrors.HandlePgError(orderDB+".save", err)
+		return nil, apperrors.HandlePgError("order", err)
 	}
 
 	return order, nil
@@ -61,17 +59,17 @@ func (o *OrderDB) Save(ctx context.Context, order *entity.Order) (*entity.Order,
 func (o *OrderDB) Updates(ctx context.Context, order *entity.Order) (*entity.Order, error) {
 	tx := o.db.WithContext(ctx).Begin()
 	if tx.Error != nil {
-		return nil, apperrors.HandlePgError(orderDB+".updates", tx.Error)
+		return nil, apperrors.HandlePgError("order", tx.Error)
 	}
 
 	if err := tx.Model(order).Where("id = ?", order.ID).Updates(order).Error; err != nil {
 		tx.Rollback()
-		return nil, apperrors.HandlePgError(orderDB+".updates", err)
+		return nil, apperrors.HandlePgError("order", err)
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		return nil, apperrors.HandlePgError(orderDB+".updates", err)
+		return nil, apperrors.HandlePgError("order", err)
 	}
 
 	return order, nil
@@ -94,7 +92,7 @@ func (o *OrderDB) FindByID(ctx context.Context, orderID id.UUID) (*entity.Order,
 		Preload("BitcoinPayment").
 		First(&order, "id = ?", orderID).Error
 	if err != nil {
-		return nil, apperrors.HandlePgError(orderDB+".find_by_id", err)
+		return nil, apperrors.HandlePgError("order", err)
 	}
 	return &order, nil
 }
@@ -113,7 +111,7 @@ func (o *OrderDB) FindAllPaginated(ctx context.Context, page, size int, status s
 		countQ = countQ.Where("status = ?", status)
 	}
 	if err := countQ.Count(&total).Error; err != nil {
-		return nil, 0, apperrors.HandlePgError(orderDB+".find_all_paginated", err)
+		return nil, 0, apperrors.HandlePgError("order", err)
 	}
 
 	var orders []*entity.Order
@@ -129,7 +127,7 @@ func (o *OrderDB) FindAllPaginated(ctx context.Context, page, size int, status s
 		q = q.Where("status = ?", status)
 	}
 	if err := q.Find(&orders).Error; err != nil {
-		return nil, 0, apperrors.HandlePgError(orderDB+".find_all_paginated", err)
+		return nil, 0, apperrors.HandlePgError("order", err)
 	}
 	return orders, total, nil
 }
@@ -152,7 +150,7 @@ func (o *OrderDB) FindBySellerIDPaginated(ctx context.Context, sellerID id.UUID,
 
 	var total int64
 	if err := baseQ.Model(&entity.Order{}).Distinct("orders.id").Count(&total).Error; err != nil {
-		return nil, 0, apperrors.HandlePgError(orderDB+".find_by_seller_id_paginated", err)
+		return nil, 0, apperrors.HandlePgError("order", err)
 	}
 
 	var orders []*entity.Order
@@ -172,7 +170,7 @@ func (o *OrderDB) FindBySellerIDPaginated(ctx context.Context, sellerID id.UUID,
 		q = q.Where("orders.status = ?", status)
 	}
 	if err := q.Find(&orders).Error; err != nil {
-		return nil, 0, apperrors.HandlePgError(orderDB+".find_by_seller_id_paginated", err)
+		return nil, 0, apperrors.HandlePgError("order", err)
 	}
 	return orders, total, nil
 }
@@ -188,14 +186,14 @@ func (o *OrderDB) FindByUserIDPaginated(ctx context.Context, userID id.UUID, pag
 	baseQ := o.db.WithContext(ctx).
 		Model(&entity.Order{}).
 		Distinct("orders.id").
-		Where("orders.users_id = ?", userID)
+		Where("orders.user_id = ?", userID)
 	if status != "" {
 		baseQ = baseQ.Where("orders.status = ?", status)
 	}
 
 	var total int64
 	if err := baseQ.Count(&total).Error; err != nil {
-		return nil, 0, apperrors.HandlePgError(orderDB+".find_by_user_id_paginated", err)
+		return nil, 0, apperrors.HandlePgError("order", err)
 	}
 
 	var orders []*entity.Order
@@ -204,7 +202,7 @@ func (o *OrderDB) FindByUserIDPaginated(ctx context.Context, userID id.UUID, pag
 		Preload("User").
 		Preload("Address").
 		Preload("BitcoinPayment").
-		Where("orders.users_id = ?", userID).
+		Where("orders.user_id = ?", userID).
 		Group("orders.id").
 		Order("orders.created_at desc").
 		Limit(size).
@@ -213,7 +211,7 @@ func (o *OrderDB) FindByUserIDPaginated(ctx context.Context, userID id.UUID, pag
 		q = q.Where("orders.status = ?", status)
 	}
 	if err := q.Find(&orders).Error; err != nil {
-		return nil, 0, apperrors.HandlePgError(orderDB+".find_by_user_id_paginated", err)
+		return nil, 0, apperrors.HandlePgError("order", err)
 	}
 	return orders, total, nil
 }
@@ -221,17 +219,17 @@ func (o *OrderDB) FindByUserIDPaginated(ctx context.Context, userID id.UUID, pag
 func (o *OrderDB) DeleteByID(ctx context.Context, orderID id.UUID) error {
 	tx := o.db.WithContext(ctx).Begin()
 	if tx.Error != nil {
-		return apperrors.HandlePgError(orderDB+".delete_by_id", tx.Error)
+		return apperrors.HandlePgError("order", tx.Error)
 	}
 
 	if err := tx.Delete(&entity.Order{}, "id = ?", orderID).Error; err != nil {
 		tx.Rollback()
-		return apperrors.HandlePgError(orderDB+".delete_by_id", err)
+		return apperrors.HandlePgError("order", err)
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		return apperrors.HandlePgError(orderDB+".delete_by_id", err)
+		return apperrors.HandlePgError("order", err)
 	}
 
 	return nil

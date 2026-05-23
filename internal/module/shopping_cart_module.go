@@ -18,8 +18,9 @@ func InitShoppingCartModule(db *gorm.DB, log *logger.Logger, jwtService *jwt.JWT
 	productRepository := database.NewProductDB(db)
 	userRepository := database.NewUserDB(db)
 
+	shoppingCartItemRepository := database.NewShoppingCartItemDB(db)
 	shoppingCartService := service.NewShoppingCartService(log, shoppingCartRepository, mapper.NewShoppingCartMapper())
-	shoppingCartItemService := service.NewShoppingCartItemService(log, shoppingCartRepository, productRepository, mapper.NewShoppingCartMapper())
+	shoppingCartItemService := service.NewShoppingCartItemService(log, shoppingCartRepository, shoppingCartItemRepository, productRepository, mapper.NewShoppingCartMapper())
 	shoppingCartHandler := handler.NewShoppingCartHandler(shoppingCartService, log)
 	shoppingCartItemHandler := handler.NewShoppingCartItemHandler(shoppingCartItemService, log)
 

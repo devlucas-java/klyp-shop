@@ -24,7 +24,7 @@ func setupUserDB(t *testing.T) {
 	dbUser, err = gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
 
-	err = dbUser.AutoMigrate(&entity.User{})
+	err = dbUser.AutoMigrate(&entity.User{}, &entity.ShoppingCart{})
 	require.NoError(t, err)
 
 	userRepo = database.NewUserDB(dbUser).(*database.UserDB)
